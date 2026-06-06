@@ -156,9 +156,18 @@ function isEvCharging(hay: string) {
   return /\bev\b|electric vehicle|charging station|supercharger|tesla|chargepoint|charge\s*point|electrify america|blink charging|\bblink\b(?!\s*charging)?|evgo|ev-go|wattstation|wattzilla|greenlots|semaconnect|flo charging|volta charging/.test(hay);
 }
 
+// Hard exclusions — banks, ATMs, financial services, EV-only chargers, and
+// other non-truck-related POIs that TomTom sometimes returns inside the
+// rest-area / weigh-station / truck-stop category searches.
+function isExcludedJunk(hay: string) {
+  if (isEvCharging(hay)) return true;
+  return /\batm\b|\bbank\b|credit\s*union|financial|cardtronics|\belan\b|western\s*union|moneygram|insurance|mortgage|\bloan\b|pharmacy|hospital|clinic|dental|hotel|motel|\binn\b|\bresort\b|restaurant|cafe|coffee|mcdonald|starbucks|subway|burger|\bpizza\b|grocery|\bmall\b|car\s*wash|auto\s*parts|dealership/.test(hay);
+}
+
 function isWeighStationStrict(hay: string) {
   if (truckStopAllowed(hay)) return false;
   if (isCatScale(hay)) return false;
+  if (isExcludedJunk(hay)) return false;
   return /weigh\s*station|weigh-in-motion|truck\s*inspection|inspection\s*station|port\s*of\s*entry|dot\s*scale|scale\s*house|agricultural\s*inspection/.test(hay);
 }
 
