@@ -585,10 +585,32 @@ function Dashboard() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard icon={<Cloud className="size-5" />} label="Weather Risk" count={weatherCount} sub={usingRoute ? "On this route (Open-Meteo + NWS)" : "Active NWS alerts (national)"} accent="primary" loading={feedLoading} />
           <StatCard icon={<Wind className="size-5" />} label="Wind Risk" count={windCount} sub={usingRoute ? "Wind/gust risks on this route" : "Active high-wind / tornado (NWS)"} accent="primary" loading={feedLoading} />
-          <StatCard icon={<Construction className="size-5" />} label="DOT / Road Closure Risk" count={closureCount} sub={feed?.providers.road === "not_connected" ? "Connect DOT API" : usingRoute ? "Closures on this route" : "Active closures"} accent="destructive" loading={feedLoading} />
+          <StatCard icon={<Construction className="size-5" />} label="Road Closure Risk" count={closureCount} sub={feed?.providers.road === "not_connected" ? "Connect DOT API" : usingRoute ? "Closures on this route" : "Active closures"} accent="destructive" loading={feedLoading} />
+          <StatCard icon={<ShieldAlert className="size-5" />} label="Truck Restriction Risk" count={0} sub="Bridge / weight / hazmat data not connected yet" accent="warning" />
+          <StatCard icon={<Fuel className="size-5" />} label="Fuel Stops" count={fuelStops?.pois.length ?? 0} sub={fuelStops && !fuelStops.connected ? "Not connected yet" : usingRoute ? `Truck-friendly · ${fuelStops?.provider ?? "TomTom"}` : "Analyze a route to find stops"} accent="primary" loading={fuelLoading} />
+          <StatCard icon={<ParkingCircle className="size-5" />} label="Parking Options" count={parkingStops?.pois.length ?? 0} sub={parkingStops && !parkingStops.connected ? "Not connected yet" : usingRoute ? `Truck stops & rest areas · ${parkingStops?.provider ?? "TomTom"}` : "Analyze a route to find parking"} accent="primary" loading={parkingLoading} />
           <StatCard icon={<Users className="size-5" />} label="Driver Reports" count={driverCount} sub="Community layer · live" accent="warning" />
         </div>
       </div>
+
+      {usingRoute && (
+        <div className="grid lg:grid-cols-2 gap-4">
+          <PoiList
+            icon={<Fuel className="size-4 text-primary" />}
+            title="Fuel Stops on this Route"
+            loading={fuelLoading}
+            result={fuelStops}
+            emptyHint="No truck-friendly fuel stops detected near this route."
+          />
+          <PoiList
+            icon={<ParkingCircle className="size-4 text-primary" />}
+            title="Truck Parking on this Route"
+            loading={parkingLoading}
+            result={parkingStops}
+            emptyHint="No truck stops, rest areas, or parking detected near this route."
+          />
+        </div>
+      )}
 
       <div>
         <h2 className="font-semibold mb-3">Recent live alerts (grouped by type & region)</h2>
