@@ -151,7 +151,7 @@ function Dashboard() {
               </div>
               {!result.dataAvailability.weather && (
                 <div className="text-sm text-muted-foreground border border-border bg-muted/30 rounded-md p-3">
-                  Live weather data not connected yet.
+                  Weather forecast not connected. NWS severe weather alerts connected.
                 </div>
               )}
               <div className="grid sm:grid-cols-3 gap-2">
@@ -166,20 +166,30 @@ function Dashboard() {
                         <div className="flex items-center gap-2"><CloudRain className="size-3" />{w.precipMm != null ? `${w.precipMm} mm` : "—"}</div>
                       </>
                     ) : (
-                      <div className="text-muted-foreground">Live weather data not connected yet.</div>
+                      <div className="text-muted-foreground">Weather forecast not connected. NWS severe weather alerts connected.</div>
                     )}
                   </div>
                 ))}
               </div>
               {result.weatherAlerts.length > 0 && (
-                <div className="space-y-1.5">
-                  <div className="text-xs font-medium text-muted-foreground">Active alerts on this route</div>
-                  {result.weatherAlerts.map((a) => (
-                    <div key={a.id} className="flex items-start gap-2 text-sm rounded-md border border-border bg-background p-2">
-                      <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(a.severity)}`}>{a.severity}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium">{a.event} — {a.areaDesc}</div>
-                        <div className="text-[11px] text-muted-foreground">Source: NWS · Effective {new Date(a.effective).toLocaleString()}</div>
+                <div className="space-y-2">
+                  <div className="text-xs font-medium text-muted-foreground">
+                    Active alerts on this route ({result.weatherAlerts.length} total, grouped by type & region)
+                  </div>
+                  {groupAlerts(result.weatherAlerts).map((g) => (
+                    <div key={g.key} className="rounded-md border border-border bg-background p-3 text-sm">
+                      <div className="flex items-start gap-2">
+                        <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(g.severity)}`}>{g.severity}</span>
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="font-semibold leading-tight">{g.event}</div>
+                          <div className="grid sm:grid-cols-2 gap-x-4 gap-y-0.5 text-[12px] text-muted-foreground">
+                            <div><span className="text-foreground/70 font-medium">Region:</span> {g.region}</div>
+                            <div><span className="text-foreground/70 font-medium">Source:</span> {g.provider}</div>
+                            <div><span className="text-foreground/70 font-medium">Effective:</span> {new Date(g.effective).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
+                            <div><span className="text-foreground/70 font-medium">Count:</span> {g.count} {g.count === 1 ? "area" : "areas"}</div>
+                          </div>
+                          <div className="text-[12px] pt-1"><span className="text-foreground/70 font-medium">Action:</span> {g.recommendedAction}</div>
+                        </div>
                       </div>
                     </div>
                   ))}
