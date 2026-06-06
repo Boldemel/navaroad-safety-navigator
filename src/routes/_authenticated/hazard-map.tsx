@@ -69,6 +69,8 @@ function HazardMap() {
   const tomtomKeyFn = useServerFn(getTomTomKey);
   const activeRoute = useActiveRoute();
   const geometry = activeRoute?.geometry ?? [];
+  const geo = useGeolocation({ watch: true });
+
 
   const { data: tomtom } = useQuery({
     queryKey: ["tomtom-key"],
