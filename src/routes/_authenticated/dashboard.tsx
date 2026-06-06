@@ -22,10 +22,13 @@ function Dashboard() {
   const [destination, setDestination] = useState("");
   const [truck, setTruck] = useState("Sleeper");
   const [trailer, setTrailer] = useState("Dry Van");
-  const [score, setScore] = useState<number | null>(null);
   useRealtimeInvalidate(["hazard_reports", "alerts"], [["dash-hazards"], ["dash-alerts"]]);
 
-
+  const analyzeFn = useServerFn(analyzeRoute);
+  const analysis = useMutation({
+    mutationFn: (vars: { origin: string; destination: string; truck: string; trailer: string }) =>
+      analyzeFn({ data: vars }),
+  });
 
   const { data: hazards = [] } = useQuery({
     queryKey: ["dash-hazards"],
@@ -59,13 +62,12 @@ function Dashboard() {
     + alerts.filter((a) => a.alert_type === "road_closure").length;
   const driverCount = hazards.length;
 
-  function analyze(e: React.FormEvent) {
+  const result = analysis.data;
+  const score = result?.score ?? null;
+
+  function onAnalyze(e: React.FormEvent) {
     e.preventDefault();
-    // MVP: derive a deterministic-ish score from active hazards/alerts and trailer type.
-    const base = 95;
-    const penalty = alerts.reduce((acc, a) => acc + (a.severity === "critical" ? 25 : a.severity === "high" ? 12 : 5), 0);
-    const trailerRisk = trailer === "Reefer" || trailer === "Dry Van" ? 8 : 2;
-    setScore(Math.max(35, Math.min(99, base - penalty - trailerRisk)));
+    analysis.mutate({ origin, destination, truck, trailer });
   }
 
   return (
