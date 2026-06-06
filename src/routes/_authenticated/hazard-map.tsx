@@ -13,6 +13,8 @@ import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { useDriverNames } from "@/hooks/use-driver-names";
 import { formatDistanceToNow } from "date-fns";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
+import { getMapConfig } from "@/lib/map-config.functions";
+import { HazardMapbox, type MapMarker } from "@/components/hazard-mapbox";
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
   component: HazardMap,
