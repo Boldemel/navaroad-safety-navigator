@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, MapPin, Search } from "lucide-react";
+import { Loader2, MapPin, Search, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { searchAddresses, type AddressSuggestion } from "@/lib/geo-search.functions";
@@ -14,6 +14,12 @@ export type SelectedPlace = {
   country: string | null;
 };
 
+export type FavoriteSuggestion = SelectedPlace & {
+  id: string;
+  categoryLabel: string;
+  customLabel: string;
+};
+
 type Props = {
   value: string;
   onChange: (text: string) => void;
@@ -22,7 +28,9 @@ type Props = {
   required?: boolean;
   proximity?: { lat: number; lon: number } | null;
   inputId?: string;
+  favorites?: FavoriteSuggestion[];
 };
+
 
 export function AddressAutocomplete({
   value,
@@ -32,6 +40,7 @@ export function AddressAutocomplete({
   required,
   proximity,
   inputId,
+  favorites,
 }: Props) {
   const searchFn = useServerFn(searchAddresses);
   const [open, setOpen] = useState(false);
@@ -97,6 +106,18 @@ export function AddressAutocomplete({
     setResults([]);
   }
 
+  const showFavorites =
+    open && value.trim().length < 2 && (favorites?.length ?? 0) > 0;
+  const favList = favorites ?? [];
+
+  function pickFavorite(f: FavoriteSuggestion) {
+    setSkipNext(true);
+    onChange(f.label);
+    onSelect({ label: f.label, lat: f.lat, lon: f.lon, city: f.city, state: f.state, country: f.country });
+    setOpen(false);
+    setResults([]);
+  }
+
   return (
     <div ref={rootRef} className="relative">
       <Input
@@ -107,7 +128,7 @@ export function AddressAutocomplete({
         autoComplete="off"
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => {
-          if (results.length > 0) setOpen(true);
+          if (results.length > 0 || (favList.length > 0 && value.trim().length < 2)) setOpen(true);
         }}
         onKeyDown={(e) => {
           if (!open) return;
@@ -130,7 +151,30 @@ export function AddressAutocomplete({
       )}
       {open && (
         <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover text-popover-foreground shadow-md overflow-hidden">
-          {loading && results.length === 0 ? (
+          {showFavorites ? (
+            <div>
+              <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground">Saved locations</div>
+              <ul className="max-h-72 overflow-auto py-1">
+                {favList.map((f) => (
+                  <li key={"fav-" + f.id}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); pickFavorite(f); }}
+                      className="w-full text-left px-3 py-2 text-sm flex items-start gap-2 hover:bg-accent/60"
+                    >
+                      <Star className="size-3.5 mt-0.5 text-warning shrink-0" />
+                      <span className="flex-1 min-w-0">
+                        <span className="block truncate">{f.customLabel}</span>
+                        <span className="block text-[11px] text-muted-foreground truncate">
+                          {f.categoryLabel} · {f.label}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : loading && results.length === 0 ? (
             <div className="px-3 py-2 text-xs text-muted-foreground inline-flex items-center gap-2">
               <Search className="size-3.5" /> Searching…
             </div>

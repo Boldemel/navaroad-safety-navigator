@@ -16,6 +16,16 @@ const InputSchema = z.object({
   trailer: z.string().max(60).optional(),
   originCoords: z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) }).optional(),
   destinationCoords: z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) }).optional(),
+  truckProfile: z
+    .object({
+      heightIn: z.number().min(0).max(300).nullable().optional(),
+      weightLbs: z.number().min(0).max(500000).nullable().optional(),
+      lengthFt: z.number().min(0).max(200).nullable().optional(),
+      axles: z.number().int().min(0).max(20).nullable().optional(),
+      hazmat: z.boolean().optional(),
+      loaded: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 export type RouteAnalysis = {
@@ -66,6 +76,19 @@ export type RouteAnalysis = {
     weather: boolean;
     weatherAlerts: boolean;
     road: boolean;
+    truckRestrictions: boolean;
+  };
+  truckRestrictions: {
+    connected: boolean;
+    message: string;
+    profile: {
+      heightIn: number | null;
+      weightLbs: number | null;
+      lengthFt: number | null;
+      axles: number | null;
+      hazmat: boolean;
+      loaded: boolean | null;
+    } | null;
   };
   providers: { weather: string; weatherAlerts: string; road: string };
 };
@@ -190,6 +213,22 @@ export const analyzeRoute = createServerFn({ method: "POST" })
         weather: weatherAvailable,
         weatherAlerts: weatherAlerts.length > 0,
         road: roadAlerts.length > 0,
+        truckRestrictions: false,
+      },
+      truckRestrictions: {
+        connected: false,
+        message:
+          "Truck restriction data not connected yet. Route not verified against bridge clearance, weight limits, or hazmat restrictions.",
+        profile: data.truckProfile
+          ? {
+              heightIn: data.truckProfile.heightIn ?? null,
+              weightLbs: data.truckProfile.weightLbs ?? null,
+              lengthFt: data.truckProfile.lengthFt ?? null,
+              axles: data.truckProfile.axles ?? null,
+              hazmat: !!data.truckProfile.hazmat,
+              loaded: data.truckProfile.loaded ?? null,
+            }
+          : null,
       },
       providers: {
         weather: weatherAvailable ? "Open-Meteo" : "not_connected",

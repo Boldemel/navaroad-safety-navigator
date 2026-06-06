@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Wind, Construction, AlertTriangle, Route as RouteIcon, ShieldCheck, Loader2,
   CloudRain, Thermometer, MapPin, Radio, Users, Cloud, Lightbulb, Info, LocateFixed,
-  Navigation2,
+  Navigation2, Fuel, ParkingCircle, ShieldAlert,
 } from "lucide-react";
 import { TRUCK_TYPES, TRAILER_TYPES, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
@@ -23,7 +23,10 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { reverseGeocode } from "@/lib/geo.functions";
 import { getTruckRoute } from "@/lib/navigation.functions";
 import { startNavigation, useNavigationSession, stopNavigation } from "@/hooks/use-navigation-session";
-import { AddressAutocomplete, type SelectedPlace } from "@/components/address-autocomplete";
+import { AddressAutocomplete, type SelectedPlace, type FavoriteSuggestion } from "@/components/address-autocomplete";
+import { useFavoriteLocations } from "@/components/favorite-locations-card";
+import { favoriteCategoryLabel } from "@/lib/favorite-locations";
+import { searchTruckPois } from "@/lib/poi-search.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -44,6 +47,7 @@ function Dashboard() {
   const feedFn = useServerFn(getSafetyFeed);
   const reverseGeocodeFn = useServerFn(reverseGeocode);
   const truckRouteFn = useServerFn(getTruckRoute);
+  const searchPoisFn = useServerFn(searchTruckPois);
   const activeRoute = useActiveRoute();
   const geo = useGeolocation();
   const router = useRouter();
@@ -52,6 +56,46 @@ function Dashboard() {
   const [awaitingCoords, setAwaitingCoords] = useState(false);
 
   const [pendingAutoAnalyze, setPendingAutoAnalyze] = useState(false);
+
+  // Load truck profile from Supabase so analysis uses driver-saved dimensions.
+  const { data: profile } = useQuery({
+    queryKey: ["truck-profile"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return null;
+      const { data } = await supabase.from("profiles").select("*").eq("id", u.user.id).maybeSingle();
+      return data;
+    },
+  });
+  useEffect(() => {
+    if (profile?.truck_type) setTruck(profile.truck_type);
+    if (profile?.trailer_type) setTrailer(profile.trailer_type);
+  }, [profile?.truck_type, profile?.trailer_type]);
+
+  const truckProfile = {
+    heightIn: profile?.truck_height_in ?? null,
+    weightLbs: profile?.truck_weight_lbs ?? null,
+    lengthFt: profile?.truck_length_ft ?? null,
+    axles: profile?.truck_axles ?? null,
+    hazmat: !!profile?.truck_hazmat,
+    loaded: profile?.load_status === "loaded",
+  };
+
+  // Saved locations → autocomplete suggestions.
+  const { data: favorites = [] } = useFavoriteLocations();
+  const favSuggestions: FavoriteSuggestion[] = favorites
+    .filter((f) => f.latitude != null && f.longitude != null)
+    .map((f) => ({
+      id: f.id,
+      customLabel: f.label,
+      categoryLabel: favoriteCategoryLabel(f.category),
+      label: f.address,
+      lat: f.latitude as number,
+      lon: f.longitude as number,
+      city: f.city ?? null,
+      state: f.state ?? null,
+      country: f.country ?? null,
+    }));
 
   async function fillOriginFromCoords(lat: number, lon: number) {
     setLocating(true);
@@ -98,7 +142,7 @@ function Dashboard() {
     if (origin.trim().length < 2 || destination.trim().length < 2) return;
     setPendingAutoAnalyze(false);
     analysis.mutate({
-      origin, destination, truck, trailer,
+      origin, destination, truck, trailer, truckProfile,
       ...(originPlace ? { originCoords: { lat: originPlace.lat, lon: originPlace.lon } } : {}),
       ...(destPlace ? { destinationCoords: { lat: destPlace.lat, lon: destPlace.lon } } : {}),
     });
@@ -113,6 +157,7 @@ function Dashboard() {
       origin: string; destination: string; truck: string; trailer: string;
       originCoords?: { lat: number; lon: number };
       destinationCoords?: { lat: number; lon: number };
+      truckProfile?: typeof truckProfile;
     }) => analyzeFn({ data: vars }),
     onSuccess: (data, vars) => {
       saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
@@ -190,6 +235,20 @@ function Dashboard() {
     },
   });
 
+  // Truck-friendly fuel + parking POIs along the active route (TomTom).
+  const { data: fuelStops, isLoading: fuelLoading } = useQuery({
+    queryKey: ["fuel-stops", activeRoute?.savedAt ?? "none"],
+    queryFn: () => searchPoisFn({ data: { geometry, kind: "fuel" } }),
+    enabled: geometry.length >= 2,
+    staleTime: 10 * 60_000,
+  });
+  const { data: parkingStops, isLoading: parkingLoading } = useQuery({
+    queryKey: ["parking-stops", activeRoute?.savedAt ?? "none"],
+    queryFn: () => searchPoisFn({ data: { geometry, kind: "parking" } }),
+    enabled: geometry.length >= 2,
+    staleTime: 10 * 60_000,
+  });
+
   const result = analysis.data;
 
   // Stat cards: prefer the analyzed route when present, else fall back to the
@@ -216,7 +275,7 @@ function Dashboard() {
   function onAnalyze(e: React.FormEvent) {
     e.preventDefault();
     analysis.mutate({
-      origin, destination, truck, trailer,
+      origin, destination, truck, trailer, truckProfile,
       ...(originPlace ? { originCoords: { lat: originPlace.lat, lon: originPlace.lon } } : {}),
       ...(destPlace ? { destinationCoords: { lat: destPlace.lat, lon: destPlace.lon } } : {}),
     });
@@ -266,6 +325,7 @@ function Dashboard() {
                 onSelect={(p) => setOriginPlace(p)}
                 placeholder="Denver, CO"
                 proximity={geo.coords ?? null}
+                favorites={favSuggestions}
               />
               {geo.status === "denied" && (
                 <p className="text-[11px] text-destructive">Location access is needed for live route safety alerts.</p>
@@ -284,6 +344,7 @@ function Dashboard() {
                 onSelect={(p) => setDestPlace(p)}
                 placeholder="Salt Lake City, UT"
                 proximity={originPlace ? { lat: originPlace.lat, lon: originPlace.lon } : (geo.coords ?? null)}
+                favorites={favSuggestions}
               />
             </div>
             <div className="space-y-1.5">
@@ -396,6 +457,32 @@ function Dashboard() {
                 <span className="font-medium text-primary inline-flex items-center gap-1.5"><Lightbulb className="size-3.5" />Recommended action:</span>{" "}
                 <span className="text-foreground">{result.recommendedAction}</span>
               </div>
+
+              {/* Truck restriction risk — honest "not connected" notice with profile context. */}
+              <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm space-y-2">
+                <div className="font-medium text-warning inline-flex items-center gap-1.5">
+                  <ShieldAlert className="size-3.5" /> Truck Restriction Risk
+                </div>
+                <p className="text-foreground/90">{result.truckRestrictions.message}</p>
+                <ul className="text-xs text-muted-foreground space-y-0.5 list-disc pl-5">
+                  <li>Low clearance risk — not verified</li>
+                  <li>Weight restriction risk — not verified</li>
+                  <li>Hazmat restriction risk — not verified{result.truckRestrictions.profile?.hazmat ? " (hazmat load on profile)" : ""}</li>
+                </ul>
+                {result.truckRestrictions.profile && (
+                  <div className="text-[11px] text-muted-foreground pt-1 border-t border-border/60">
+                    <span className="font-medium text-foreground/70">Using profile:</span>{" "}
+                    {[
+                      result.truckRestrictions.profile.heightIn != null ? `${result.truckRestrictions.profile.heightIn}" tall` : null,
+                      result.truckRestrictions.profile.weightLbs != null ? `${result.truckRestrictions.profile.weightLbs.toLocaleString()} lbs` : null,
+                      result.truckRestrictions.profile.lengthFt != null ? `${result.truckRestrictions.profile.lengthFt}' long` : null,
+                      result.truckRestrictions.profile.axles != null ? `${result.truckRestrictions.profile.axles} axles` : null,
+                      result.truckRestrictions.profile.hazmat ? "hazmat" : null,
+                      result.truckRestrictions.profile.loaded === true ? "loaded" : result.truckRestrictions.profile.loaded === false ? "empty" : null,
+                    ].filter(Boolean).join(" · ") || "no dimensions saved — set in Profile › Truck Profile"}
+                  </div>
+                )}
+              </div>
               <div className="flex flex-wrap gap-2 items-center pt-1">
                 {navSession ? (
                   <>
@@ -498,10 +585,32 @@ function Dashboard() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard icon={<Cloud className="size-5" />} label="Weather Risk" count={weatherCount} sub={usingRoute ? "On this route (Open-Meteo + NWS)" : "Active NWS alerts (national)"} accent="primary" loading={feedLoading} />
           <StatCard icon={<Wind className="size-5" />} label="Wind Risk" count={windCount} sub={usingRoute ? "Wind/gust risks on this route" : "Active high-wind / tornado (NWS)"} accent="primary" loading={feedLoading} />
-          <StatCard icon={<Construction className="size-5" />} label="DOT / Road Closure Risk" count={closureCount} sub={feed?.providers.road === "not_connected" ? "Connect DOT API" : usingRoute ? "Closures on this route" : "Active closures"} accent="destructive" loading={feedLoading} />
+          <StatCard icon={<Construction className="size-5" />} label="Road Closure Risk" count={closureCount} sub={feed?.providers.road === "not_connected" ? "Connect DOT API" : usingRoute ? "Closures on this route" : "Active closures"} accent="destructive" loading={feedLoading} />
+          <StatCard icon={<ShieldAlert className="size-5" />} label="Truck Restriction Risk" count={0} sub="Bridge / weight / hazmat data not connected yet" accent="warning" />
+          <StatCard icon={<Fuel className="size-5" />} label="Fuel Stops" count={fuelStops?.pois.length ?? 0} sub={fuelStops && !fuelStops.connected ? "Not connected yet" : usingRoute ? `Truck-friendly · ${fuelStops?.provider ?? "TomTom"}` : "Analyze a route to find stops"} accent="primary" loading={fuelLoading} />
+          <StatCard icon={<ParkingCircle className="size-5" />} label="Parking Options" count={parkingStops?.pois.length ?? 0} sub={parkingStops && !parkingStops.connected ? "Not connected yet" : usingRoute ? `Truck stops & rest areas · ${parkingStops?.provider ?? "TomTom"}` : "Analyze a route to find parking"} accent="primary" loading={parkingLoading} />
           <StatCard icon={<Users className="size-5" />} label="Driver Reports" count={driverCount} sub="Community layer · live" accent="warning" />
         </div>
       </div>
+
+      {usingRoute && (
+        <div className="grid lg:grid-cols-2 gap-4">
+          <PoiList
+            icon={<Fuel className="size-4 text-primary" />}
+            title="Fuel Stops on this Route"
+            loading={fuelLoading}
+            result={fuelStops}
+            emptyHint="No truck-friendly fuel stops detected near this route."
+          />
+          <PoiList
+            icon={<ParkingCircle className="size-4 text-primary" />}
+            title="Truck Parking on this Route"
+            loading={parkingLoading}
+            result={parkingStops}
+            emptyHint="No truck stops, rest areas, or parking detected near this route."
+          />
+        </div>
+      )}
 
       <div>
         <h2 className="font-semibold mb-3">Recent live alerts (grouped by type & region)</h2>
@@ -543,6 +652,51 @@ function StatCard({ icon, label, count, sub, accent, loading }: { icon: React.Re
       <div className="mt-4 text-3xl font-semibold">{loading ? <Loader2 className="size-7 animate-spin" /> : count}</div>
       <div className="text-sm text-muted-foreground">{label}</div>
       {sub && <div className="text-[11px] text-muted-foreground/80 mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+function PoiList({
+  icon, title, loading, result, emptyHint,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  loading: boolean;
+  result: { connected: boolean; provider: string; message?: string; pois: Array<{ id: string; name: string; brand: string | null; address: string; distanceMi?: number | null }> } | undefined;
+  emptyHint: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+      <div className="flex items-center gap-2">{icon}<h3 className="font-semibold">{title}</h3></div>
+      {loading ? (
+        <div className="text-sm text-muted-foreground inline-flex items-center gap-2"><Loader2 className="size-3.5 animate-spin" /> Searching along route…</div>
+      ) : !result ? (
+        <div className="text-sm text-muted-foreground">Analyze a route to find stops.</div>
+      ) : !result.connected ? (
+        <div className="text-sm text-muted-foreground border border-border bg-muted/30 rounded-md p-3">
+          {result.message ?? "Not connected yet."}
+        </div>
+      ) : result.pois.length === 0 ? (
+        <div className="text-sm text-muted-foreground">{emptyHint}</div>
+      ) : (
+        <ul className="divide-y divide-border max-h-80 overflow-auto">
+          {result.pois.slice(0, 12).map((p) => (
+            <li key={p.id} className="py-2 flex items-start gap-3 text-sm">
+              <MapPin className="size-3.5 mt-1 text-muted-foreground shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">{p.name}{p.brand && p.brand !== p.name ? ` · ${p.brand}` : ""}</div>
+                <div className="text-[11px] text-muted-foreground truncate">{p.address}</div>
+              </div>
+              {p.distanceMi != null && (
+                <span className="text-[11px] text-muted-foreground whitespace-nowrap">{p.distanceMi < 1 ? "<1 mi" : `${Math.round(p.distanceMi)} mi`}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {result?.connected && (
+        <div className="text-[10px] text-muted-foreground/80">Source: {result.provider}</div>
+      )}
     </div>
   );
 }

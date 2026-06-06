@@ -4,12 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { TRUCK_TYPES, TRAILER_TYPES } from "@/lib/navaroad";
 import { toast } from "sonner";
 import { User } from "lucide-react";
 import { VoiceSettingsCard } from "@/components/voice-settings-card";
+import { TruckProfileCard } from "@/components/truck-profile-card";
+import { FavoriteLocationsCard } from "@/components/favorite-locations-card";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   component: Profile,
@@ -21,9 +21,6 @@ function Profile() {
   const [email, setEmail] = useState("");
   const [form, setForm] = useState({
     driver_name: "",
-    truck_type: "Sleeper",
-    trailer_type: "Dry Van",
-    load_status: "empty",
     notify_email: true,
     notify_push: true,
     notify_sms: false,
@@ -38,9 +35,6 @@ function Profile() {
       if (data) {
         setForm({
           driver_name: data.driver_name ?? "",
-          truck_type: data.truck_type ?? "Sleeper",
-          trailer_type: data.trailer_type ?? "Dry Van",
-          load_status: data.load_status ?? "empty",
           notify_email: data.notify_email ?? true,
           notify_push: data.notify_push ?? true,
           notify_sms: data.notify_sms ?? false,
@@ -63,6 +57,7 @@ function Profile() {
 
   if (loading) return <div className="p-8 text-muted-foreground text-sm">Loading…</div>;
 
+
   return (
     <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
@@ -81,34 +76,8 @@ function Profile() {
           <Input value={form.driver_name} onChange={(e) => setForm({ ...form, driver_name: e.target.value })} />
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label>Truck type</Label>
-            <Select value={form.truck_type} onValueChange={(v) => setForm({ ...form, truck_type: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{TRUCK_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Trailer type</Label>
-            <Select value={form.trailer_type} onValueChange={(v) => setForm({ ...form, trailer_type: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{TRAILER_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground">Truck, trailer, dimensions, and load status are managed in the Truck Profile below.</p>
 
-        <div className="space-y-1.5">
-          <Label>Load status</Label>
-          <Select value={form.load_status} onValueChange={(v) => setForm({ ...form, load_status: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="loaded">Loaded</SelectItem>
-              <SelectItem value="empty">Empty</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">Empty trailers get sharper wind-risk warnings.</p>
-        </div>
 
         <div className="pt-4 border-t border-border space-y-4">
           <div className="font-medium">Notification preferences</div>
@@ -120,6 +89,8 @@ function Profile() {
         <Button type="submit" disabled={saving} className="w-full sm:w-auto">{saving ? "Saving…" : "Save profile"}</Button>
       </form>
 
+      <TruckProfileCard />
+      <FavoriteLocationsCard />
       <VoiceSettingsCard />
     </div>
   );
