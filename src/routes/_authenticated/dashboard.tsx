@@ -235,6 +235,20 @@ function Dashboard() {
     },
   });
 
+  // Truck-friendly fuel + parking POIs along the active route (TomTom).
+  const { data: fuelStops, isLoading: fuelLoading } = useQuery({
+    queryKey: ["fuel-stops", activeRoute?.savedAt ?? "none"],
+    queryFn: () => searchPoisFn({ data: { geometry, kind: "fuel" } }),
+    enabled: geometry.length >= 2,
+    staleTime: 10 * 60_000,
+  });
+  const { data: parkingStops, isLoading: parkingLoading } = useQuery({
+    queryKey: ["parking-stops", activeRoute?.savedAt ?? "none"],
+    queryFn: () => searchPoisFn({ data: { geometry, kind: "parking" } }),
+    enabled: geometry.length >= 2,
+    staleTime: 10 * 60_000,
+  });
+
   const result = analysis.data;
 
   // Stat cards: prefer the analyzed route when present, else fall back to the
