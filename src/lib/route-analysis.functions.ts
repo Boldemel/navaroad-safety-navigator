@@ -225,7 +225,7 @@ export const analyzeRoute = createServerFn({ method: "POST" })
         truckRestrictions: r.truckRestrictionsVerified,
       },
       truckRestrictions: {
-        connected: false,
+        connected: r.truckRestrictionsVerified,
         message:
           r.truckRestrictionsVerified
             ? "Truck route calculated with truck routing enabled. Always verify posted restrictions before departure."
