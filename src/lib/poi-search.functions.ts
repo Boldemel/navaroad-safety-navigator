@@ -438,17 +438,17 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       }
       if (data.kind === "parking") {
         const isTruckParking =
-          (type === "truck_stop" && truckStopAllowed(hay)) ||
+          type === "truck_stop" ||
           type === "rest_area" ||
           truckStopAllowed(hay) ||
-          /truck\s*parking/.test(hay);
+          /truck\s*parking|rest\s*area|rest\s*stop|welcome\s*cent(er|re)|travel\s*cent(er|re)|safety\s*rest/.test(hay);
         if (!isTruckParking) {
           tomtomFilteredCount += 1;
           return;
         }
       }
       if (data.kind === "truck_stop") {
-        if (!truckStopAllowed(hay)) {
+        if (isNotTruckStop(hay) || !truckStopAllowed(hay)) {
           tomtomFilteredCount += 1;
           return;
         }
