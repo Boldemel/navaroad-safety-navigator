@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Wind, Construction, AlertTriangle, Route as RouteIcon, ShieldCheck, Loader2,
   CloudRain, Thermometer, MapPin, Radio, Users, Cloud, Lightbulb, Info, LocateFixed,
+  Navigation2,
 } from "lucide-react";
 import { TRUCK_TYPES, TRAILER_TYPES, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
@@ -20,10 +21,13 @@ import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { useActiveRoute, saveActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { reverseGeocode } from "@/lib/geo.functions";
+import { getTruckRoute } from "@/lib/navigation.functions";
+import { startNavigation, useNavigationSession, stopNavigation } from "@/hooks/use-navigation-session";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
 });
+
 
 
 function Dashboard() {
@@ -36,9 +40,13 @@ function Dashboard() {
   const analyzeFn = useServerFn(analyzeRoute);
   const feedFn = useServerFn(getSafetyFeed);
   const reverseGeocodeFn = useServerFn(reverseGeocode);
+  const truckRouteFn = useServerFn(getTruckRoute);
   const activeRoute = useActiveRoute();
   const geo = useGeolocation();
+  const router = useRouter();
+  const navSession = useNavigationSession();
   const [locating, setLocating] = useState(false);
+
 
   async function useCurrentLocation() {
     if (geo.status !== "granted") {
@@ -66,6 +74,54 @@ function Dashboard() {
       saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
     },
   });
+
+  const startNav = useMutation({
+    mutationFn: async () => {
+      const result = analysis.data;
+      if (!result) throw new Error("Analyze a route first.");
+      // Prefer live GPS as origin; fall back to analyzed origin coords.
+      let originLat = result.origin.lat;
+      let originLon = result.origin.lon;
+      let originLabel = result.origin.name;
+      if (geo.status === "granted" && geo.coords) {
+        originLat = geo.coords.lat;
+        originLon = geo.coords.lon;
+        originLabel = "Current location";
+      } else if (geo.status === "idle" || geo.status === "denied") {
+        // Try once — non-blocking if denied.
+        geo.request();
+      }
+      const route = await truckRouteFn({
+        data: {
+          originLat,
+          originLon,
+          destLat: result.destination.lat,
+          destLon: result.destination.lon,
+          truck: true,
+        },
+      });
+      startNavigation({
+        origin: { lat: originLat, lon: originLon, label: originLabel },
+        destination: { lat: result.destination.lat, lon: result.destination.lon, label: result.destination.name },
+        geometry: route.geometry,
+        instructions: route.instructions,
+        totalKm: route.distanceKm,
+        baseDurationMin: route.durationMin,
+        trafficDurationMin: route.durationTrafficMin,
+        truck: true,
+      });
+      saveActiveRoute({
+        origin: originLabel,
+        destination: result.destination.name,
+        geometry: route.geometry,
+      });
+      return route;
+    },
+    onSuccess: () => {
+      router.navigate({ to: "/hazard-map" });
+    },
+  });
+
 
   // Live safety feed scoped to the active route corridor (NWS + DOT).
   const geometry = activeRoute?.geometry ?? [];
@@ -278,6 +334,46 @@ function Dashboard() {
                 <span className="font-medium text-primary inline-flex items-center gap-1.5"><Lightbulb className="size-3.5" />Recommended action:</span>{" "}
                 <span className="text-foreground">{result.recommendedAction}</span>
               </div>
+              <div className="flex flex-wrap gap-2 items-center pt-1">
+                {navSession ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => router.navigate({ to: "/hazard-map" })}
+                    >
+                      <Navigation2 className="size-4 mr-1" /> Open navigation
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={() => stopNavigation()}>
+                      End navigation
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={() => startNav.mutate()}
+                    disabled={startNav.isPending}
+                  >
+                    {startNav.isPending ? (
+                      <><Loader2 className="size-4 mr-1 animate-spin" /> Starting…</>
+                    ) : (
+                      <><Navigation2 className="size-4 mr-1" /> Start Navigation</>
+                    )}
+                  </Button>
+                )}
+                {geo.status === "denied" && (
+                  <span className="text-[11px] text-destructive">Location access is needed for live route safety alerts.</span>
+                )}
+                {geo.status !== "granted" && geo.status !== "denied" && (
+                  <span className="text-[11px] text-muted-foreground">Enable GPS for turn-by-turn from your current position.</span>
+                )}
+              </div>
+              {startNav.isError && (
+                <div className="text-sm text-destructive border border-destructive/30 bg-destructive/10 rounded-md p-3">
+                  {(startNav.error as Error).message || "Failed to start navigation."}
+                </div>
+              )}
+
             </div>
           )}
         </form>
