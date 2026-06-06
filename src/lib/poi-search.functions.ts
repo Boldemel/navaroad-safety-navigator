@@ -133,15 +133,25 @@ function classify(
   fallback: TruckPoiType = "fuel",
 ): TruckPoiType {
   const hay = `${name} ${brand ?? ""} ${categories.join(" ")}`.toLowerCase();
-  if (/weigh station|weigh-in-motion|inspection station|port of entry/.test(hay)) return "weigh_station";
-  if (/rest area|rest stop/.test(hay)) return "rest_area";
-  if (/truck stop|travel center|travel centre|truckstop|truck plaza/.test(hay)) return "truck_stop";
   if (TRUCK_STOP_BRANDS.some((b) => hay.includes(b.toLowerCase()))) return "truck_stop";
+  if (/truck stop|travel center|travel centre|truckstop|truck plaza/.test(hay)) return "truck_stop";
+  if (/weigh station|weigh-in-motion|inspection station|port of entry|cat scale/.test(hay)) return "weigh_station";
+  if (/rest area|rest stop/.test(hay)) return "rest_area";
   if (/diesel|fuel|gas station|petrol|gasoline/.test(hay)) return "fuel";
   if (/parking/.test(hay)) return "parking";
   return fallback;
-
 }
+
+// Brands / keywords that indicate EV charging — excluded from Fuel Stops.
+function isEvCharging(hay: string) {
+  return /\bev\b|electric vehicle|charging station|supercharger|tesla|chargepoint|charge\s*point|electrify america|blink charging|\bblink\b(?!\s*charging)?|evgo|ev-go|wattstation|wattzilla|greenlots|semaconnect|flo charging|volta charging/.test(hay);
+}
+
+function isWeighStationStrict(hay: string) {
+  if (truckStopAllowed(hay)) return false;
+  return /weigh\s*station|weigh-in-motion|truck\s*inspection|inspection\s*station|port\s*of\s*entry|cat\s*scale|dot\s*scale|scale\s*house/.test(hay);
+}
+
 
 function pointToSegmentDistanceMi(
   lat: number,
