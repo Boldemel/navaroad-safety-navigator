@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -23,6 +23,7 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { reverseGeocode } from "@/lib/geo.functions";
 import { getTruckRoute } from "@/lib/navigation.functions";
 import { startNavigation, useNavigationSession, stopNavigation } from "@/hooks/use-navigation-session";
+import { AddressAutocomplete, type SelectedPlace } from "@/components/address-autocomplete";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -33,6 +34,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function Dashboard() {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
+  const [originPlace, setOriginPlace] = useState<SelectedPlace | null>(null);
+  const [destPlace, setDestPlace] = useState<SelectedPlace | null>(null);
   const [truck, setTruck] = useState("Sleeper");
   const [trailer, setTrailer] = useState("Dry Van");
   useRealtimeInvalidate(["hazard_reports"], [["dash-hazards"]]);
@@ -55,8 +58,11 @@ function Dashboard() {
     try {
       const r = await reverseGeocodeFn({ data: { lat, lon } });
       setOrigin(r.label);
+      setOriginPlace({ label: r.label, lat, lon, city: null, state: null, country: null });
     } catch {
-      setOrigin(`${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+      const fallback = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+      setOrigin(fallback);
+      setOriginPlace({ label: fallback, lat, lon, city: null, state: null, country: null });
     } finally {
       setLocating(false);
       setPendingAutoAnalyze(true);
@@ -91,7 +97,11 @@ function Dashboard() {
     if (!pendingAutoAnalyze) return;
     if (origin.trim().length < 2 || destination.trim().length < 2) return;
     setPendingAutoAnalyze(false);
-    analysis.mutate({ origin, destination, truck, trailer });
+    analysis.mutate({
+      origin, destination, truck, trailer,
+      ...(originPlace ? { originCoords: { lat: originPlace.lat, lon: originPlace.lon } } : {}),
+      ...(destPlace ? { destinationCoords: { lat: destPlace.lat, lon: destPlace.lon } } : {}),
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingAutoAnalyze, origin, destination]);
 
@@ -99,8 +109,11 @@ function Dashboard() {
 
 
   const analysis = useMutation({
-    mutationFn: (vars: { origin: string; destination: string; truck: string; trailer: string }) =>
-      analyzeFn({ data: vars }),
+    mutationFn: (vars: {
+      origin: string; destination: string; truck: string; trailer: string;
+      originCoords?: { lat: number; lon: number };
+      destinationCoords?: { lat: number; lon: number };
+    }) => analyzeFn({ data: vars }),
     onSuccess: (data, vars) => {
       saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
     },
@@ -202,7 +215,11 @@ function Dashboard() {
 
   function onAnalyze(e: React.FormEvent) {
     e.preventDefault();
-    analysis.mutate({ origin, destination, truck, trailer });
+    analysis.mutate({
+      origin, destination, truck, trailer,
+      ...(originPlace ? { originCoords: { lat: originPlace.lat, lon: originPlace.lon } } : {}),
+      ...(destPlace ? { destinationCoords: { lat: destPlace.lat, lon: destPlace.lon } } : {}),
+    });
   }
 
   return (
@@ -242,7 +259,14 @@ function Dashboard() {
                       : "Use my current location"}
                 </button>
               </div>
-              <Input required value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Denver, CO" />
+              <AddressAutocomplete
+                required
+                value={origin}
+                onChange={(t) => { setOrigin(t); if (originPlace && t !== originPlace.label) setOriginPlace(null); }}
+                onSelect={(p) => setOriginPlace(p)}
+                placeholder="Denver, CO"
+                proximity={geo.coords ?? null}
+              />
               {geo.status === "denied" && (
                 <p className="text-[11px] text-destructive">Location access is needed for live route safety alerts.</p>
               )}
@@ -253,7 +277,14 @@ function Dashboard() {
 
             <div className="space-y-1.5">
               <Label>Destination</Label>
-              <Input required value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Salt Lake City, UT" />
+              <AddressAutocomplete
+                required
+                value={destination}
+                onChange={(t) => { setDestination(t); if (destPlace && t !== destPlace.label) setDestPlace(null); }}
+                onSelect={(p) => setDestPlace(p)}
+                placeholder="Salt Lake City, UT"
+                proximity={originPlace ? { lat: originPlace.lat, lon: originPlace.lon } : (geo.coords ?? null)}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Truck Type</Label>

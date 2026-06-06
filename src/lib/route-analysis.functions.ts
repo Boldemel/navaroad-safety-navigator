@@ -14,6 +14,8 @@ const InputSchema = z.object({
   destination: z.string().trim().min(2).max(200),
   truck: z.string().max(60).optional(),
   trailer: z.string().max(60).optional(),
+  originCoords: z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) }).optional(),
+  destinationCoords: z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) }).optional(),
 });
 
 export type RouteAnalysis = {
@@ -71,7 +73,14 @@ export type RouteAnalysis = {
 export const analyzeRoute = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => InputSchema.parse(d))
   .handler(async ({ data }): Promise<RouteAnalysis> => {
-    const [o, d2] = await Promise.all([geocode(data.origin), geocode(data.destination)]);
+    const [o, d2] = await Promise.all([
+      data.originCoords
+        ? Promise.resolve({ name: data.origin, lat: data.originCoords.lat, lon: data.originCoords.lon })
+        : geocode(data.origin),
+      data.destinationCoords
+        ? Promise.resolve({ name: data.destination, lat: data.destinationCoords.lat, lon: data.destinationCoords.lon })
+        : geocode(data.destination),
+    ]);
     const r = await getRoute(o, d2);
 
     const samples = sampleRoute(r.geometry, 3);
