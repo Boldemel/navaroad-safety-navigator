@@ -188,13 +188,35 @@ function HazardMap() {
         </div>
       )}
 
-      <div className="rounded-xl border border-dashed border-border bg-card/40 p-4 text-xs text-muted-foreground inline-flex items-start gap-2">
-        <MapPin className="size-3.5 mt-0.5 shrink-0" />
-        <span>
-          Interactive geospatial map coming with Mapbox/MapLibre integration. Until then,
-          live hazards are shown below with their real reported locations and coordinates
-          (when provided). No sample weather markers are rendered.
-        </span>
+      <div className="relative aspect-[16/9] rounded-xl border border-border bg-sidebar overflow-hidden">
+        {mapConfig?.token ? (
+          <HazardMapbox
+            token={mapConfig.token}
+            markers={allVisible
+              .filter((m): m is Marker & { lat: number; lon: number } => m.lat != null && m.lon != null)
+              .map<MapMarker>((m) => ({
+                id: m.layer + m.id,
+                lat: m.lat as number,
+                lon: m.lon as number,
+                layer: m.layer,
+                severity: m.severity,
+                title: m.title,
+                source: m.source,
+                description: m.description,
+              }))}
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-center px-6">
+            <div className="max-w-md text-sm text-muted-foreground space-y-2">
+              <MapPin className="size-5 mx-auto text-muted-foreground" />
+              <div className="font-medium text-foreground">Mapbox not connected</div>
+              <p>
+                Add a <code className="px-1 py-0.5 rounded bg-muted text-xs">MAPBOX_PUBLIC_TOKEN</code> secret
+                (starts with <code>pk.</code>) to enable the interactive map. Live hazards are still listed below.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
