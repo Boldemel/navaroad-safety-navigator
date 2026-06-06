@@ -13,6 +13,8 @@ import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { useDriverNames } from "@/hooks/use-driver-names";
 import { formatDistanceToNow } from "date-fns";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
+import { getTomTomKey } from "@/lib/tomtom.functions";
+import { TomTomMap, type MapMarker } from "@/components/tomtom-map";
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
   component: HazardMap,
@@ -60,6 +62,14 @@ function HazardMap() {
 
   const { data: drivers = {} } = useDriverNames();
   const feedFn = useServerFn(getSafetyFeed);
+  const tomtomKeyFn = useServerFn(getTomTomKey);
+
+  const { data: tomtom } = useQuery({
+    queryKey: ["tomtom-key"],
+    queryFn: () => tomtomKeyFn(),
+    staleTime: Infinity,
+  });
+
 
 
   const { data: feed, isLoading: feedLoading } = useQuery({
@@ -126,7 +136,7 @@ function HazardMap() {
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Hazard Map</h1>
-          <p className="text-muted-foreground text-sm">Live NWS weather alerts, DOT incidents, and driver reports — no sample data.</p>
+          <p className="text-muted-foreground text-sm">Live NWS weather alerts, TomTom incidents, and driver reports — no sample data.</p>
         </div>
         <div className="inline-flex items-center gap-2 text-xs text-muted-foreground rounded-full border border-border bg-card px-3 py-1.5">
           <Radio className={`size-3 ${loading ? "animate-pulse" : "text-success"}`} />
@@ -180,16 +190,29 @@ function HazardMap() {
         </div>
       )}
 
-      <div className="relative aspect-[16/6] rounded-xl border border-dashed border-border bg-sidebar/40 overflow-hidden flex items-center justify-center px-6 text-center">
-        <div className="max-w-md text-sm text-muted-foreground space-y-2">
-          <MapPin className="size-5 mx-auto text-muted-foreground" />
-          <div className="font-medium text-foreground">Interactive map placeholder</div>
-          <p>
-            Geospatial map view will be added later. All live hazards from connected sources
-            are listed below with real coordinates when provided — no sample markers.
-          </p>
-        </div>
+      <div className="relative aspect-[16/8] overflow-hidden">
+        <TomTomMap
+          tomtomKey={tomtom?.key ?? null}
+          showTraffic
+          height="100%"
+          markers={allVisible
+            .filter((m): m is Marker & { lat: number; lon: number } => m.lat != null && m.lon != null)
+            .map<MapMarker>((m) => ({
+              id: m.layer + m.id,
+              lat: m.lat,
+              lon: m.lon,
+              title: m.title,
+              description: `${m.source} · ${m.location}`,
+              color:
+                m.layer === "driver"
+                  ? "#f59e0b"
+                  : m.severity === "critical" || m.severity === "high"
+                    ? "#ef4444"
+                    : "#3b82f6",
+            }))}
+        />
       </div>
+
 
       <div className="space-y-2">
         {loading && (
