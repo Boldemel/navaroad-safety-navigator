@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-// Truck-friendly brands we boost / surface explicitly.
-const TRUCK_FUEL_BRANDS = [
+// Strict truck-stop brands. Fuel stations are kept separate from truck stops.
+const TRUCK_STOP_BRANDS = [
   "Pilot",
   "Flying J",
   "Loves",
@@ -10,9 +10,6 @@ const TRUCK_FUEL_BRANDS = [
   "TA",
   "TravelCenters",
   "Petro",
-  "Sapp Bros",
-  "AmBest",
-  "Speedway",
 ];
 
 const RouteGeometry = z.preprocess((value) => {
@@ -62,6 +59,9 @@ export type TruckPoiResult = {
     searchPointCount: number;
     corridorRadiusMi: number;
     rawResultsCount: number;
+    routeFilteredResultsCount: number;
+    deduplicatedResultsCount: number;
+    finalDisplayedCount: number;
     filteredResultsCount: number;
     filteredOutCount: number;
     searchingFullRoute: boolean;
@@ -119,8 +119,8 @@ function classify(
   const hay = `${name} ${brand ?? ""} ${categories.join(" ")}`.toLowerCase();
   if (/weigh station|weigh-in-motion|inspection station|port of entry/.test(hay)) return "weigh_station";
   if (/rest area|rest stop/.test(hay)) return "rest_area";
-  if (/truck stop|travel center|travel centre|truckstop/.test(hay)) return "truck_stop";
-  if (TRUCK_FUEL_BRANDS.some((b) => hay.includes(b.toLowerCase()))) return "truck_stop";
+  if (/truck stop|travel center|travel centre|truckstop|truck plaza/.test(hay)) return "truck_stop";
+  if (TRUCK_STOP_BRANDS.some((b) => hay.includes(b.toLowerCase()))) return "truck_stop";
   if (/diesel|fuel|gas station|petrol|gasoline/.test(hay)) return "fuel";
   if (/parking/.test(hay)) return "parking";
   return fallback;
