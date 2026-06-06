@@ -798,9 +798,11 @@ function Dashboard() {
         title={poiDialog?.title ?? ""}
         result={poiDialog?.result ?? null}
         onShowOnMap={(p) => {
+          const region = [p.city, p.state].filter(Boolean).join(", ");
+          const details = [region || p.address, typeLabelShort(p.type), p.distanceMi != null ? `${p.distanceMi < 1 ? "<1" : Math.round(p.distanceMi)} mi from route` : null].filter(Boolean).join(" · ");
           router.navigate({
             to: "/hazard-map",
-            search: { focusLat: p.lat, focusLon: p.lon, focusLabel: p.name },
+            search: { focusLat: p.lat, focusLon: p.lon, focusLabel: p.name, focusDetails: details },
           } as never);
           setPoiDialog(null);
         }}
@@ -810,6 +812,12 @@ function Dashboard() {
         }}
         navigating={navToPoi.isPending}
       />
+
+      {navToPoi.isError && (
+        <div className="text-sm text-destructive border border-destructive/30 bg-destructive/10 rounded-md p-3">
+          {(navToPoi.error as Error).message || "Route could not be calculated. Please check the address or try another destination."}
+        </div>
+      )}
 
     </div>
   );
@@ -853,9 +861,9 @@ function PoiDialog({
           <div className="rounded-md border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground space-y-0.5">
             <div className="font-medium text-foreground/70">Debug · count source</div>
             <div>Raw TomTom results: <span className="font-mono">{debug.rawResultsCount}</span></div>
-            <div>After route-corridor + category filter: <span className="font-mono">{debug.filteredResultsCount}</span> (excluded {debug.filteredOutCount})</div>
-            <div>Deduplicated: <span className="font-mono">{result?.totalFound ?? 0}</span></div>
-            <div>Displayed: <span className="font-mono">{pois.length}</span> · Corridor: {debug.corridorRadiusMi} mi · Search points: {debug.searchPointCount}</div>
+            <div>Route-filtered results: <span className="font-mono">{debug.routeFilteredResultsCount ?? debug.filteredResultsCount}</span> (excluded {debug.filteredOutCount})</div>
+            <div>Deduplicated results: <span className="font-mono">{debug.deduplicatedResultsCount ?? result?.totalFound ?? 0}</span></div>
+            <div>Final displayed count: <span className="font-mono">{debug.finalDisplayedCount ?? pois.length}</span> · Corridor: {debug.corridorRadiusMi} mi · Search points: {debug.searchPointCount}</div>
           </div>
         )}
         {pois.length === 0 ? (
