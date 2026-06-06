@@ -54,6 +54,17 @@ export type TruckPoiResult = {
   connected: boolean;
   provider: string;
   message?: string;
+  totalFound: number;
+  debug?: {
+    routeUsed: string;
+    routePointCount: number;
+    searchPointCount: number;
+    corridorRadiusMi: number;
+    rawResultsCount: number;
+    filteredResultsCount: number;
+    filteredOutCount: number;
+    searchingFullRoute: boolean;
+  };
   pois: TruckPoi[];
 };
 
@@ -86,24 +97,16 @@ function sampleEveryMiles(
     pts.push({ lon: lon2, lat: lat2, cum });
   }
   const total = cum;
+  const targetCount = Math.min(maxSamples, Math.max(2, Math.ceil(total / stepMi) + 1));
   const samples: Array<{ lat: number; lon: number }> = [];
-  let target = 0;
   let idx = 0;
-  while (target <= total && samples.length < maxSamples) {
+  for (let i = 0; i < targetCount; i++) {
+    const target = targetCount === 1 ? 0 : (i / (targetCount - 1)) * total;
     while (idx < pts.length - 1 && pts[idx + 1].cum < target) idx++;
     const p = pts[idx];
     samples.push({ lat: p.lat, lon: p.lon });
-    target += stepMi;
   }
-  // Always include destination
-  const last = pts[pts.length - 1];
-  if (
-    samples.length === 0 ||
-    distMi(samples[samples.length - 1].lat, samples[samples.length - 1].lon, last.lat, last.lon) > 5
-  ) {
-    samples.push({ lat: last.lat, lon: last.lon });
-  }
-  return samples.slice(0, maxSamples);
+  return samples;
 }
 
 function classify(
@@ -121,11 +124,39 @@ function classify(
   return fallback;
 }
 
+function pointToSegmentDistanceMi(
+  lat: number,
+  lon: number,
+  aLat: number,
+  aLon: number,
+  bLat: number,
+  bLon: number,
+) {
+  const milesPerDegreeLat = 69;
+  const milesPerDegreeLon = 69 * Math.cos((lat * Math.PI) / 180);
+  const px = lon * milesPerDegreeLon;
+  const py = lat * milesPerDegreeLat;
+  const ax = aLon * milesPerDegreeLon;
+  const ay = aLat * milesPerDegreeLat;
+  const bx = bLon * milesPerDegreeLon;
+  const by = bLat * milesPerDegreeLat;
+  const dx = bx - ax;
+  const dy = by - ay;
+  if (dx === 0 && dy === 0) return distMi(lat, lon, aLat, aLon);
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+  const cx = ax + t * dx;
+  const cy = ay + t * dy;
+  return Math.hypot(px - cx, py - cy);
+}
+
 function distanceToRouteMi(geom: Array<[number, number]>, lat: number, lon: number) {
   let best = Infinity;
-  for (const [routeLon, routeLat] of geom) {
-    best = Math.min(best, distMi(lat, lon, routeLat, routeLon));
+  for (let i = 1; i < geom.length; i++) {
+    const [aLon, aLat] = geom[i - 1];
+    const [bLon, bLat] = geom[i];
+    best = Math.min(best, pointToSegmentDistanceMi(lat, lon, aLat, aLon, bLat, bLon));
   }
+  if (geom.length === 1) best = distMi(lat, lon, geom[0][1], geom[0][0]);
   return Number.isFinite(best) ? best : null;
 }
 
@@ -245,7 +276,7 @@ function osmQuery(kind: "fuel" | "parking", samples: Array<{ lat: number; lon: n
       parts.push(`way(around:${radiusM},${s.lat},${s.lon})["amenity"="parking"]["hgv"];`);
     }
   }
-  return `[out:json][timeout:25];(${parts.join("\n")});out center tags 100;`;
+  return `[out:json][timeout:25];(${parts.join("\n")});out center tags;`;
 }
 
 async function searchOpenStreetMapPois(
@@ -310,6 +341,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       return {
         connected: false,
         provider: "not_connected",
+        totalFound: 0,
         message:
           data.kind === "fuel"
             ? "Fuel stop data not connected yet."
@@ -318,7 +350,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       };
     }
     if (data.geometry.length < 2) {
-      return { connected: true, provider: "TomTom", pois: [] };
+      return { connected: true, provider: "TomTom", totalFound: 0, pois: [] };
     }
 
     // Sample every ~100 miles along the route corridor (cap 15 samples to bound API calls).
@@ -335,7 +367,8 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         ? ["truck stop", "travel center", "diesel", "Pilot", "Flying J", "Loves", "TA Petro"]
         : ["truck stop", "rest area", "travel center", "truck parking"];
 
-    const radiusM = 50000; // 50 km corridor around each sample
+    const radiusM = 50000; // initial provider search around each sample
+    const corridorRadiusMi = 20; // final route-corridor filter
     const seen = new Map<string, TruckPoi>();
     let tomtomRawCount = 0;
     let tomtomFilteredCount = 0;
@@ -356,12 +389,15 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         tomtomFilteredCount += 1;
         return;
       }
+      const routeDistance = distanceToRouteMi(data.geometry, r.position.lat, r.position.lon);
+      if (routeDistance == null || routeDistance > corridorRadiusMi) {
+        tomtomFilteredCount += 1;
+        return;
+      }
       const id = r.id ?? `${r.position.lat.toFixed(5)},${r.position.lon.toFixed(5)}`;
-      const distance =
-        r.dist != null ? r.dist / 1609.34 : distMi(sampleLat, sampleLon, r.position.lat, r.position.lon);
       const existing = seen.get(id);
       if (existing) {
-        if ((existing.distanceMi ?? Infinity) > distance) existing.distanceMi = distance;
+        if ((existing.distanceMi ?? Infinity) > routeDistance) existing.distanceMi = routeDistance;
         return;
       }
       seen.set(id, {
@@ -375,7 +411,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         state: r.address?.countrySubdivision ?? r.address?.countrySubdivisionName ?? null,
         lat: r.position.lat,
         lon: r.position.lon,
-        distanceMi: distance,
+        distanceMi: routeDistance,
         phone: r.poi?.phone ?? null,
         source: "TomTom",
       });
@@ -415,7 +451,9 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       routePointCount: data.geometry.length,
       sampleCount: samples.length,
       searchesFullRoute: samples.length > 1,
+      corridorRadiusMi,
       rawTomTomCount: tomtomRawCount,
+      filteredResultsCount: seen.size,
       filteredOutAfterTomTom: tomtomFilteredCount,
       firstTomTomStatus: categoryResults[0]?.status,
       firstTomTomError: firstError,
@@ -432,19 +470,38 @@ export const searchTruckPois = createServerFn({ method: "POST" })
 
     if (pois.length === 0 && firstError) {
       const fallback = await searchOpenStreetMapPois(data.kind, data.geometry, samples);
-      if (fallback.length > 0) {
-        pois = fallback;
+      const routeFilteredFallback = fallback.filter((p) => (p.distanceMi ?? Infinity) <= corridorRadiusMi);
+      tomtomRawCount += fallback.length;
+      tomtomFilteredCount += fallback.length - routeFilteredFallback.length;
+      if (routeFilteredFallback.length > 0) {
+        pois = routeFilteredFallback;
         provider = "OpenStreetMap";
-        message = `TomTom Search returned: ${firstError}. Showing route-wide ${data.kind === "fuel" ? "fuel stops" : "parking locations"} from OpenStreetMap instead.`;
+        message = `OpenStreetMap fallback — route filtered. TomTom Search returned: ${firstError}.`;
       } else {
         message = `TomTom Search returned: ${firstError}. No fallback locations were returned along the route.`;
       }
     }
 
+    const totalFound = pois.length;
+    const routeStart = data.geometry[0];
+    const routeEnd = data.geometry[data.geometry.length - 1];
+    const debug = {
+      routeUsed: `${routeStart[1].toFixed(4)}, ${routeStart[0].toFixed(4)} → ${routeEnd[1].toFixed(4)}, ${routeEnd[0].toFixed(4)}`,
+      routePointCount: data.geometry.length,
+      searchPointCount: samples.length,
+      corridorRadiusMi,
+      rawResultsCount: tomtomRawCount,
+      filteredResultsCount: totalFound,
+      filteredOutCount: tomtomFilteredCount,
+      searchingFullRoute: samples.length > 1,
+    };
+
     return {
       connected: true,
       provider,
       message,
+      totalFound,
+      debug,
       pois: pois.slice(0, data.limit ?? 60),
     };
   });

@@ -1,6 +1,6 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,7 @@ function Dashboard() {
   const truckRouteFn = useServerFn(getTruckRoute);
   const searchPoisFn = useServerFn(searchTruckPois);
   const activeRoute = useActiveRoute();
+  const queryClient = useQueryClient();
   const geo = useGeolocation();
   const router = useRouter();
   const navSession = useNavigationSession();
@@ -62,6 +63,16 @@ function Dashboard() {
       sampled.push(geom[Math.floor((i / (maxPoints - 1)) * (geom.length - 1))]);
     }
     return sampled;
+  }
+
+  function routeSignature(geom: Array<[number, number]>) {
+    if (geom.length < 2) return "none";
+    let hash = 0;
+    for (const [lon, lat] of sampleRouteGeometry(geom, 40)) {
+      const part = `${lon.toFixed(4)},${lat.toFixed(4)}`;
+      for (let i = 0; i < part.length; i++) hash = (hash * 31 + part.charCodeAt(i)) >>> 0;
+    }
+    return `${geom.length}:${hash.toString(16)}`;
   }
 
   const [pendingAutoAnalyze, setPendingAutoAnalyze] = useState(false);
@@ -168,6 +179,11 @@ function Dashboard() {
       destinationCoords?: { lat: number; lon: number };
       truckProfile?: typeof truckProfile;
     }) => analyzeFn({ data: vars }),
+    onMutate: () => {
+      clearActiveRoute();
+      queryClient.removeQueries({ queryKey: ["fuel-stops"] });
+      queryClient.removeQueries({ queryKey: ["parking-stops"] });
+    },
     onSuccess: (data, vars) => {
       saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
     },
@@ -222,9 +238,17 @@ function Dashboard() {
 
 
   // Live safety feed scoped to the active route corridor (NWS + DOT).
-  const geometry = activeRoute?.geometry ?? [];
+  const result = analysis.isPending ? undefined : analysis.data;
+  const activeRouteForQueries = analysis.isPending ? null : activeRoute;
+  const geometry = result?.geometry ?? activeRouteForQueries?.geometry ?? [];
+  const routeLabel = result
+    ? `${origin || result.origin.name} → ${destination || result.destination.name}`
+    : activeRouteForQueries
+      ? `${activeRouteForQueries.origin} → ${activeRouteForQueries.destination}`
+      : "No active route";
+  const routeKey = routeSignature(geometry);
   const { data: feed, isLoading: feedLoading } = useQuery({
-    queryKey: ["safety-feed", activeRoute?.savedAt ?? "none"],
+    queryKey: ["safety-feed", routeKey],
     queryFn: () => feedFn({ data: { geometry } }),
     enabled: geometry.length >= 2,
     refetchInterval: 5 * 60_000,
@@ -247,19 +271,17 @@ function Dashboard() {
   // Truck-friendly fuel + parking POIs along the active route (TomTom).
   const poiGeometry = sampleRouteGeometry(geometry, 1000);
   const { data: fuelStops, isLoading: fuelLoading } = useQuery({
-    queryKey: ["fuel-stops", activeRoute?.savedAt ?? "none"],
-    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "fuel" } }),
+    queryKey: ["fuel-stops", routeKey],
+    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "fuel", limit: 100 } }),
     enabled: geometry.length >= 2,
-    staleTime: 10 * 60_000,
+    staleTime: 0,
   });
   const { data: parkingStops, isLoading: parkingLoading } = useQuery({
-    queryKey: ["parking-stops", activeRoute?.savedAt ?? "none"],
-    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "parking" } }),
+    queryKey: ["parking-stops", routeKey],
+    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "parking", limit: 100 } }),
     enabled: geometry.length >= 2,
-    staleTime: 10 * 60_000,
+    staleTime: 0,
   });
-
-  const result = analysis.data;
 
   // Stat cards: prefer the analyzed route when present, else fall back to the
   // live national feed. This keeps Wind/Weather Risk specific to the path.
@@ -597,8 +619,8 @@ function Dashboard() {
           <StatCard icon={<Wind className="size-5" />} label="Wind Risk" count={windCount} sub={usingRoute ? "Wind/gust risks on this route" : "Active high-wind / tornado (NWS)"} accent="primary" loading={feedLoading} />
           <StatCard icon={<Construction className="size-5" />} label="Road Closure Risk" count={closureCount} sub={feed?.providers.road === "not_connected" ? "Connect DOT API" : usingRoute ? "Closures on this route" : "Active closures"} accent="destructive" loading={feedLoading} />
           <StatCard icon={<ShieldAlert className="size-5" />} label="Truck Restriction Risk" count={0} sub="Bridge / weight / hazmat data not connected yet" accent="warning" />
-          <StatCard icon={<Fuel className="size-5" />} label="Fuel Stops" count={fuelStops?.pois.length ?? 0} sub={fuelStops && !fuelStops.connected ? "Not connected yet" : usingRoute ? `Truck-friendly · ${fuelStops?.provider ?? "TomTom"}` : "Analyze a route to find stops"} accent="primary" loading={fuelLoading} />
-          <StatCard icon={<ParkingCircle className="size-5" />} label="Parking Options" count={parkingStops?.pois.length ?? 0} sub={parkingStops && !parkingStops.connected ? "Not connected yet" : usingRoute ? `Truck stops & rest areas · ${parkingStops?.provider ?? "TomTom"}` : "Analyze a route to find parking"} accent="primary" loading={parkingLoading} />
+          <StatCard icon={<Fuel className="size-5" />} label="Fuel Stops" count={fuelStops?.totalFound ?? 0} sub={fuelStops && !fuelStops.connected ? "Not connected yet" : usingRoute ? `Truck-friendly · ${fuelStops?.provider ?? "TomTom"}` : "Analyze a route to find stops"} accent="primary" loading={fuelLoading} />
+          <StatCard icon={<ParkingCircle className="size-5" />} label="Parking Options" count={parkingStops?.totalFound ?? 0} sub={parkingStops && !parkingStops.connected ? "Not connected yet" : usingRoute ? `Truck stops & rest areas · ${parkingStops?.provider ?? "TomTom"}` : "Analyze a route to find parking"} accent="primary" loading={parkingLoading} />
           <StatCard icon={<Users className="size-5" />} label="Driver Reports" count={driverCount} sub="Community layer · live" accent="warning" />
         </div>
       </div>
@@ -608,6 +630,7 @@ function Dashboard() {
           <PoiList
             icon={<Fuel className="size-4 text-primary" />}
             title="Fuel Stops on this Route"
+            routeLabel={routeLabel}
             loading={fuelLoading}
             result={fuelStops}
             emptyHint="No truck-friendly fuel stops detected near this route."
@@ -615,6 +638,7 @@ function Dashboard() {
           <PoiList
             icon={<ParkingCircle className="size-4 text-primary" />}
             title="Truck Parking on this Route"
+            routeLabel={routeLabel}
             loading={parkingLoading}
             result={parkingStops}
             emptyHint="No truck stops, rest areas, or parking detected near this route."
@@ -667,16 +691,28 @@ function StatCard({ icon, label, count, sub, accent, loading }: { icon: React.Re
 }
 
 function PoiList({
-  icon, title, loading, result, emptyHint,
+  icon, title, routeLabel, loading, result, emptyHint,
 }: {
   icon: React.ReactNode;
   title: string;
+  routeLabel: string;
   loading: boolean;
   result:
     | {
         connected: boolean;
         provider: string;
         message?: string;
+        totalFound?: number;
+        debug?: {
+          routeUsed: string;
+          routePointCount: number;
+          searchPointCount: number;
+          corridorRadiusMi: number;
+          rawResultsCount: number;
+          filteredResultsCount: number;
+          filteredOutCount: number;
+          searchingFullRoute: boolean;
+        };
         pois: Array<{
           id: string;
           name: string;
@@ -701,6 +737,18 @@ function PoiList({
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-3">
       <div className="flex items-center gap-2">{icon}<h3 className="font-semibold">{title}</h3></div>
+      <div className="rounded-md border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground space-y-1">
+        <div><span className="font-medium text-foreground/70">Route used:</span> {routeLabel}</div>
+        {result?.debug?.routeUsed && (
+          <div><span className="font-medium text-foreground/70">Polyline:</span> {result.debug.routeUsed}</div>
+        )}
+        <div>
+          <span className="font-medium text-foreground/70">Search points:</span> {result?.debug?.searchPointCount ?? 0}
+          {" · "}<span className="font-medium text-foreground/70">Raw:</span> {result?.debug?.rawResultsCount ?? 0}
+          {" · "}<span className="font-medium text-foreground/70">Filtered:</span> {result?.debug?.filteredResultsCount ?? result?.totalFound ?? 0}
+          {" · "}<span className="font-medium text-foreground/70">Corridor:</span> {result?.debug?.corridorRadiusMi ?? 20} mi
+        </div>
+      </div>
       {loading ? (
         <div className="text-sm text-muted-foreground inline-flex items-center gap-2"><Loader2 className="size-3.5 animate-spin" /> Searching along route…</div>
       ) : !result ? (
