@@ -14,7 +14,150 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      alerts: {
+        Row: {
+          active: boolean
+          alert_type: string
+          created_at: string
+          id: string
+          location: string
+          message: string
+          recommended_action: string | null
+          severity: string
+        }
+        Insert: {
+          active?: boolean
+          alert_type: string
+          created_at?: string
+          id?: string
+          location: string
+          message: string
+          recommended_action?: string | null
+          severity?: string
+        }
+        Update: {
+          active?: boolean
+          alert_type?: string
+          created_at?: string
+          id?: string
+          location?: string
+          message?: string
+          recommended_action?: string | null
+          severity?: string
+        }
+        Relationships: []
+      }
+      hazard_reports: {
+        Row: {
+          created_at: string
+          description: string | null
+          hazard_type: string
+          id: string
+          latitude: number | null
+          location: string
+          longitude: number | null
+          reporter_id: string | null
+          severity: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          hazard_type: string
+          id?: string
+          latitude?: number | null
+          location: string
+          longitude?: number | null
+          reporter_id?: string | null
+          severity?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          hazard_type?: string
+          id?: string
+          latitude?: number | null
+          location?: string
+          longitude?: number | null
+          reporter_id?: string | null
+          severity?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          driver_name: string | null
+          id: string
+          load_status: string | null
+          notify_email: boolean | null
+          notify_push: boolean | null
+          notify_sms: boolean | null
+          trailer_type: string | null
+          truck_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          driver_name?: string | null
+          id: string
+          load_status?: string | null
+          notify_email?: boolean | null
+          notify_push?: boolean | null
+          notify_sms?: boolean | null
+          trailer_type?: string | null
+          truck_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          driver_name?: string | null
+          id?: string
+          load_status?: string | null
+          notify_email?: boolean | null
+          notify_push?: boolean | null
+          notify_sms?: boolean | null
+          trailer_type?: string | null
+          truck_type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      saved_routes: {
+        Row: {
+          created_at: string
+          destination: string
+          id: string
+          origin: string
+          safety_score: number | null
+          trailer_type: string | null
+          truck_type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          destination: string
+          id?: string
+          origin: string
+          safety_score?: number | null
+          trailer_type?: string | null
+          truck_type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          destination?: string
+          id?: string
+          origin?: string
+          safety_score?: number | null
+          trailer_type?: string | null
+          truck_type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
