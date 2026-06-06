@@ -218,6 +218,90 @@ async function tomtomKeyword(
   }
 }
 
+type OsmElement = {
+  type: "node" | "way" | "relation";
+  id: number;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+};
+
+function osmQuery(kind: "fuel" | "parking", samples: Array<{ lat: number; lon: number }>) {
+  const radiusM = 30000;
+  const parts: string[] = [];
+  for (const s of samples) {
+    if (kind === "fuel") {
+      parts.push(`node(around:${radiusM},${s.lat},${s.lon})["amenity"="fuel"];`);
+      parts.push(`way(around:${radiusM},${s.lat},${s.lon})["amenity"="fuel"];`);
+      parts.push(`node(around:${radiusM},${s.lat},${s.lon})["highway"="services"];`);
+      parts.push(`way(around:${radiusM},${s.lat},${s.lon})["highway"="services"];`);
+    } else {
+      parts.push(`node(around:${radiusM},${s.lat},${s.lon})["highway"="rest_area"];`);
+      parts.push(`way(around:${radiusM},${s.lat},${s.lon})["highway"="rest_area"];`);
+      parts.push(`node(around:${radiusM},${s.lat},${s.lon})["highway"="services"];`);
+      parts.push(`way(around:${radiusM},${s.lat},${s.lon})["highway"="services"];`);
+      parts.push(`node(around:${radiusM},${s.lat},${s.lon})["amenity"="parking"]["hgv"];`);
+      parts.push(`way(around:${radiusM},${s.lat},${s.lon})["amenity"="parking"]["hgv"];`);
+    }
+  }
+  return `[out:json][timeout:25];(${parts.join("\n")});out center tags 100;`;
+}
+
+async function searchOpenStreetMapPois(
+  kind: "fuel" | "parking",
+  geometry: Array<[number, number]>,
+  samples: Array<{ lat: number; lon: number }>,
+): Promise<TruckPoi[]> {
+  try {
+    const res = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "Navaroad/1.0 route-poi-search",
+      },
+      body: `data=${encodeURIComponent(osmQuery(kind, samples))}`,
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { elements?: OsmElement[] };
+    const seen = new Map<string, TruckPoi>();
+    for (const el of json.elements ?? []) {
+      const lat = el.lat ?? el.center?.lat;
+      const lon = el.lon ?? el.center?.lon;
+      if (lat == null || lon == null) continue;
+      const tags = el.tags ?? {};
+      const brand = tags.brand ?? tags.operator ?? null;
+      const name = tags.name ?? brand ?? (tags.highway === "rest_area" ? "Rest area" : tags.highway === "services" ? "Travel center" : kind === "fuel" ? "Fuel station" : "Truck parking");
+      const categories = [tags.amenity, tags.highway, tags.hgv, tags.parking].filter(Boolean) as string[];
+      const type = classify(name, brand, categories, kind === "parking" ? "parking" : "fuel");
+      if (kind === "fuel" && type === "parking") continue;
+      if (kind === "parking" && type === "fuel") continue;
+      const id = `osm:${el.type}:${el.id}`;
+      if (seen.has(id)) continue;
+      seen.set(id, {
+        id,
+        name,
+        brand,
+        category: categories[0] ?? type,
+        type,
+        address: [tags["addr:housenumber"], tags["addr:street"]].filter(Boolean).join(" "),
+        city: tags["addr:city"] ?? null,
+        state: tags["addr:state"] ?? null,
+        lat,
+        lon,
+        distanceMi: distanceToRouteMi(geometry, lat, lon),
+        phone: tags.phone ?? null,
+        source: "OpenStreetMap",
+      });
+    }
+    return Array.from(seen.values()).sort(
+      (a, b) => (a.distanceMi ?? Infinity) - (b.distanceMi ?? Infinity),
+    );
+  } catch {
+    return [];
+  }
+}
+
 export const searchTruckPois = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => Input.parse(d))
   .handler(async ({ data }): Promise<TruckPoiResult> => {
