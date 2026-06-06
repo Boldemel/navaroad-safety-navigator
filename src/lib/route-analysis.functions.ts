@@ -16,6 +16,16 @@ const InputSchema = z.object({
   trailer: z.string().max(60).optional(),
   originCoords: z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) }).optional(),
   destinationCoords: z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) }).optional(),
+  truckProfile: z
+    .object({
+      heightIn: z.number().min(0).max(300).nullable().optional(),
+      weightLbs: z.number().min(0).max(500000).nullable().optional(),
+      lengthFt: z.number().min(0).max(200).nullable().optional(),
+      axles: z.number().int().min(0).max(20).nullable().optional(),
+      hazmat: z.boolean().optional(),
+      loaded: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 export type RouteAnalysis = {
