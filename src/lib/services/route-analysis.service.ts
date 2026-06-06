@@ -22,6 +22,40 @@ export async function geocode(query: string): Promise<GeoPoint> {
 }
 
 export async function getRoute(o: GeoPoint, d: GeoPoint): Promise<RoutedPath> {
+  // Prefer TomTom Routing API when a key is configured (truck-grade traffic data).
+  // Falls back to OSRM public demo server otherwise.
+  const key = process.env.TOMTOM_API_KEY;
+  if (key) {
+    try {
+      const url =
+        `https://api.tomtom.com/routing/1/calculateRoute/` +
+        `${o.lat},${o.lon}:${d.lat},${d.lon}/json` +
+        `?travelMode=truck&traffic=true&routeType=fastest&computeTravelTimeFor=all` +
+        `&key=${encodeURIComponent(key)}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const j = (await res.json()) as {
+          routes?: Array<{
+            summary?: { lengthInMeters?: number; travelTimeInSeconds?: number };
+            legs?: Array<{ points?: Array<{ latitude: number; longitude: number }> }>;
+          }>;
+        };
+        const r = j.routes?.[0];
+        if (r?.summary && r.legs?.length) {
+          const coords: Array<[number, number]> = [];
+          for (const leg of r.legs) for (const p of leg.points ?? []) coords.push([p.longitude, p.latitude]);
+          return {
+            distanceKm: (r.summary.lengthInMeters ?? 0) / 1000,
+            durationMin: (r.summary.travelTimeInSeconds ?? 0) / 60,
+            geometry: coords,
+          };
+        }
+      }
+    } catch {
+      // fall through to OSRM
+    }
+  }
+
   const url = `https://router.project-osrm.org/route/v1/driving/${o.lon},${o.lat};${d.lon},${d.lat}?overview=simplified&geometries=geojson`;
   const res = await fetch(url);
   if (!res.ok) throw new Error("Routing service unavailable");
