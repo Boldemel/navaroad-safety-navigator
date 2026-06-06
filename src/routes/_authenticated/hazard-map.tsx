@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Wind, AlertTriangle, Construction, Trash2, Car, ParkingCircleOff, CloudRain,
-  CloudLightning, Clock, User, Cloud, Radio,
+  CloudLightning, Clock, User, Cloud, Radio, MapPin,
 } from "lucide-react";
 import { HAZARD_TYPES, hazardLabel, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
@@ -37,12 +37,6 @@ const HAZARD_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   incident: Car,
 };
 
-function pos(id: string) {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return { left: 5 + (h % 90), top: 5 + ((h >> 8) % 88) };
-}
-
 type Marker = {
   id: string;
   layer: "api" | "driver";
@@ -54,6 +48,8 @@ type Marker = {
   description: string;
   updatedAt: string;
   reporter_id?: string | null;
+  lat?: number | null;
+  lon?: number | null;
 };
 
 function HazardMap() {
@@ -83,14 +79,15 @@ function HazardMap() {
 
   const apiMarkers: Marker[] = useMemo(() => {
     const weather: Marker[] = (feed?.weatherAlerts ?? []).map((a) => ({
-      id: a.id, layer: "api", source: `Weather · ${a.provider}`,
+      id: a.id, layer: "api", source: `NWS (${a.provider})`,
       category: a.category, severity: a.severity, title: a.event,
       location: a.areaDesc, description: a.headline, updatedAt: a.effective,
     }));
     const road: Marker[] = (feed?.roadAlerts ?? []).map((r) => ({
-      id: r.id, layer: "api", source: `DOT · ${r.provider}`,
+      id: r.id, layer: "api", source: `DOT (${r.provider})`,
       category: r.category, severity: r.severity, title: r.category.replace(/_/g, " "),
       location: `${r.roadway} — ${r.location}`, description: r.description, updatedAt: r.updatedAt,
+      lat: r.lat ?? null, lon: r.lon ?? null,
     }));
     return [...weather, ...road];
   }, [feed]);
@@ -102,13 +99,17 @@ function HazardMap() {
         category: h.hazard_type, severity: h.severity, title: hazardLabel(h.hazard_type),
         location: h.location, description: h.description ?? "", updatedAt: h.created_at,
         reporter_id: h.reporter_id,
+        lat: h.latitude ?? null, lon: h.longitude ?? null,
       })),
     [hazards],
   );
 
   const visibleApi = showApi ? apiMarkers : [];
   const visibleDriver = showDriver ? driverMarkers.filter((m) => typeFilters.has(m.category)) : [];
-  const allVisible = [...visibleApi, ...visibleDriver];
+  const allVisible = [...visibleApi, ...visibleDriver].sort(
+    (a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt),
+  );
+  const loading = feedLoading || hazardsLoading;
 
   function toggleType(v: string) {
     setTypeFilters((s) => {
@@ -123,11 +124,13 @@ function HazardMap() {
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Hazard Map</h1>
-          <p className="text-muted-foreground text-sm">Live weather and DOT hazards, with driver reports as a community layer.</p>
+          <p className="text-muted-foreground text-sm">Live NWS weather alerts, DOT incidents, and driver reports — no sample data.</p>
         </div>
         <div className="inline-flex items-center gap-2 text-xs text-muted-foreground rounded-full border border-border bg-card px-3 py-1.5">
-          <Radio className={`size-3 ${feedLoading ? "animate-pulse" : "text-success"}`} />
-          {feedLoading ? "Loading live sources…" : `${apiMarkers.length} API hazards · ${driverMarkers.length} driver reports`}
+          <Radio className={`size-3 ${loading ? "animate-pulse" : "text-success"}`} />
+          {loading
+            ? "Loading live sources…"
+            : `${apiMarkers.length} API hazards · ${driverMarkers.length} driver reports · updated ${feed?.generatedAt ? new Date(feed.generatedAt).toLocaleTimeString() : "—"}`}
         </div>
       </div>
 
@@ -175,54 +178,65 @@ function HazardMap() {
         </div>
       )}
 
-      <div className="relative aspect-[16/10] rounded-xl border border-border bg-sidebar overflow-hidden">
-        <div className="absolute inset-0 road-grid opacity-60" />
-        <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-          <path d="M0,80 Q200,40 400,120 T800,200" stroke="oklch(0.4 0.02 250)" strokeWidth="3" fill="none" />
-          <path d="M0,260 L800,260" stroke="oklch(0.4 0.02 250)" strokeWidth="3" fill="none" strokeDasharray="6 8" />
-          <path d="M200,0 L260,500" stroke="oklch(0.4 0.02 250)" strokeWidth="3" fill="none" />
-          <path d="M600,0 Q540,250 700,500" stroke="oklch(0.4 0.02 250)" strokeWidth="3" fill="none" />
-        </svg>
+      <div className="rounded-xl border border-dashed border-border bg-card/40 p-4 text-xs text-muted-foreground inline-flex items-start gap-2">
+        <MapPin className="size-3.5 mt-0.5 shrink-0" />
+        <span>
+          Interactive geospatial map coming with Mapbox/MapLibre integration. Until then,
+          live hazards are shown below with their real reported locations and coordinates
+          (when provided). No sample weather markers are rendered.
+        </span>
+      </div>
 
-        {!feedLoading && !hazardsLoading && allVisible.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground text-center px-6">
-            No hazards from any connected source. The map updates automatically as new alerts come in.
+      <div className="space-y-2">
+        {loading && (
+          <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            Loading live hazards…
           </div>
         )}
-
+        {!loading && allVisible.length === 0 && (
+          <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            No live hazards from connected sources right now.
+          </div>
+        )}
         {allVisible.map((m) => {
           const Icon = HAZARD_ICONS[m.category] ?? AlertTriangle;
-          const p = pos(m.id);
           const driver = m.reporter_id ? drivers[m.reporter_id] : null;
-          const ringColor =
-            m.severity === "critical" ? "bg-destructive border-destructive-foreground/40 text-destructive-foreground"
-            : m.severity === "high" ? "bg-primary border-primary-foreground/30 text-primary-foreground"
-            : "bg-warning border-background/40 text-warning-foreground";
           return (
-            <div
-              key={m.layer + m.id}
-              className="group absolute -translate-x-1/2 -translate-y-1/2"
-              style={{ left: `${p.left}%`, top: `${p.top}%` }}
-            >
-              <div className={cn("size-8 rounded-full border-2 flex items-center justify-center shadow-lg", ringColor, m.layer === "driver" && "ring-2 ring-warning/40 ring-offset-2 ring-offset-sidebar")}>
+            <div key={m.layer + m.id} className="rounded-xl border border-border bg-card p-4 flex items-start gap-3">
+              <div
+                className={cn(
+                  "size-9 rounded-md border flex items-center justify-center shrink-0",
+                  m.layer === "api"
+                    ? "bg-primary/10 border-primary/30 text-primary"
+                    : "bg-warning/10 border-warning/30 text-warning",
+                )}
+              >
                 <Icon className="size-4" />
               </div>
-              <div className="invisible group-hover:visible absolute left-1/2 -translate-x-1/2 mt-2 w-64 rounded-md border border-border bg-popover p-3 text-xs shadow-xl z-10">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="font-medium text-popover-foreground">{m.title}</div>
-                  <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded border border-border whitespace-nowrap">{m.source}</span>
-                </div>
-                <div className="text-muted-foreground mt-0.5">{m.location}</div>
-                {m.description && <div className="text-muted-foreground mt-1 line-clamp-3">{m.description}</div>}
-                <div className="flex items-center justify-between mt-2 gap-2">
-                  <span className={`px-1.5 py-0.5 rounded border text-[10px] uppercase ${severityClasses(m.severity)}`}>{m.severity}</span>
-                  <span className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
-                    <Clock className="size-3" />{formatDistanceToNow(new Date(m.updatedAt), { addSuffix: true })}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(m.severity)}`}>
+                    {m.severity}
+                  </span>
+                  <span className="text-xs text-muted-foreground px-2 py-0.5 rounded border border-border">
+                    Source: {m.source}
+                  </span>
+                  <div className="flex-1" />
+                  <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                    <Clock className="size-3" /> {formatDistanceToNow(new Date(m.updatedAt), { addSuffix: true })}
                   </span>
                 </div>
+                <div className="mt-2 font-medium">{m.title}</div>
+                <div className="text-sm text-muted-foreground inline-flex items-center gap-1 mt-0.5">
+                  <MapPin className="size-3.5" /> {m.location}
+                  {m.lat != null && m.lon != null && (
+                    <span className="ml-2 text-[11px]">({m.lat.toFixed(3)}, {m.lon.toFixed(3)})</span>
+                  )}
+                </div>
+                {m.description && <p className="mt-1 text-sm line-clamp-3">{m.description}</p>}
                 {m.layer === "driver" && (
-                  <div className="text-[10px] text-muted-foreground mt-1 inline-flex items-center gap-1">
-                    <User className="size-3" />Reported by {driver ?? "a driver"}
+                  <div className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
+                    <User className="size-3" /> Reported by {driver ?? "a driver"}
                   </div>
                 )}
               </div>
