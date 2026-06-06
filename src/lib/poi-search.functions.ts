@@ -314,9 +314,26 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         tomtomFilteredCount += 1;
         return;
       }
-      if (data.kind === "parking" && (type === "fuel" || type === "weigh_station")) {
-        tomtomFilteredCount += 1;
-        return;
+      if (data.kind === "parking") {
+        // Only show truck-relevant parking: brand truck stops, rest areas,
+        // travel centers, truck plazas, or named truck parking.
+        const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
+        const isTruckParking =
+          type === "truck_stop" ||
+          type === "rest_area" ||
+          /\bpilot\b/.test(hay) ||
+          /flying\s*j/.test(hay) ||
+          /love'?s/.test(hay) ||
+          /\bta\b/.test(hay) ||
+          /\bpetro\b/.test(hay) ||
+          /travel\s*cent(er|re)s?/.test(hay) ||
+          /truck\s*plaza/.test(hay) ||
+          /truck\s*stop|truckstop/.test(hay) ||
+          /truck\s*parking/.test(hay);
+        if (!isTruckParking) {
+          tomtomFilteredCount += 1;
+          return;
+        }
       }
       if (data.kind === "truck_stop") {
         // Strict allow-list: only major truck-stop chains + generic truck plazas.
