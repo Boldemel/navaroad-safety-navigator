@@ -94,9 +94,12 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       }),
     );
 
-    // Per-point NWS alerts — only alerts whose polygon covers a route sample.
+    // Per-point NWS alerts — sample densely along the route corridor so we
+    // catch alerts between origin/midpoint/destination. Only alerts whose
+    // polygon covers a route sample are returned.
+    const alertSamples = sampleRoute(r.geometry, 20);
     const perPointAlerts = await Promise.all(
-      samples.map((s) => fetchAlertsForPoint(s.lat, s.lon).catch(() => [] as WeatherAlert[])),
+      alertSamples.map((s) => fetchAlertsForPoint(s.lat, s.lon).catch(() => [] as WeatherAlert[])),
     );
     const dedup = new Map<string, WeatherAlert>();
     for (const list of perPointAlerts) for (const a of list) dedup.set(a.id, a);
