@@ -97,7 +97,11 @@ function Dashboard() {
     if (!pendingAutoAnalyze) return;
     if (origin.trim().length < 2 || destination.trim().length < 2) return;
     setPendingAutoAnalyze(false);
-    analysis.mutate({ origin, destination, truck, trailer });
+    analysis.mutate({
+      origin, destination, truck, trailer,
+      ...(originPlace ? { originCoords: { lat: originPlace.lat, lon: originPlace.lon } } : {}),
+      ...(destPlace ? { destinationCoords: { lat: destPlace.lat, lon: destPlace.lon } } : {}),
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingAutoAnalyze, origin, destination]);
 
