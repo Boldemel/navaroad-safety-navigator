@@ -972,6 +972,9 @@ function PoiList({
           searchPointCount: number;
           corridorRadiusMi: number;
           rawResultsCount: number;
+          routeFilteredResultsCount?: number;
+          deduplicatedResultsCount?: number;
+          finalDisplayedCount?: number;
           filteredResultsCount: number;
           filteredOutCount: number;
           searchingFullRoute: boolean;
@@ -1010,7 +1013,9 @@ function PoiList({
         <div>
           <span className="font-medium text-foreground/70">Search points:</span> {result?.debug?.searchPointCount ?? 0}
           {" · "}<span className="font-medium text-foreground/70">Raw:</span> {result?.debug?.rawResultsCount ?? 0}
-          {" · "}<span className="font-medium text-foreground/70">Filtered:</span> {result?.debug?.filteredResultsCount ?? result?.totalFound ?? 0}
+          {" · "}<span className="font-medium text-foreground/70">Route-filtered:</span> {result?.debug?.routeFilteredResultsCount ?? result?.debug?.filteredResultsCount ?? 0}
+          {" · "}<span className="font-medium text-foreground/70">Deduped:</span> {result?.debug?.deduplicatedResultsCount ?? result?.totalFound ?? 0}
+          {" · "}<span className="font-medium text-foreground/70">Displayed:</span> {result?.debug?.finalDisplayedCount ?? result?.pois.length ?? 0}
           {" · "}<span className="font-medium text-foreground/70">Corridor:</span> {result?.debug?.corridorRadiusMi ?? 20} mi
         </div>
       </div>
