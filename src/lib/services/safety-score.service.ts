@@ -50,13 +50,19 @@ function addPenalty(
 }
 
 function weatherAlertPenalty(alert: WeatherAlert): { bucket: keyof RiskBreakdown; amount: number } {
+  const event = alert.event.toLowerCase();
+  const isWarning = event.includes("warning") || event.includes("emergency");
+  const isWatch = event.includes("watch");
+  const isAdvisory = event.includes("advisory") || event.includes("statement") || event.includes("outlook");
   if (alert.severity === "low") return { bucket: "weather", amount: 0 };
   if (alert.category === "tornado") return { bucket: "wind", amount: alert.severity === "critical" ? 30 : 25 };
   if (alert.category === "high_wind") {
-    if (alert.severity === "critical") return { bucket: "wind", amount: 30 };
-    if (alert.severity === "high") return { bucket: "wind", amount: 20 };
+    if (isWarning && alert.severity === "critical") return { bucket: "wind", amount: 30 };
+    if (isWarning || alert.severity === "high") return { bucket: "wind", amount: isWatch || isAdvisory ? 8 : 20 };
     return { bucket: "wind", amount: 10 };
   }
+  if (isWatch || isAdvisory) return { bucket: "weather", amount: alert.severity === "high" ? 5 : 0 };
+  if (!isWarning && alert.severity === "medium") return { bucket: "weather", amount: 5 };
   if (alert.severity === "critical") return { bucket: "weather", amount: 25 };
   if (alert.severity === "high") return { bucket: "weather", amount: 15 };
   return { bucket: "weather", amount: 5 };
