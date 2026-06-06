@@ -184,6 +184,9 @@ function Dashboard() {
       clearActiveRoute();
       queryClient.removeQueries({ queryKey: ["fuel-stops"] });
       queryClient.removeQueries({ queryKey: ["parking-stops"] });
+      queryClient.removeQueries({ queryKey: ["truck-stops"] });
+      queryClient.removeQueries({ queryKey: ["weigh-stations"] });
+
     },
     onSuccess: (data, vars) => {
       saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
