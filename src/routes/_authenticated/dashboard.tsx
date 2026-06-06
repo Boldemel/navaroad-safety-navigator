@@ -725,18 +725,29 @@ function Dashboard() {
   );
 }
 
-function StatCard({ icon, label, count, sub, accent, loading }: { icon: React.ReactNode; label: string; count: number; sub?: string; accent: "primary" | "destructive" | "warning"; loading?: boolean }) {
+function StatCard({ icon, label, count, sub, accent, loading, onClick }: { icon: React.ReactNode; label: string; count: number; sub?: string; accent: "primary" | "destructive" | "warning"; loading?: boolean; onClick?: () => void }) {
   const colors = {
     primary: "text-primary bg-primary/10 border-primary/20",
     destructive: "text-destructive bg-destructive/10 border-destructive/20",
     warning: "text-warning bg-warning/10 border-warning/20",
   }[accent];
+  const clickable = !!onClick;
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick?.(); } } : undefined}
+      className={cn(
+        "rounded-xl border border-border bg-card p-5",
+        clickable && "cursor-pointer hover:border-primary/50 hover:bg-card/80 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+      )}
+    >
       <div className={`size-10 rounded-md flex items-center justify-center border ${colors}`}>{icon}</div>
       <div className="mt-4 text-3xl font-semibold">{loading ? <Loader2 className="size-7 animate-spin" /> : count}</div>
       <div className="text-sm text-muted-foreground">{label}</div>
       {sub && <div className="text-[11px] text-muted-foreground/80 mt-0.5">{sub}</div>}
+      {clickable && <div className="text-[10px] text-primary/80 mt-1">View locations →</div>}
     </div>
   );
 }
