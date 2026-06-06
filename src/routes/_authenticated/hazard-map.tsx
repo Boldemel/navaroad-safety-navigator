@@ -162,9 +162,9 @@ function HazardMap() {
   const lastSpokenAlertRef = useRef<string | null>(null);
   useEffect(() => {
     if (!voiceAlert || voiceSettings.muted || !voiceSettings.hazardAlerts) return;
-    if (lastSpokenAlertRef.current === voiceAlert.id) return;
-    lastSpokenAlertRef.current = voiceAlert.id;
-    announceHazard({ id: voiceAlert.id, title: voiceAlert.speakable, severity: voiceAlert.severity });
+    if (lastSpokenAlertRef.current === voiceAlert.hazard.id) return;
+    lastSpokenAlertRef.current = voiceAlert.hazard.id;
+    announceHazard({ id: voiceAlert.hazard.id, title: voiceAlert.speakable, severity: voiceAlert.severity });
   }, [voiceAlert, voiceSettings.muted, voiceSettings.hazardAlerts]);
 
 
