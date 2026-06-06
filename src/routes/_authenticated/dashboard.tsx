@@ -334,3 +334,68 @@ function BreakdownRow({ label, value, source }: { label: string; value: number; 
     </div>
   );
 }
+
+type AlertLike = {
+  id: string;
+  event: string;
+  severity: "low" | "medium" | "high" | "critical";
+  areaDesc: string;
+  recommendedAction: string;
+  effective: string;
+  provider: string;
+};
+
+type GroupedAlert = {
+  key: string;
+  event: string;
+  severity: "low" | "medium" | "high" | "critical";
+  region: string;
+  count: number;
+  effective: string;
+  provider: string;
+  recommendedAction: string;
+};
+
+function summarizeRegion(areaDescs: string[]): { region: string; count: number } {
+  const states = new Set<string>();
+  let count = 0;
+  for (const desc of areaDescs) {
+    const parts = desc.split(";").map((s) => s.trim()).filter(Boolean);
+    count += parts.length || 1;
+    for (const p of parts) {
+      const m = p.match(/\b([A-Z]{2})\b\s*$/);
+      if (m) states.add(m[1]);
+    }
+  }
+  const region = states.size > 0
+    ? [...states].sort().join(", ")
+    : count > 0 ? `${count} area${count === 1 ? "" : "s"} along route` : "Region unavailable";
+  return { region, count };
+}
+
+function groupAlerts(alerts: AlertLike[]): GroupedAlert[] {
+  const sevRank = { low: 0, medium: 1, high: 2, critical: 3 } as const;
+  const map = new Map<string, AlertLike[]>();
+  for (const a of alerts) {
+    const list = map.get(a.event) ?? [];
+    list.push(a);
+    map.set(a.event, list);
+  }
+  const groups: GroupedAlert[] = [];
+  for (const [event, list] of map) {
+    const top = [...list].sort((x, y) => sevRank[y.severity] - sevRank[x.severity])[0];
+    const { region, count } = summarizeRegion(list.map((a) => a.areaDesc));
+    const earliest = list.reduce((min, a) => (a.effective < min ? a.effective : min), top.effective);
+    groups.push({
+      key: event,
+      event,
+      severity: top.severity,
+      region,
+      count,
+      effective: earliest,
+      provider: top.provider,
+      recommendedAction: top.recommendedAction,
+    });
+  }
+  return groups.sort((a, b) => sevRank[b.severity] - sevRank[a.severity]);
+}
