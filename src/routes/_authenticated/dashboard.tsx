@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Wind, Construction, AlertTriangle, Bell, Route as RouteIcon, ShieldCheck, Loader2, CloudRain, Thermometer, MapPin } from "lucide-react";
-import { TRUCK_TYPES, TRAILER_TYPES, hazardLabel, severityClasses } from "@/lib/navaroad";
-import { formatDistanceToNow } from "date-fns";
+import {
+  Wind, Construction, AlertTriangle, Route as RouteIcon, ShieldCheck, Loader2,
+  CloudRain, Thermometer, MapPin, Radio, Users, Cloud, Lightbulb,
+} from "lucide-react";
+import { TRUCK_TYPES, TRAILER_TYPES, severityClasses } from "@/lib/navaroad";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { analyzeRoute } from "@/lib/route-analysis.functions";
+import { getSafetyFeed } from "@/lib/safety-engine.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -22,12 +25,22 @@ function Dashboard() {
   const [destination, setDestination] = useState("");
   const [truck, setTruck] = useState("Sleeper");
   const [trailer, setTrailer] = useState("Dry Van");
-  useRealtimeInvalidate(["hazard_reports", "alerts"], [["dash-hazards"], ["dash-alerts"]]);
+  useRealtimeInvalidate(["hazard_reports"], [["dash-hazards"]]);
 
   const analyzeFn = useServerFn(analyzeRoute);
+  const feedFn = useServerFn(getSafetyFeed);
+
   const analysis = useMutation({
     mutationFn: (vars: { origin: string; destination: string; truck: string; trailer: string }) =>
       analyzeFn({ data: vars }),
+  });
+
+  // Live API-driven safety feed (weather + DOT).
+  const { data: feed, isLoading: feedLoading } = useQuery({
+    queryKey: ["safety-feed"],
+    queryFn: () => feedFn(),
+    refetchInterval: 5 * 60_000,
+    staleTime: 60_000,
   });
 
   const { data: hazards = [] } = useQuery({
@@ -43,23 +56,11 @@ function Dashboard() {
     },
   });
 
-  const { data: alerts = [] } = useQuery({
-    queryKey: ["dash-alerts"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("alerts")
-        .select("*")
-        .eq("active", true)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const windCount = hazards.filter((h) => h.hazard_type === "high_wind").length
-    + alerts.filter((a) => a.alert_type === "high_wind").length;
-  const closureCount = hazards.filter((h) => h.hazard_type === "road_closure").length
-    + alerts.filter((a) => a.alert_type === "road_closure").length;
+  const weatherAlerts = feed?.weatherAlerts ?? [];
+  const roadAlerts = feed?.roadAlerts ?? [];
+  const windCount = weatherAlerts.filter((a) => a.category === "high_wind" || a.category === "tornado").length;
+  const weatherCount = weatherAlerts.length;
+  const closureCount = roadAlerts.filter((a) => a.category === "road_closure" || a.category === "detour").length;
   const driverCount = hazards.length;
 
   const result = analysis.data;
@@ -72,9 +73,15 @@ function Dashboard() {
 
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground text-sm">Pre-trip safety overview and active alerts.</p>
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground text-sm">Live safety intelligence from weather, road, and driver sources.</p>
+        </div>
+        <div className="inline-flex items-center gap-2 text-xs text-muted-foreground rounded-full border border-border bg-card px-3 py-1.5">
+          <Radio className={`size-3 ${feedLoading ? "text-muted-foreground animate-pulse" : "text-success"}`} />
+          {feedLoading ? "Connecting to live sources…" : `Live: NWS weather · DOT ${feed?.providers.road === "not_connected" ? "not connected" : "live"}`}
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -120,6 +127,7 @@ function Dashboard() {
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
                 <span><MapPin className="inline size-3.5 mr-1" />{Math.round(result.distanceKm)} km</span>
                 <span>~{Math.round(result.durationMin)} min drive</span>
+                <span>{result.weatherAlertCount} weather alerts · {result.roadAlertCount} DOT alerts on path</span>
               </div>
               <div className="grid sm:grid-cols-3 gap-2">
                 {result.weather.map((w) => (
@@ -134,7 +142,7 @@ function Dashboard() {
               </div>
               {result.risks.length > 0 ? (
                 <ul className="space-y-1.5">
-                  {result.risks.map((r, i) => (
+                  {result.risks.slice(0, 8).map((r, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
                       <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(r.severity)}`}>{r.severity}</span>
                       <span>{r.message}</span>
@@ -144,6 +152,10 @@ function Dashboard() {
               ) : (
                 <p className="text-sm text-success">No major weather or road risks detected.</p>
               )}
+              <div className="rounded-md border border-primary/30 bg-primary/10 p-3 text-sm">
+                <span className="font-medium text-primary inline-flex items-center gap-1.5"><Lightbulb className="size-3.5" />Recommended action:</span>{" "}
+                <span className="text-foreground">{result.recommendedAction}</span>
+              </div>
             </div>
           )}
         </form>
@@ -156,36 +168,38 @@ function Dashboard() {
             {analysis.isPending ? <Loader2 className="size-12 animate-spin mx-auto" /> : (score ?? "—")}
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            {score == null ? "Analyze a route to see your score." : score >= 80 ? "Low risk — clear to roll." : score >= 60 ? "Caution — review alerts." : "High risk — consider delay or alt route."}
+            {score == null ? "Analyze a route to see your score." : result?.recommendedAction}
           </p>
         </div>
       </div>
 
-
       <div>
-        <h2 className="font-semibold mb-3">Active Alerts</h2>
-        <div className="grid md:grid-cols-3 gap-4">
-          <StatCard icon={<Wind className="size-5" />} label="High Wind Risk" count={windCount} accent="primary" />
-          <StatCard icon={<Construction className="size-5" />} label="Road Closures" count={closureCount} accent="destructive" />
-          <StatCard icon={<AlertTriangle className="size-5" />} label="Driver Hazard Reports" count={driverCount} accent="warning" />
+        <h2 className="font-semibold mb-3">Live safety signals</h2>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard icon={<Cloud className="size-5" />} label="Weather Risk" count={weatherCount} sub="NWS alerts" accent="primary" loading={feedLoading} />
+          <StatCard icon={<Wind className="size-5" />} label="Wind Risk" count={windCount} sub="High wind / tornado" accent="primary" loading={feedLoading} />
+          <StatCard icon={<Construction className="size-5" />} label="DOT / Road Closure Risk" count={closureCount} sub={feed?.providers.road === "not_connected" ? "Connect DOT API" : "Active closures"} accent="destructive" loading={feedLoading} />
+          <StatCard icon={<Users className="size-5" />} label="Driver Reports" count={driverCount} sub="Community layer" accent="warning" />
         </div>
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">Recent Alerts</h2>
-          <Bell className="size-4 text-muted-foreground" />
-        </div>
+        <h2 className="font-semibold mb-3">Recent live alerts</h2>
         <div className="rounded-xl border border-border bg-card divide-y divide-border">
-          {alerts.length === 0 && <div className="p-6 text-sm text-muted-foreground">No active alerts.</div>}
-          {alerts.slice(0, 5).map((a) => (
+          {feedLoading && <div className="p-6 text-sm text-muted-foreground">Loading live alerts…</div>}
+          {!feedLoading && weatherAlerts.length === 0 && roadAlerts.length === 0 && (
+            <div className="p-6 text-sm text-muted-foreground inline-flex items-center gap-2">
+              <AlertTriangle className="size-4" /> No active weather or road alerts from connected sources.
+            </div>
+          )}
+          {weatherAlerts.slice(0, 5).map((a) => (
             <div key={a.id} className="p-4 flex items-start gap-3">
               <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(a.severity)}`}>{a.severity}</span>
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm">{hazardLabel(a.alert_type)} — {a.location}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{a.message}</div>
+                <div className="font-medium text-sm">{a.event} — {a.areaDesc}</div>
+                <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{a.headline}</div>
               </div>
-              <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}</span>
+              <span className="text-[10px] text-muted-foreground whitespace-nowrap px-2 py-0.5 rounded border border-border">Weather · {a.provider}</span>
             </div>
           ))}
         </div>
@@ -194,7 +208,7 @@ function Dashboard() {
   );
 }
 
-function StatCard({ icon, label, count, accent }: { icon: React.ReactNode; label: string; count: number; accent: "primary" | "destructive" | "warning" }) {
+function StatCard({ icon, label, count, sub, accent, loading }: { icon: React.ReactNode; label: string; count: number; sub?: string; accent: "primary" | "destructive" | "warning"; loading?: boolean }) {
   const colors = {
     primary: "text-primary bg-primary/10 border-primary/20",
     destructive: "text-destructive bg-destructive/10 border-destructive/20",
@@ -203,8 +217,9 @@ function StatCard({ icon, label, count, accent }: { icon: React.ReactNode; label
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <div className={`size-10 rounded-md flex items-center justify-center border ${colors}`}>{icon}</div>
-      <div className="mt-4 text-3xl font-semibold">{count}</div>
+      <div className="mt-4 text-3xl font-semibold">{loading ? <Loader2 className="size-7 animate-spin" /> : count}</div>
       <div className="text-sm text-muted-foreground">{label}</div>
+      {sub && <div className="text-[11px] text-muted-foreground/80 mt-0.5">{sub}</div>}
     </div>
   );
 }
