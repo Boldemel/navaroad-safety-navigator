@@ -47,6 +47,7 @@ function Dashboard() {
   const feedFn = useServerFn(getSafetyFeed);
   const reverseGeocodeFn = useServerFn(reverseGeocode);
   const truckRouteFn = useServerFn(getTruckRoute);
+  const searchPoisFn = useServerFn(searchTruckPois);
   const activeRoute = useActiveRoute();
   const geo = useGeolocation();
   const router = useRouter();
@@ -55,6 +56,46 @@ function Dashboard() {
   const [awaitingCoords, setAwaitingCoords] = useState(false);
 
   const [pendingAutoAnalyze, setPendingAutoAnalyze] = useState(false);
+
+  // Load truck profile from Supabase so analysis uses driver-saved dimensions.
+  const { data: profile } = useQuery({
+    queryKey: ["truck-profile"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return null;
+      const { data } = await supabase.from("profiles").select("*").eq("id", u.user.id).maybeSingle();
+      return data;
+    },
+  });
+  useEffect(() => {
+    if (profile?.truck_type) setTruck(profile.truck_type);
+    if (profile?.trailer_type) setTrailer(profile.trailer_type);
+  }, [profile?.truck_type, profile?.trailer_type]);
+
+  const truckProfile = {
+    heightIn: profile?.truck_height_in ?? null,
+    weightLbs: profile?.truck_weight_lbs ?? null,
+    lengthFt: profile?.truck_length_ft ?? null,
+    axles: profile?.truck_axles ?? null,
+    hazmat: !!profile?.truck_hazmat,
+    loaded: profile?.load_status === "loaded",
+  };
+
+  // Saved locations → autocomplete suggestions.
+  const { data: favorites = [] } = useFavoriteLocations();
+  const favSuggestions: FavoriteSuggestion[] = favorites
+    .filter((f) => f.latitude != null && f.longitude != null)
+    .map((f) => ({
+      id: f.id,
+      customLabel: f.label,
+      categoryLabel: favoriteCategoryLabel(f.category),
+      label: f.address,
+      lat: f.latitude as number,
+      lon: f.longitude as number,
+      city: f.city ?? null,
+      state: f.state ?? null,
+      country: f.country ?? null,
+    }));
 
   async function fillOriginFromCoords(lat: number, lon: number) {
     setLocating(true);
