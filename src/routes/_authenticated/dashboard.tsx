@@ -753,14 +753,6 @@ function Dashboard() {
       {usingRoute && (
         <div className="grid lg:grid-cols-2 gap-4">
           <PoiList
-            icon={<Fuel className="size-4 text-primary" />}
-            title="Fuel Stops on this Route"
-            routeLabel={routeLabel}
-            loading={fuelLoading}
-            result={fuelStops}
-            emptyHint="No truck-friendly fuel stops detected near this route."
-          />
-          <PoiList
             icon={<ParkingCircle className="size-4 text-primary" />}
             title="Rest Areas on this Route"
             routeLabel={routeLabel}
