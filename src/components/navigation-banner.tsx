@@ -5,7 +5,7 @@ import { Navigation2, X, Clock, MapPin, ArrowUpRight } from "lucide-react";
 import { useNavigationSession, updateNavigationRoute, stopNavigation } from "@/hooks/use-navigation-session";
 import { useGeolocation, distanceMiles } from "@/hooks/use-geolocation";
 import { getTruckRoute } from "@/lib/navigation.functions";
-import { saveActiveRoute } from "@/hooks/use-active-route";
+import { saveActiveRoute, clearActiveRoute } from "@/hooks/use-active-route";
 
 function nearestIndex(here: { lat: number; lon: number }, geometry: Array<[number, number]>): number {
   let best = 0, bestD = Infinity;
@@ -145,7 +145,10 @@ export function NavigationBanner() {
         )}
         <button
           type="button"
-          onClick={() => stopNavigation()}
+          onClick={() => {
+            stopNavigation();
+            clearActiveRoute();
+          }}
           className="inline-flex items-center gap-1 rounded-md border border-border bg-card hover:bg-accent px-2 py-1 text-xs"
           aria-label="End navigation"
         >

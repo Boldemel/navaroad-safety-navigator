@@ -18,7 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { analyzeRoute } from "@/lib/route-analysis.functions";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
-import { useActiveRoute, saveActiveRoute } from "@/hooks/use-active-route";
+import { useActiveRoute, saveActiveRoute, clearActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { reverseGeocode } from "@/lib/geo.functions";
 import { getTruckRoute } from "@/lib/navigation.functions";
@@ -375,7 +375,7 @@ function Dashboard() {
                     >
                       <Navigation2 className="size-4 mr-1" /> Open navigation
                     </Button>
-                    <Button type="button" variant="ghost" onClick={() => stopNavigation()}>
+                    <Button type="button" variant="ghost" onClick={() => { stopNavigation(); clearActiveRoute(); }}>
                       End navigation
                     </Button>
                   </>
