@@ -315,6 +315,120 @@ function isNotTruckStop(hay: string) {
   return /\brv\s*park\b|campground|koa\b|camp\s*ground|\brv\s*resort\b|mobile\s*home/.test(hay);
 }
 
+type OsmPoi = {
+  osmType: string;
+  osmId: string;
+  lat: number;
+  lon: number;
+  name: string;
+  category: string;
+  type: TruckPoiType;
+  address: string | null;
+};
+
+function overpassQueryFor(kind: "rest_area" | "weigh_station", samples: Array<{ lat: number; lon: number }>): string {
+  const radius = 50000;
+  const clauses: string[] = [];
+  for (const s of samples) {
+    const around = `around:${radius},${s.lat.toFixed(5)},${s.lon.toFixed(5)}`;
+    if (kind === "rest_area") {
+      // Rest areas, service areas, and truck-friendly parking (hgv=yes).
+      clauses.push(`node["highway"="rest_area"](${around});`);
+      clauses.push(`way["highway"="rest_area"](${around});`);
+      clauses.push(`node["highway"="services"](${around});`);
+      clauses.push(`way["highway"="services"](${around});`);
+      clauses.push(`node["amenity"="parking"]["hgv"="yes"](${around});`);
+      clauses.push(`way["amenity"="parking"]["hgv"="yes"](${around});`);
+      clauses.push(`node["amenity"="parking"]["access"="hgv"](${around});`);
+      clauses.push(`way["amenity"="parking"]["access"="hgv"](${around});`);
+    } else {
+      clauses.push(`node["highway"="weigh_station"](${around});`);
+      clauses.push(`way["highway"="weigh_station"](${around});`);
+      clauses.push(`node["amenity"="weighbridge"](${around});`);
+      clauses.push(`way["amenity"="weighbridge"](${around});`);
+    }
+  }
+  return `[out:json][timeout:25];(${clauses.join("")});out center 400;`;
+}
+
+async function overpassAlongRoute(
+  samples: Array<{ lat: number; lon: number }>,
+  kind: "rest_area" | "weigh_station",
+): Promise<{ results: OsmPoi[]; error: string | null }> {
+  const endpoints = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+  ];
+  const body = "data=" + encodeURIComponent(overpassQueryFor(kind, samples));
+  let lastError: string | null = null;
+  for (const url of endpoints) {
+    try {
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "Navaroad/1.0" },
+        body,
+      });
+      if (!r.ok) {
+        lastError = `Overpass ${r.status}`;
+        continue;
+      }
+      const j = (await r.json().catch(() => null)) as {
+        elements?: Array<{
+          type: string;
+          id: number;
+          lat?: number;
+          lon?: number;
+          center?: { lat: number; lon: number };
+          tags?: Record<string, string>;
+        }>;
+      } | null;
+      const elements = j?.elements ?? [];
+      const out: OsmPoi[] = [];
+      for (const el of elements) {
+        const lat = el.lat ?? el.center?.lat;
+        const lon = el.lon ?? el.center?.lon;
+        if (lat == null || lon == null) continue;
+        const tags = el.tags ?? {};
+        let type: TruckPoiType;
+        let category: string;
+        let name = tags.name ?? "";
+        if (kind === "weigh_station") {
+          type = "weigh_station";
+          category = "Weigh station";
+          if (!name) name = "Weigh Station";
+        } else if (tags.amenity === "parking") {
+          type = "parking";
+          category = "Truck parking";
+          if (!name) name = "Truck Parking";
+        } else if (tags.highway === "services") {
+          type = "rest_area";
+          category = "Service area";
+          if (!name) name = "Service Area";
+        } else {
+          type = "rest_area";
+          category = "Rest area";
+          if (!name) name = "Rest Area";
+        }
+        out.push({
+          osmType: el.type,
+          osmId: String(el.id),
+          lat,
+          lon,
+          name,
+          category,
+          type,
+          address: tags["addr:full"] ?? null,
+        });
+      }
+      return { results: out, error: null };
+    } catch (e) {
+      lastError = e instanceof Error ? e.message : "Overpass request failed";
+    }
+  }
+  return { results: [], error: lastError };
+}
+
+
 async function tomtomNearby(
   key: string,
   lat: number,
@@ -540,9 +654,56 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       );
     }
 
+    // Step 3 (supplemental): OpenStreetMap Overpass for rest areas, truck
+    // parking, and weigh stations. TomTom coverage of these categories is
+    // sparse in the US; OSM has much better data. Routing/navigation/fuel
+    // remain TomTom-only.
+    let osmRawCount = 0;
+    let osmAddedCount = 0;
+    let osmError: string | null = null;
+    if (data.kind === "rest_area" || data.kind === "weigh_station") {
+      const osm = await overpassAlongRoute(samples, data.kind);
+      osmError = osm.error;
+      osmRawCount = osm.results.length;
+      for (const o of osm.results) {
+        const projection = projectOnRouteMi(data.geometry, cumMi, o.lat, o.lon);
+        if (!projection || projection.perpMi > corridorRadiusMi) continue;
+        let dupe = false;
+        for (const existing of seen.values()) {
+          if (distMi(existing.lat, existing.lon, o.lat, o.lon) < 0.25) {
+            dupe = true;
+            break;
+          }
+        }
+        if (dupe) continue;
+        const id = `osm-${o.osmType}-${o.osmId}`;
+        seen.set(id, {
+          id,
+          name: o.name,
+          brand: null,
+          category: o.category,
+          type: o.type,
+          address: o.address ?? "",
+          city: null,
+          state: null,
+          lat: o.lat,
+          lon: o.lon,
+          distanceMi: projection.perpMi,
+          routeProgressMi: projection.progressMi,
+          phone: null,
+          source: "OpenStreetMap",
+          restrictions: null,
+        });
+        osmAddedCount += 1;
+      }
+    }
+
     const tomtomCalls = [...categoryResults];
     const firstError = tomtomCalls.find((c) => c.error)?.error ?? null;
     const firstFuelUrl = redactTomTomKey(categoryResults[0]?.url ?? "", key);
+    console.info("Navaroad OSM Overpass diagnostics", {
+      kind: data.kind, osmRawCount, osmAddedCount, osmError,
+    });
     console.info("Navaroad TomTom POI diagnostics", {
       kind: data.kind,
       keyRead: true,
