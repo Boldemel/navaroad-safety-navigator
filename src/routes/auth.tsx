@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,13 +9,20 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
+const authSearchSchema = z.object({
+  mode: z.enum(["signin", "signup"]).optional(),
+});
+
 export const Route = createFileRoute("/auth")({
   ssr: false,
+  validateSearch: authSearchSchema,
   component: AuthPage,
 });
 
+
 function AuthPage() {
   const navigate = useNavigate();
+  const { mode } = Route.useSearch();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,6 +34,7 @@ function AuthPage() {
       if (data.user) navigate({ to: "/dashboard", replace: true });
     });
   }, [navigate]);
+
 
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
