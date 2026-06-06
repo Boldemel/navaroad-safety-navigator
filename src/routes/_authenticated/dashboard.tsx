@@ -23,6 +23,7 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { reverseGeocode } from "@/lib/geo.functions";
 import { getTruckRoute } from "@/lib/navigation.functions";
 import { startNavigation, useNavigationSession, stopNavigation } from "@/hooks/use-navigation-session";
+import { AddressAutocomplete, type SelectedPlace } from "@/components/address-autocomplete";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
