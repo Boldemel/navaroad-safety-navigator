@@ -32,7 +32,7 @@ const Input = z.object({
   limit: z.number().int().min(1).max(100).optional(),
 });
 
-export type TruckPoiType = "fuel" | "truck_stop" | "rest_area" | "parking" | "weigh_station";
+export type TruckPoiType = "fuel" | "truck_stop" | "rest_area" | "parking" | "weigh_station" | "cat_scale";
 
 export type TruckPoiSource = "TomTom" | "OpenStreetMap";
 
