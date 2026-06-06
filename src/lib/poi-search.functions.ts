@@ -8,8 +8,18 @@ import { z } from "zod";
 
 const TRUCK_FUEL_BRANDS = ["Pilot", "Flying J", "Loves", "Love's", "TA", "TravelCenters", "Petro"];
 
+const RouteGeometry = z.preprocess((value) => {
+  if (!Array.isArray(value)) return value;
+  if (value.length <= 1000) return value;
+  const sampled: unknown[] = [];
+  for (let i = 0; i < 1000; i++) {
+    sampled.push(value[Math.floor((i / 999) * (value.length - 1))]);
+  }
+  return sampled;
+}, z.array(z.tuple([z.number(), z.number()])));
+
 const Input = z.object({
-  geometry: z.array(z.tuple([z.number(), z.number()])).max(100000),
+  geometry: RouteGeometry,
   kind: z.enum(["fuel", "parking"]),
   limit: z.number().int().min(1).max(50).optional(),
 });
