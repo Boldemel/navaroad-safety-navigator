@@ -55,6 +55,15 @@ function Dashboard() {
   const [locating, setLocating] = useState(false);
   const [awaitingCoords, setAwaitingCoords] = useState(false);
 
+  function sampleRouteGeometry(geom: Array<[number, number]>, maxPoints: number) {
+    if (geom.length <= maxPoints) return geom;
+    const sampled: Array<[number, number]> = [];
+    for (let i = 0; i < maxPoints; i++) {
+      sampled.push(geom[Math.floor((i / (maxPoints - 1)) * (geom.length - 1))]);
+    }
+    return sampled;
+  }
+
   const [pendingAutoAnalyze, setPendingAutoAnalyze] = useState(false);
 
   // Load truck profile from Supabase so analysis uses driver-saved dimensions.
@@ -236,15 +245,16 @@ function Dashboard() {
   });
 
   // Truck-friendly fuel + parking POIs along the active route (TomTom).
+  const poiGeometry = sampleRouteGeometry(geometry, 1000);
   const { data: fuelStops, isLoading: fuelLoading } = useQuery({
     queryKey: ["fuel-stops", activeRoute?.savedAt ?? "none"],
-    queryFn: () => searchPoisFn({ data: { geometry, kind: "fuel" } }),
+    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "fuel" } }),
     enabled: geometry.length >= 2,
     staleTime: 10 * 60_000,
   });
   const { data: parkingStops, isLoading: parkingLoading } = useQuery({
     queryKey: ["parking-stops", activeRoute?.savedAt ?? "none"],
-    queryFn: () => searchPoisFn({ data: { geometry, kind: "parking" } }),
+    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "parking" } }),
     enabled: geometry.length >= 2,
     staleTime: 10 * 60_000,
   });
