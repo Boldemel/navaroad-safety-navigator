@@ -395,18 +395,18 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       : data.kind === "truck_stop" ? "7311,7311003"
       : data.kind === "weigh_station" ? "7314"
       : data.kind === "cat_scale" ? "7311,7311003"
-      : "7311,7395,7369,7397";
+      : "7395,7397"; // rest_area: Rest Area + Welcome Center
 
     const keywords =
       data.kind === "fuel"
-        ? ["diesel", "fuel station", "gas station"]
+        ? ["diesel", "truck diesel", "Pilot", "Flying J", "Loves", "TA", "Petro"]
       : data.kind === "truck_stop"
         ? ["truck stop", "travel center", "Pilot", "Flying J", "Loves", "TA", "Petro", "Sapp Bros", "Road Ranger"]
       : data.kind === "weigh_station"
         ? ["weigh station", "truck inspection", "port of entry", "inspection station", "scale house", "DOT scale", "agricultural inspection"]
       : data.kind === "cat_scale"
         ? ["CAT scale", "CAT scales", "certified scale", "truck scale"]
-        : ["truck parking", "rest area", "welcome center", "travel center", "truck stop"];
+        : ["rest area", "welcome center", "safety rest area", "highway rest stop"];
 
     const radiusM = 50000; // initial provider search around each sample
     const corridorRadiusMi = 35; // final route-corridor filter for simplified route geometry
