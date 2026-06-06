@@ -65,6 +65,9 @@ export type TruckPoiResult = {
     filteredResultsCount: number;
     filteredOutCount: number;
     searchingFullRoute: boolean;
+    rawTomTomResults: string[];
+    routeFilteredResults: string[];
+    finalDisplayedResults: string[];
   };
   pois: TruckPoi[];
 };
@@ -311,6 +314,8 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     let tomtomRawCount = 0;
     let routeFilteredCount = 0;
     let tomtomFilteredCount = 0;
+    const rawTomTomResults: string[] = [];
+    const routeFilteredResults: string[] = [];
 
     const addRaw = (r: RawResult, sampleLat: number, sampleLon: number) => {
       if (!r.position) return;
@@ -318,6 +323,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       const brand = r.poi?.brands?.[0]?.name ?? null;
       const name = r.poi?.name ?? brand ?? "Truck stop";
       const cats = r.poi?.categories ?? [];
+      if (rawTomTomResults.length < 12) rawTomTomResults.push(`${name} · ${cats[0] ?? "uncategorized"}`);
       const fallbackType: TruckPoiType =
         data.kind === "weigh_station" ? "weigh_station"
         : data.kind === "parking" ? "parking"
@@ -362,6 +368,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         return;
       }
       routeFilteredCount += 1;
+      if (routeFilteredResults.length < 12) routeFilteredResults.push(`${name} · ${routeDistance.toFixed(1)} mi`);
       const id = r.id ?? `${r.position.lat.toFixed(5)},${r.position.lon.toFixed(5)}`;
       const existing = seen.get(id);
       if (existing) {
