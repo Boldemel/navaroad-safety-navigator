@@ -31,16 +31,22 @@ function Dashboard() {
 
   const analyzeFn = useServerFn(analyzeRoute);
   const feedFn = useServerFn(getSafetyFeed);
+  const activeRoute = useActiveRoute();
 
   const analysis = useMutation({
     mutationFn: (vars: { origin: string; destination: string; truck: string; trailer: string }) =>
       analyzeFn({ data: vars }),
+    onSuccess: (data, vars) => {
+      saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
+    },
   });
 
-  // Live API-driven safety feed (weather + DOT).
+  // Live safety feed scoped to the active route corridor (NWS + DOT).
+  const geometry = activeRoute?.geometry ?? [];
   const { data: feed, isLoading: feedLoading } = useQuery({
-    queryKey: ["safety-feed"],
-    queryFn: () => feedFn(),
+    queryKey: ["safety-feed", activeRoute?.savedAt ?? "none"],
+    queryFn: () => feedFn({ data: { geometry } }),
+    enabled: geometry.length >= 2,
     refetchInterval: 5 * 60_000,
     staleTime: 60_000,
   });
