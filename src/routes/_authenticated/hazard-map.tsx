@@ -293,6 +293,28 @@ function HazardMap() {
         />
       </div>
 
+      {activeRoute && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="text-sm font-medium mb-2 inline-flex items-center gap-2">
+            <AlertTriangle className="size-4 text-warning" /> Along your active route ({onRoute.length})
+            <span className="text-xs text-muted-foreground font-normal">— within 10 mi of {activeRoute.origin} → {activeRoute.destination}</span>
+          </div>
+          {onRoute.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No hazards detected on this route.</div>
+          ) : (
+            <ul className="space-y-1.5">
+              {onRoute.slice(0, 10).map((h) => (
+                <li key={"route-" + h.id} className="flex items-start gap-2 text-sm">
+                  <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(h.severity)}`}>{h.severity}</span>
+                  <span className="flex-1 min-w-0 truncate">{h.title}</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{h.distanceMi < 1 ? "<1 mi" : `${Math.round(h.distanceMi)} mi`} off route</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       {here && (
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="text-sm font-medium mb-2 inline-flex items-center gap-2">
@@ -315,11 +337,6 @@ function HazardMap() {
       )}
 
 
-      {activeRoute && !loading && apiMarkers.length === 0 && (
-        <div className="rounded-xl border border-border bg-card p-4 text-center text-sm text-muted-foreground">
-          No hazards detected on this route.
-        </div>
-      )}
       {activeRoute && !loading && apiMarkers.length > 0 && allVisible.length < apiMarkers.length + driverMarkers.length && (
         <div className="rounded-xl border border-border bg-card p-3 text-xs text-muted-foreground">
           {(apiMarkers.length + driverMarkers.length) - allVisible.length} hazard(s) hidden by active filters — toggle layers or hazard types above to show them.
