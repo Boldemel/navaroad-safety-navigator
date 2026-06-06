@@ -325,6 +325,7 @@ function Dashboard() {
                 onSelect={(p) => setOriginPlace(p)}
                 placeholder="Denver, CO"
                 proximity={geo.coords ?? null}
+                favorites={favSuggestions}
               />
               {geo.status === "denied" && (
                 <p className="text-[11px] text-destructive">Location access is needed for live route safety alerts.</p>
@@ -343,6 +344,7 @@ function Dashboard() {
                 onSelect={(p) => setDestPlace(p)}
                 placeholder="Salt Lake City, UT"
                 proximity={originPlace ? { lat: originPlace.lat, lon: originPlace.lon } : (geo.coords ?? null)}
+                favorites={favSuggestions}
               />
             </div>
             <div className="space-y-1.5">
