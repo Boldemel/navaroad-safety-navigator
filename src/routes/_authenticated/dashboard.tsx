@@ -58,6 +58,17 @@ function Dashboard() {
   const [locating, setLocating] = useState(false);
   const [awaitingCoords, setAwaitingCoords] = useState(false);
   const [poiDialog, setPoiDialog] = useState<{ title: string; result: PoiDialogResult | null } | null>(null);
+  const [analyzedRouteKey, setAnalyzedRouteKey] = useState<string | null>(null);
+
+  function routeInputKey(
+    originText: string,
+    destinationText: string,
+    originCoords?: { lat: number; lon: number } | null,
+    destinationCoords?: { lat: number; lon: number } | null,
+  ) {
+    const coords = (p?: { lat: number; lon: number } | null) => p ? `${p.lat.toFixed(5)},${p.lon.toFixed(5)}` : "none";
+    return `${originText.trim()}|${destinationText.trim()}|${coords(originCoords)}|${coords(destinationCoords)}`;
+  }
 
   function sampleRouteGeometry(geom: Array<[number, number]>, maxPoints: number) {
     if (geom.length <= maxPoints) return geom;
@@ -183,6 +194,7 @@ function Dashboard() {
       truckProfile?: typeof truckProfile;
     }) => analyzeFn({ data: vars }),
     onMutate: () => {
+      setAnalyzedRouteKey(null);
       clearActiveRoute();
       queryClient.removeQueries({ queryKey: ["fuel-stops"] });
       queryClient.removeQueries({ queryKey: ["parking-stops"] });
@@ -193,8 +205,10 @@ function Dashboard() {
     onSuccess: (data, vars) => {
       if (data.geometry.length >= 2) {
         saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
+        setAnalyzedRouteKey(routeInputKey(vars.origin, vars.destination, vars.originCoords ?? null, vars.destinationCoords ?? null));
       } else {
         clearActiveRoute();
+        setAnalyzedRouteKey(null);
       }
     },
   });
