@@ -17,7 +17,7 @@ import { getTomTomKey } from "@/lib/tomtom.functions";
 import { TomTomMap, type MapMarker } from "@/components/tomtom-map";
 import { useActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import { hazardsWithin, nearestHazardAlert, type HazardLike } from "@/lib/hazard-proximity";
+import { hazardsWithin, hazardsAlongRoute, nearestHazardAlert, type HazardLike } from "@/lib/hazard-proximity";
 
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
