@@ -109,23 +109,10 @@ function recommend(category: WeatherAlert["category"]): string {
   }
 }
 
-/**
- * Fetch active severe-weather alerts from the National Weather Service.
- * If `area` is provided (US state code, e.g. "CA"), the query is scoped.
- */
-export async function fetchSevereWeatherAlerts(area?: string): Promise<WeatherAlert[]> {
-  const qs = new URLSearchParams({ status: "actual", message_type: "alert" });
-  if (area) qs.set("area", area);
-  const url = `https://api.weather.gov/alerts/active?${qs.toString()}`;
-  const res = await fetch(url, {
-    headers: { "User-Agent": "Navaroad/1.0 (safety-engine)", Accept: "application/geo+json" },
-  });
-  if (!res.ok) return [];
-  const j = (await res.json()) as {
-    features?: Array<{ id: string; properties: Record<string, string> }>;
-  };
-  const feats = j.features ?? [];
-  return feats.slice(0, 100).map((f) => {
+function mapFeatures(
+  feats: Array<{ id: string; properties: Record<string, string> }>,
+): WeatherAlert[] {
+  return feats.map((f) => {
     const p = f.properties;
     const category = categorize(p.event ?? "");
     return {
@@ -143,4 +130,38 @@ export async function fetchSevereWeatherAlerts(area?: string): Promise<WeatherAl
       expires: p.expires ?? null,
     };
   });
+}
+
+/**
+ * Fetch active severe-weather alerts from the National Weather Service.
+ * If `area` is provided (US state code, e.g. "CA"), the query is scoped.
+ */
+export async function fetchSevereWeatherAlerts(area?: string): Promise<WeatherAlert[]> {
+  const qs = new URLSearchParams({ status: "actual", message_type: "alert" });
+  if (area) qs.set("area", area);
+  const url = `https://api.weather.gov/alerts/active?${qs.toString()}`;
+  const res = await fetch(url, {
+    headers: { "User-Agent": "Navaroad/1.0 (safety-engine)", Accept: "application/geo+json" },
+  });
+  if (!res.ok) return [];
+  const j = (await res.json()) as {
+    features?: Array<{ id: string; properties: Record<string, string> }>;
+  };
+  return mapFeatures((j.features ?? []).slice(0, 100));
+}
+
+/**
+ * Fetch active NWS alerts that cover a specific lat/lon point.
+ * Returns [] for points outside NWS coverage (non-US) or when the API fails.
+ */
+export async function fetchAlertsForPoint(lat: number, lon: number): Promise<WeatherAlert[]> {
+  const url = `https://api.weather.gov/alerts/active?point=${lat},${lon}`;
+  const res = await fetch(url, {
+    headers: { "User-Agent": "Navaroad/1.0 (safety-engine)", Accept: "application/geo+json" },
+  });
+  if (!res.ok) return [];
+  const j = (await res.json()) as {
+    features?: Array<{ id: string; properties: Record<string, string> }>;
+  };
+  return mapFeatures(j.features ?? []);
 }
