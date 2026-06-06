@@ -228,6 +228,7 @@ function Dashboard() {
 
 
   // Live safety feed scoped to the active route corridor (NWS + DOT).
+  const result = analysis.data;
   const geometry = result?.geometry ?? activeRoute?.geometry ?? [];
   const routeLabel = result
     ? `${origin || result.origin.name} → ${destination || result.destination.name}`
@@ -272,8 +273,6 @@ function Dashboard() {
     enabled: geometry.length >= 2,
     staleTime: 0,
   });
-
-  const result = analysis.data;
 
   // Stat cards: prefer the analyzed route when present, else fall back to the
   // live national feed. This keeps Wind/Weather Risk specific to the path.
