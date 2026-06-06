@@ -48,6 +48,8 @@ function Dashboard() {
   const [locating, setLocating] = useState(false);
   const [awaitingCoords, setAwaitingCoords] = useState(false);
 
+  const [pendingAutoAnalyze, setPendingAutoAnalyze] = useState(false);
+
   async function fillOriginFromCoords(lat: number, lon: number) {
     setLocating(true);
     try {
@@ -57,8 +59,10 @@ function Dashboard() {
       setOrigin(`${lat.toFixed(4)}, ${lon.toFixed(4)}`);
     } finally {
       setLocating(false);
+      setPendingAutoAnalyze(true);
     }
   }
+
 
   async function useCurrentLocation() {
     if (geo.status === "granted" && geo.coords) {
