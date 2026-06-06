@@ -418,3 +418,31 @@ function groupAlerts(alerts: AlertLike[]): GroupedAlert[] {
   }
   return groups.sort((a, b) => sevRank[b.severity] - sevRank[a.severity]);
 }
+
+function formatDriveTime(min: number): string {
+  const total = Math.max(0, Math.round(min));
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h === 0) return `${m}m`;
+  return `${h}h ${m}m`;
+}
+
+function weatherRiskNote(
+  tempF: number | null,
+  windMph: number | null,
+  gustMph: number | null,
+  precipIn: number | null,
+  visibilityKm: number | null,
+  condition: string,
+): { note: string; tone: string } {
+  const c = (condition ?? "").toLowerCase();
+  if (c.includes("thunder") || c.includes("tornado")) return { note: "Severe weather — use caution.", tone: "text-destructive" };
+  if (gustMph != null && gustMph >= 45) return { note: "High wind gusts — risk for high-profile vehicles.", tone: "text-destructive" };
+  if (windMph != null && windMph >= 30) return { note: "Strong sustained wind.", tone: "text-warning" };
+  if (visibilityKm != null && visibilityKm < 1.5) return { note: "Low visibility — slow down.", tone: "text-warning" };
+  if (precipIn != null && precipIn >= 0.2) return { note: "Heavy precipitation — wet roads.", tone: "text-warning" };
+  if (c.includes("snow") || c.includes("ice")) return { note: "Winter conditions possible.", tone: "text-warning" };
+  if (tempF != null && tempF <= 20) return { note: "Freezing temps — watch for ice.", tone: "text-warning" };
+  if (tempF != null && tempF >= 100) return { note: "Extreme heat — check tires & cooling.", tone: "text-warning" };
+  return { note: "No major weather risk.", tone: "text-success" };
+}
