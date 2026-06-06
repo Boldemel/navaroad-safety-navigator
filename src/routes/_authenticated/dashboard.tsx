@@ -189,7 +189,11 @@ function Dashboard() {
 
     },
     onSuccess: (data, vars) => {
-      saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
+      if (data.geometry.length >= 2) {
+        saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
+      } else {
+        clearActiveRoute();
+      }
     },
   });
 
@@ -243,8 +247,9 @@ function Dashboard() {
 
   // Live safety feed scoped to the active route corridor (NWS + DOT).
   const result = analysis.isPending ? undefined : analysis.data;
-  const activeRouteForQueries = analysis.isPending ? null : activeRoute;
-  const geometry = result?.geometry ?? activeRouteForQueries?.geometry ?? [];
+  const routeUnavailable = result?.routeStatus === "unavailable";
+  const activeRouteForQueries = analysis.isPending || routeUnavailable ? null : activeRoute;
+  const geometry = routeUnavailable ? [] : (result?.geometry ?? activeRouteForQueries?.geometry ?? []);
   const routeLabel = result
     ? `${origin || result.origin.name} → ${destination || result.destination.name}`
     : activeRouteForQueries
@@ -305,7 +310,7 @@ function Dashboard() {
   const routeRisks = result?.risks ?? [];
   const feedWeatherAlerts = feed?.weatherAlerts ?? [];
   const feedRoadAlerts = feed?.roadAlerts ?? [];
-  const usingRoute = !!result;
+  const usingRoute = !!result && !routeUnavailable;
   const weatherCount = usingRoute
     ? routeRisks.filter((r) => r.type === "precip" || r.type === "visibility" || r.type === "temp" || r.type === "weather_alert").length
     : feedWeatherAlerts.length;
