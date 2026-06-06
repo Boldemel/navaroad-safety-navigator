@@ -625,24 +625,43 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     };
 
 
-    // Step 1: category search at every sample, in parallel.
-    const categoryResults = await Promise.all(
-      samples.map((s) => tomtomNearby(key, s.lat, s.lon, categorySet, radiusM)),
+    // Concurrency-limited runner to stay under TomTom's per-second QPS cap.
+    async function runLimited<T>(tasks: Array<() => Promise<T>>, limit: number): Promise<T[]> {
+      const out: T[] = new Array(tasks.length);
+      let i = 0;
+      const workers = Array.from({ length: Math.min(limit, tasks.length) }, async () => {
+        while (true) {
+          const idx = i++;
+          if (idx >= tasks.length) return;
+          out[idx] = await tasks[idx]();
+        }
+      });
+      await Promise.all(workers);
+      return out;
+    }
+
+    // Step 1: category search at every sample, throttled.
+    const categoryResults = await runLimited(
+      samples.map((s) => () => tomtomNearby(key, s.lat, s.lon, categorySet, radiusM)),
+      4,
     );
     samples.forEach((s, i) => categoryResults[i].results.forEach((r) => addRaw(r, s.lat, s.lon)));
 
-    // Step 2: keyword fallback — run if category search yielded few results, or always for
-    // brand-name coverage (truck-friendly fuel chains often miscategorize).
-    if (seen.size < 10 || data.kind === "weigh_station" || data.kind === "rest_area" || data.kind === "cat_scale") {
-      const keywordCalls: Array<Promise<TomTomCall>> = [];
+    // Step 2: keyword fallback — only when category coverage is thin. Trim
+    // keyword set and stride samples so we don't exceed TomTom's QPS limit.
+    if (seen.size < 10 || data.kind === "weigh_station" || data.kind === "cat_scale") {
+      const stride = Math.max(1, Math.ceil(samples.length / 6));
+      const kwSamples = samples.filter((_, i) => i % stride === 0);
+      const kwList = keywords.slice(0, 4);
+      const keywordTasks: Array<() => Promise<TomTomCall>> = [];
       const keywordSamples: Array<{ lat: number; lon: number }> = [];
-      for (const s of samples) {
-        for (const kw of keywords) {
-          keywordCalls.push(tomtomKeyword(key, kw, s.lat, s.lon, radiusM));
+      for (const s of kwSamples) {
+        for (const kw of kwList) {
+          keywordTasks.push(() => tomtomKeyword(key, kw, s.lat, s.lon, radiusM));
           keywordSamples.push(s);
         }
       }
-      const kwResults = await Promise.all(keywordCalls);
+      const kwResults = await runLimited(keywordTasks, 4);
       kwResults.forEach((call, i) =>
         call.results.forEach((r) => addRaw(r, keywordSamples[i].lat, keywordSamples[i].lon)),
       );
