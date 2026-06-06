@@ -14,6 +14,8 @@ const InputSchema = z.object({
   destination: z.string().trim().min(2).max(200),
   truck: z.string().max(60).optional(),
   trailer: z.string().max(60).optional(),
+  originCoords: z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) }).optional(),
+  destinationCoords: z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) }).optional(),
 });
 
 export type RouteAnalysis = {
