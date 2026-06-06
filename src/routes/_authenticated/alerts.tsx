@@ -10,6 +10,7 @@ import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { useDriverNames } from "@/hooks/use-driver-names";
 import { cn } from "@/lib/utils";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
+import { useActiveRoute } from "@/hooks/use-active-route";
 
 export const Route = createFileRoute("/_authenticated/alerts")({
   component: AlertsCenter,
@@ -28,10 +29,13 @@ function AlertsCenter() {
   const [filters, setFilters] = useState<Set<Source>>(new Set(SOURCES.map((s) => s.value)));
   const { data: drivers = {} } = useDriverNames();
   const feedFn = useServerFn(getSafetyFeed);
+  const activeRoute = useActiveRoute();
+  const geometry = activeRoute?.geometry ?? [];
 
   const { data: feed, isLoading: feedLoading } = useQuery({
-    queryKey: ["safety-feed"],
-    queryFn: () => feedFn(),
+    queryKey: ["safety-feed", activeRoute?.savedAt ?? "none"],
+    queryFn: () => feedFn({ data: { geometry } }),
+    enabled: geometry.length >= 2,
     refetchInterval: 5 * 60_000,
     staleTime: 60_000,
   });
@@ -113,7 +117,14 @@ function AlertsCenter() {
         <Bell className="size-6 text-primary" />
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Alerts Center</h1>
-          <p className="text-muted-foreground text-sm">Live alerts from weather APIs, DOT feeds, and driver reports.</p>
+          <p className="text-muted-foreground text-sm">
+            Live alerts from weather APIs, DOT feeds, and driver reports.
+            {activeRoute ? (
+              <> Scoped to your route: <span className="text-foreground">{activeRoute.origin} → {activeRoute.destination}</span>.</>
+            ) : (
+              <> Analyze a route on the Dashboard to see route-scoped weather & road alerts.</>
+            )}
+          </p>
         </div>
       </div>
 

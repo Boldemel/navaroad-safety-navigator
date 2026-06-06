@@ -15,6 +15,7 @@ import { formatDistanceToNow } from "date-fns";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { getTomTomKey } from "@/lib/tomtom.functions";
 import { TomTomMap, type MapMarker } from "@/components/tomtom-map";
+import { useActiveRoute } from "@/hooks/use-active-route";
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
   component: HazardMap,
@@ -63,6 +64,8 @@ function HazardMap() {
   const { data: drivers = {} } = useDriverNames();
   const feedFn = useServerFn(getSafetyFeed);
   const tomtomKeyFn = useServerFn(getTomTomKey);
+  const activeRoute = useActiveRoute();
+  const geometry = activeRoute?.geometry ?? [];
 
   const { data: tomtom } = useQuery({
     queryKey: ["tomtom-key"],
@@ -70,11 +73,10 @@ function HazardMap() {
     staleTime: Infinity,
   });
 
-
-
   const { data: feed, isLoading: feedLoading } = useQuery({
-    queryKey: ["safety-feed"],
-    queryFn: () => feedFn(),
+    queryKey: ["safety-feed", activeRoute?.savedAt ?? "none"],
+    queryFn: () => feedFn({ data: { geometry } }),
+    enabled: geometry.length >= 2,
     refetchInterval: 5 * 60_000,
     staleTime: 60_000,
   });
@@ -136,7 +138,14 @@ function HazardMap() {
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Hazard Map</h1>
-          <p className="text-muted-foreground text-sm">Live NWS weather alerts, TomTom incidents, and driver reports — no sample data.</p>
+          <p className="text-muted-foreground text-sm">
+            Live NWS weather alerts, TomTom incidents, and driver reports — scoped to your route.
+            {activeRoute ? (
+              <> Showing alerts along <span className="text-foreground">{activeRoute.origin} → {activeRoute.destination}</span>.</>
+            ) : (
+              <> Analyze a route on the Dashboard to load route-scoped hazards.</>
+            )}
+          </p>
         </div>
         <div className="inline-flex items-center gap-2 text-xs text-muted-foreground rounded-full border border-border bg-card px-3 py-1.5">
           <Radio className={`size-3 ${loading ? "animate-pulse" : "text-success"}`} />
