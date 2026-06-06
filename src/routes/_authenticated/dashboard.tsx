@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Wind, Construction, AlertTriangle, Bell, Route as RouteIcon, ShieldCheck } from "lucide-react";
 import { TRUCK_TYPES, TRAILER_TYPES, hazardLabel, severityClasses } from "@/lib/navaroad";
 import { formatDistanceToNow } from "date-fns";
+import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -20,6 +21,9 @@ function Dashboard() {
   const [truck, setTruck] = useState("Sleeper");
   const [trailer, setTrailer] = useState("Dry Van");
   const [score, setScore] = useState<number | null>(null);
+  useRealtimeInvalidate(["hazard_reports", "alerts"], [["dash-hazards"], ["dash-alerts"]]);
+
+
 
   const { data: hazards = [] } = useQuery({
     queryKey: ["dash-hazards"],

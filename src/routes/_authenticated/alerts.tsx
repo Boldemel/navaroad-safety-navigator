@@ -4,12 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { hazardLabel, severityClasses } from "@/lib/navaroad";
 import { formatDistanceToNow } from "date-fns";
 import { Bell, MapPin, Clock } from "lucide-react";
+import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 
 export const Route = createFileRoute("/_authenticated/alerts")({
   component: AlertsCenter,
 });
 
 function AlertsCenter() {
+  useRealtimeInvalidate(["hazard_reports", "alerts"], [["alerts-all"], ["alerts-hazards"]]);
   const { data: alerts = [] } = useQuery({
     queryKey: ["alerts-all"],
     queryFn: async () => {
