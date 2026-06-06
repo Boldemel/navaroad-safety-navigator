@@ -56,6 +56,7 @@ function Dashboard() {
   const navSession = useNavigationSession();
   const [locating, setLocating] = useState(false);
   const [awaitingCoords, setAwaitingCoords] = useState(false);
+  const [poiDialog, setPoiDialog] = useState<{ title: string; result: PoiDialogResult | null } | null>(null);
 
   function sampleRouteGeometry(geom: Array<[number, number]>, maxPoints: number) {
     if (geom.length <= maxPoints) return geom;
