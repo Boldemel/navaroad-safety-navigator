@@ -29,6 +29,7 @@ export async function getRoute(o: GeoPoint, d: GeoPoint): Promise<RoutedPath> {
   // Prefer TomTom Routing API when a key is configured (truck-grade traffic data).
   // Falls back to OSRM public demo server otherwise.
   const key = process.env.TOMTOM_API_KEY;
+  let tomtomError: string | null = null;
   if (key) {
     try {
       const url =
@@ -54,26 +55,38 @@ export async function getRoute(o: GeoPoint, d: GeoPoint): Promise<RoutedPath> {
             geometry: coords,
           };
         }
+        tomtomError = "TomTom returned no route";
+      } else {
+        const body = await res.text().catch(() => "");
+        tomtomError = `TomTom ${res.status}: ${body.slice(0, 200)}`;
+        console.warn("TomTom routing failed", { status: res.status, body: body.slice(0, 500) });
       }
-    } catch {
-      // fall through to OSRM
+    } catch (e) {
+      tomtomError = `TomTom request failed: ${(e as Error).message}`;
+      console.warn(tomtomError);
     }
   }
 
-  const url = `https://router.project-osrm.org/route/v1/driving/${o.lon},${o.lat};${d.lon},${d.lat}?overview=simplified&geometries=geojson`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Routing service unavailable");
-  const json = (await res.json()) as {
-    routes?: Array<{ distance: number; duration: number; geometry: { coordinates: Array<[number, number]> } }>;
-  };
-  if (!json.routes?.length) throw new Error("No route found between locations");
-  const r = json.routes[0];
-  return {
-    distanceKm: r.distance / 1000,
-    durationMin: r.duration / 60,
-    geometry: r.geometry.coordinates,
-  };
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${o.lon},${o.lat};${d.lon},${d.lat}?overview=simplified&geometries=geojson`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`OSRM ${res.status}`);
+    const json = (await res.json()) as {
+      routes?: Array<{ distance: number; duration: number; geometry: { coordinates: Array<[number, number]> } }>;
+    };
+    if (!json.routes?.length) throw new Error("No route found between locations");
+    const r = json.routes[0];
+    return {
+      distanceKm: r.distance / 1000,
+      durationMin: r.duration / 60,
+      geometry: r.geometry.coordinates,
+    };
+  } catch (e) {
+    const detail = tomtomError ? ` (TomTom: ${tomtomError}; OSRM: ${(e as Error).message})` : ` (${(e as Error).message})`;
+    throw new Error(`Routing service unavailable${detail}`);
+  }
 }
+
 
 /** Pick N evenly-spaced sample points along a route for weather checks. */
 export function sampleRoute(
