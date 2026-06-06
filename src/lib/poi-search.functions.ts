@@ -10,6 +10,10 @@ const TRUCK_STOP_BRANDS = [
   "TA",
   "TravelCenters",
   "Petro",
+  "Sapp Bros",
+  "Sapp Brothers",
+  "Road Ranger",
+  "Casey's",
 ];
 
 const RouteGeometry = z.preprocess((value) => {
