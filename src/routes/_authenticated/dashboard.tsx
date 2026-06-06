@@ -129,28 +129,60 @@ function Dashboard() {
                 <span>~{Math.round(result.durationMin)} min drive</span>
                 <span>{result.weatherAlertCount} weather alerts · {result.roadAlertCount} DOT alerts on path</span>
               </div>
+              <div className="text-xs text-muted-foreground">
+                Data as of {new Date(result.generatedAt).toLocaleString()} ·
+                {" "}Weather: {result.dataAvailability.weather ? `live (${result.providers.weather})` : "not connected"} ·
+                {" "}NWS alerts: live ·
+                {" "}DOT: {result.dataAvailability.road ? `live (${result.providers.road})` : "not connected"}
+              </div>
+              {!result.dataAvailability.weather && (
+                <div className="text-sm text-muted-foreground border border-border bg-muted/30 rounded-md p-3">
+                  Live weather data not connected yet.
+                </div>
+              )}
               <div className="grid sm:grid-cols-3 gap-2">
                 {result.weather.map((w) => (
                   <div key={w.label} className="rounded-md border border-border bg-background p-3 text-xs space-y-1">
                     <div className="font-medium text-sm text-foreground">{w.label}</div>
-                    <div className="text-muted-foreground">{w.condition}</div>
-                    <div className="flex items-center gap-2"><Thermometer className="size-3" />{w.tempC != null ? `${Math.round(w.tempC)}°C` : "—"}</div>
-                    <div className="flex items-center gap-2"><Wind className="size-3" />{w.windKph != null ? `${Math.round(w.windKph)} km/h` : "—"}{w.gustKph != null && ` (gust ${Math.round(w.gustKph)})`}</div>
-                    <div className="flex items-center gap-2"><CloudRain className="size-3" />{w.precipMm != null ? `${w.precipMm} mm` : "—"}</div>
+                    {w.available ? (
+                      <>
+                        <div className="text-muted-foreground">{w.condition}</div>
+                        <div className="flex items-center gap-2"><Thermometer className="size-3" />{w.tempC != null ? `${Math.round(w.tempC)}°C` : "—"}</div>
+                        <div className="flex items-center gap-2"><Wind className="size-3" />{w.windKph != null ? `${Math.round(w.windKph)} km/h` : "—"}{w.gustKph != null && ` (gust ${Math.round(w.gustKph)})`}</div>
+                        <div className="flex items-center gap-2"><CloudRain className="size-3" />{w.precipMm != null ? `${w.precipMm} mm` : "—"}</div>
+                      </>
+                    ) : (
+                      <div className="text-muted-foreground">Live weather data not connected yet.</div>
+                    )}
                   </div>
                 ))}
               </div>
+              {result.weatherAlerts.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="text-xs font-medium text-muted-foreground">Active alerts on this route</div>
+                  {result.weatherAlerts.map((a) => (
+                    <div key={a.id} className="flex items-start gap-2 text-sm rounded-md border border-border bg-background p-2">
+                      <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(a.severity)}`}>{a.severity}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium">{a.event} — {a.areaDesc}</div>
+                        <div className="text-[11px] text-muted-foreground">Source: NWS · Effective {new Date(a.effective).toLocaleString()}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               {result.risks.length > 0 ? (
                 <ul className="space-y-1.5">
                   {result.risks.slice(0, 8).map((r, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
                       <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(r.severity)}`}>{r.severity}</span>
-                      <span>{r.message}</span>
+                      <span className="flex-1">{r.message}</span>
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">{r.source}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-success">No major weather or road risks detected.</p>
+                result.dataAvailability.weather && <p className="text-sm text-success">No major weather or road risks detected on this route.</p>
               )}
               <div className="rounded-md border border-primary/30 bg-primary/10 p-3 text-sm">
                 <span className="font-medium text-primary inline-flex items-center gap-1.5"><Lightbulb className="size-3.5" />Recommended action:</span>{" "}

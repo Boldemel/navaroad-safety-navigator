@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { geocode, getRoute, sampleRoute } from "./services/route-analysis.service";
-import { fetchCurrentWeather, fetchSevereWeatherAlerts } from "./services/weather.service";
+import {
+  fetchCurrentWeather,
+  fetchAlertsForPoint,
+  type WeatherAlert,
+} from "./services/weather.service";
 import { computeSafety } from "./services/safety-score.service";
 import { fetchRoadAlerts } from "./services/road-alert.service";
 
@@ -28,6 +32,18 @@ export type RouteAnalysis = {
     precipMm: number | null;
     visibilityKm: number | null;
     condition: string;
+    available: boolean;
+  }>;
+  weatherAlerts: Array<{
+    id: string;
+    event: string;
+    severity: "low" | "medium" | "high" | "critical";
+    areaDesc: string;
+    headline: string;
+    recommendedAction: string;
+    effective: string;
+    provider: string;
+    source: "weather_api";
   }>;
   weatherAlertCount: number;
   roadAlertCount: number;
@@ -35,10 +51,18 @@ export type RouteAnalysis = {
     type: "wind" | "precip" | "closure" | "hazard" | "temp" | "visibility" | "weather_alert";
     severity: "low" | "medium" | "high" | "critical";
     message: string;
+    source: "Weather API" | "DOT" | "Driver Report" | "System";
   }>;
   breakdown: { weather: number; wind: number; closure: number; hazard: number };
-  score: number;
+  score: number | null;
   recommendedAction: string;
+  generatedAt: string;
+  dataAvailability: {
+    weather: boolean;
+    weatherAlerts: boolean;
+    road: boolean;
+  };
+  providers: { weather: string; weatherAlerts: string; road: string };
 };
 
 export const analyzeRoute = createServerFn({ method: "POST" })
@@ -51,7 +75,7 @@ export const analyzeRoute = createServerFn({ method: "POST" })
     const labels = ["Origin", "Midpoint", "Destination"];
     const weatherSamples = await Promise.all(
       samples.map(async (s, i) => {
-        const w = await fetchCurrentWeather(s.lat, s.lon);
+        const w = await fetchCurrentWeather(s.lat, s.lon).catch(() => null);
         return {
           label: labels[i] ?? `Point ${i + 1}`,
           lat: s.lat,
@@ -62,22 +86,39 @@ export const analyzeRoute = createServerFn({ method: "POST" })
           precipMm: w?.precipMm ?? null,
           visibilityKm: w?.visibilityKm ?? null,
           condition: w?.condition ?? "Unknown",
+          available: w != null,
         };
       }),
     );
 
-    const [weatherAlerts, roadAlerts] = await Promise.all([
-      fetchSevereWeatherAlerts().catch(() => []),
-      fetchRoadAlerts().catch(() => []),
-    ]);
+    // Per-point NWS alerts — only alerts whose polygon covers a route sample.
+    const perPointAlerts = await Promise.all(
+      samples.map((s) => fetchAlertsForPoint(s.lat, s.lon).catch(() => [] as WeatherAlert[])),
+    );
+    const dedup = new Map<string, WeatherAlert>();
+    for (const list of perPointAlerts) for (const a of list) dedup.set(a.id, a);
+    const weatherAlerts = Array.from(dedup.values());
+
+    const roadAlerts = await fetchRoadAlerts().catch(() => []);
+
+    const weatherAvailable = weatherSamples.some((w) => w.available);
 
     const result = computeSafety({
-      weatherSamples,
+      weatherSamples: weatherSamples.map((w) => ({
+        tempC: w.tempC,
+        windKph: w.windKph,
+        gustKph: w.gustKph,
+        precipMm: w.precipMm,
+        visibilityKm: w.visibilityKm,
+        condition: w.condition,
+      })),
       weatherAlerts,
       roadAlerts,
       driverReportCount: 0,
       trailerType: data.trailer,
     });
+
+    const haveAnyLiveData = weatherAvailable || weatherAlerts.length > 0 || roadAlerts.length > 0;
 
     return {
       origin: o,
@@ -86,11 +127,43 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       durationMin: r.durationMin,
       geometry: r.geometry,
       weather: weatherSamples,
+      weatherAlerts: weatherAlerts.map((a) => ({
+        id: a.id,
+        event: a.event,
+        severity: a.severity,
+        areaDesc: a.areaDesc,
+        headline: a.headline,
+        recommendedAction: a.recommendedAction,
+        effective: a.effective,
+        provider: a.provider,
+        source: "weather_api" as const,
+      })),
       weatherAlertCount: weatherAlerts.length,
       roadAlertCount: roadAlerts.length,
-      risks: result.factors,
+      risks: result.factors.map((f) => ({
+        ...f,
+        source:
+          f.type === "closure"
+            ? ("DOT" as const)
+            : f.type === "hazard"
+              ? ("Driver Report" as const)
+              : ("Weather API" as const),
+      })),
       breakdown: result.breakdown,
-      score: result.score,
-      recommendedAction: result.recommendedAction,
+      score: haveAnyLiveData ? result.score : null,
+      recommendedAction: haveAnyLiveData
+        ? result.recommendedAction
+        : "Connect live weather and road data to calculate route safety.",
+      generatedAt: new Date().toISOString(),
+      dataAvailability: {
+        weather: weatherAvailable,
+        weatherAlerts: weatherAlerts.length > 0,
+        road: roadAlerts.length > 0,
+      },
+      providers: {
+        weather: weatherAvailable ? "Open-Meteo" : "not_connected",
+        weatherAlerts: "NWS",
+        road: roadAlerts.length > 0 ? "configured" : "not_connected",
+      },
     };
   });
