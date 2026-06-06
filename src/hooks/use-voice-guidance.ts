@@ -38,25 +38,27 @@ export function useVoiceGuidance() {
 
   // Reset announcement state when a new navigation session starts.
   useEffect(() => {
+    let timeoutId: number | undefined;
     if (!session) {
       spokenRef.current.clear();
       arrivedRef.current = false;
       sessionIdRef.current = null;
       cancelSpeech();
-      return;
-    }
-    if (sessionIdRef.current !== session.startedAt) {
+    } else if (sessionIdRef.current !== session.startedAt) {
       spokenRef.current.clear();
       arrivedRef.current = false;
       sessionIdRef.current = session.startedAt;
       // Opening line, slight delay so the page is settled.
-      window.setTimeout(() => {
+      timeoutId = window.setTimeout(() => {
         speak(
           `Navigation started. ${Math.round(session.totalKm * 0.621371)} miles to ${session.destination.label.split(",")[0]}.`,
           { dedupeKey: `start:${session.startedAt}`, priority: "high" },
         );
       }, 600);
     }
+    return () => {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
   }, [session]);
 
   // Per-tick announcement loop.
