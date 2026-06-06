@@ -58,6 +58,15 @@ export function TomTomMap({
     () => markers.filter((m) => Number.isFinite(m.lat) && Number.isFinite(m.lon)),
     [markers],
   );
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) {
+    return (
+      <div style={{ height, width: "100%" }} className="rounded-xl border border-border bg-sidebar/40 flex items-center justify-center text-xs text-muted-foreground">
+        Loading map…
+      </div>
+    );
+  }
 
   const tileUrl = tomtomKey
     ? `https://api.tomtom.com/map/1/tile/basic/main/{z}/{x}/{y}.png?key=${tomtomKey}`
