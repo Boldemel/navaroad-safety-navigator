@@ -117,12 +117,14 @@ function classify(
   fallback: TruckPoiType = "fuel",
 ): TruckPoiType {
   const hay = `${name} ${brand ?? ""} ${categories.join(" ")}`.toLowerCase();
+  if (/weigh station|weigh-in-motion|inspection station|port of entry/.test(hay)) return "weigh_station";
   if (/rest area|rest stop/.test(hay)) return "rest_area";
   if (/truck stop|travel center|travel centre|truckstop/.test(hay)) return "truck_stop";
   if (TRUCK_FUEL_BRANDS.some((b) => hay.includes(b.toLowerCase()))) return "truck_stop";
   if (/diesel|fuel|gas station|petrol|gasoline/.test(hay)) return "fuel";
   if (/parking/.test(hay)) return "parking";
   return fallback;
+
 }
 
 function pointToSegmentDistanceMi(
