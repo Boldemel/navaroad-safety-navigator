@@ -31,41 +31,51 @@ export async function getRoute(o: GeoPoint, d: GeoPoint): Promise<RoutedPath> {
   const key = process.env.TOMTOM_API_KEY;
   let tomtomError: string | null = null;
   if (key) {
-    try {
-      const url =
-        `https://api.tomtom.com/routing/1/calculateRoute/` +
-        `${o.lat},${o.lon}:${d.lat},${d.lon}/json` +
-        `?travelMode=truck&traffic=true&routeType=fastest&computeTravelTimeFor=all` +
-        `&key=${encodeURIComponent(key)}`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const j = (await res.json()) as {
-          routes?: Array<{
-            summary?: { lengthInMeters?: number; travelTimeInSeconds?: number };
-            legs?: Array<{ points?: Array<{ latitude: number; longitude: number }> }>;
-          }>;
-        };
-        const r = j.routes?.[0];
-        if (r?.summary && r.legs?.length) {
-          const coords: Array<[number, number]> = [];
-          for (const leg of r.legs) for (const p of leg.points ?? []) coords.push([p.longitude, p.latitude]);
-          return {
-            distanceKm: (r.summary.lengthInMeters ?? 0) / 1000,
-            durationMin: (r.summary.travelTimeInSeconds ?? 0) / 60,
-            geometry: coords,
+    // Try truck routing first; if TomTom can't route truck end-to-end across
+    // regions (NO_ROUTE_FOUND / ProductId mismatch), retry with car routing.
+    const attempts: Array<{ label: string; qs: string }> = [
+      { label: "truck", qs: `travelMode=truck&traffic=true&routeType=fastest&computeTravelTimeFor=all` },
+      { label: "car", qs: `travelMode=car&traffic=true&routeType=fastest` },
+    ];
+    for (const attempt of attempts) {
+      try {
+        const url =
+          `https://api.tomtom.com/routing/1/calculateRoute/` +
+          `${o.lat},${o.lon}:${d.lat},${d.lon}/json?${attempt.qs}&key=${encodeURIComponent(key)}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const j = (await res.json()) as {
+            routes?: Array<{
+              summary?: { lengthInMeters?: number; travelTimeInSeconds?: number };
+              legs?: Array<{ points?: Array<{ latitude: number; longitude: number }> }>;
+            }>;
           };
+          const r = j.routes?.[0];
+          if (r?.summary && r.legs?.length) {
+            const coords: Array<[number, number]> = [];
+            for (const leg of r.legs) for (const p of leg.points ?? []) coords.push([p.longitude, p.latitude]);
+            return {
+              distanceKm: (r.summary.lengthInMeters ?? 0) / 1000,
+              durationMin: (r.summary.travelTimeInSeconds ?? 0) / 60,
+              geometry: coords,
+            };
+          }
+          tomtomError = `TomTom ${attempt.label}: no route`;
+        } else {
+          const body = await res.text().catch(() => "");
+          tomtomError = `TomTom ${attempt.label} ${res.status}: ${body.slice(0, 200)}`;
+          console.warn("TomTom routing failed", { mode: attempt.label, status: res.status, body: body.slice(0, 500) });
+          // Only retry next attempt on NO_ROUTE_FOUND / ProductId mismatch.
+          if (!/NO_ROUTE_FOUND|ProductId/i.test(body)) break;
         }
-        tomtomError = "TomTom returned no route";
-      } else {
-        const body = await res.text().catch(() => "");
-        tomtomError = `TomTom ${res.status}: ${body.slice(0, 200)}`;
-        console.warn("TomTom routing failed", { status: res.status, body: body.slice(0, 500) });
+      } catch (e) {
+        tomtomError = `TomTom ${attempt.label} request failed: ${(e as Error).message}`;
+        console.warn(tomtomError);
+        break;
       }
-    } catch (e) {
-      tomtomError = `TomTom request failed: ${(e as Error).message}`;
-      console.warn(tomtomError);
     }
   }
+
 
   try {
     const url = `https://router.project-osrm.org/route/v1/driving/${o.lon},${o.lat};${d.lon},${d.lat}?overview=simplified&geometries=geojson`;
