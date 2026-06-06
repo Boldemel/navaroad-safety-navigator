@@ -552,14 +552,15 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
 
       if (data.kind === "rest_area") {
-        // Strict rest-area: must look like a rest area / welcome center AND
-        // must NOT be a truck stop, fuel station, or CAT scale.
+        // Strict rest-area: must be an explicit rest area, welcome center,
+        // service plaza, or travel plaza. Reject truck stops, fuel stations,
+        // CAT scales, banks, ATMs, EV chargers, and other unrelated POIs.
         const looksLikeRestArea =
-          type === "rest_area" ||
-          /rest\s*area|rest\s*stop|welcome\s*cent(er|re)|safety\s*rest/.test(hay);
+          /\brest\s*area\b|\brest\s*stop\b|welcome\s*cent(er|re)|safety\s*rest|service\s*plaza|travel\s*plaza|service\s*area/.test(hay);
         const isOtherCategory =
           truckStopAllowed(hay) ||
           isCatScale(hay) ||
+          isExcludedJunk(hay) ||
           /gas\s*station|petrol|gasoline|fuel\s*station/.test(hay);
         if (!looksLikeRestArea || isOtherCategory) {
           tomtomFilteredCount += 1;
@@ -567,7 +568,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         }
       }
       if (data.kind === "truck_stop") {
-        if (isNotTruckStop(hay) || !truckStopAllowed(hay)) {
+        if (isNotTruckStop(hay) || isExcludedJunk(hay) || !truckStopAllowed(hay)) {
           tomtomFilteredCount += 1;
           return;
         }
