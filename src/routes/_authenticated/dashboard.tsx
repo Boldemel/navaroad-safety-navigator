@@ -802,15 +802,18 @@ function typeLabelShort(t?: string) {
 }
 
 function PoiDialog({
-  open, onOpenChange, title, result, onShowOnMap,
+  open, onOpenChange, title, result, onShowOnMap, onNavigate, navigating,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   title: string;
   result: PoiDialogResult | null;
   onShowOnMap: (p: PoiItem) => void;
+  onNavigate: (p: PoiItem) => void;
+  navigating?: boolean;
 }) {
   const pois = result?.pois ?? [];
+  const debug = result?.debug;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -820,13 +823,21 @@ function PoiDialog({
             {pois.length} location{pois.length === 1 ? "" : "s"} along your route · Source: {result?.provider ?? "TomTom"}
           </DialogDescription>
         </DialogHeader>
+        {debug && (
+          <div className="rounded-md border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground space-y-0.5">
+            <div className="font-medium text-foreground/70">Debug · count source</div>
+            <div>Raw TomTom results: <span className="font-mono">{debug.rawResultsCount}</span></div>
+            <div>After route-corridor + category filter: <span className="font-mono">{debug.filteredResultsCount}</span> (excluded {debug.filteredOutCount})</div>
+            <div>Deduplicated: <span className="font-mono">{result?.totalFound ?? 0}</span></div>
+            <div>Displayed: <span className="font-mono">{pois.length}</span> · Corridor: {debug.corridorRadiusMi} mi · Search points: {debug.searchPointCount}</div>
+          </div>
+        )}
         {pois.length === 0 ? (
           <div className="text-sm text-muted-foreground py-8 text-center">No locations found.</div>
         ) : (
           <ul className="divide-y divide-border max-h-[60vh] overflow-auto -mx-2 px-2">
             {pois.map((p) => {
               const region = [p.city, p.state].filter(Boolean).join(", ");
-              const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}`;
               return (
                 <li key={p.id} className="py-3 flex items-start gap-3">
                   <MapPin className="size-4 mt-1 text-primary shrink-0" />
@@ -846,10 +857,8 @@ function PoiDialog({
                     <Button size="sm" variant="outline" onClick={() => onShowOnMap(p)}>
                       <MapPin className="size-3.5" /> Show on Map
                     </Button>
-                    <Button size="sm" asChild>
-                      <a href={navUrl} target="_blank" rel="noopener noreferrer">
-                        <Navigation2 className="size-3.5" /> Navigate
-                      </a>
+                    <Button size="sm" onClick={() => onNavigate(p)} disabled={navigating}>
+                      {navigating ? <Loader2 className="size-3.5 animate-spin" /> : <Navigation2 className="size-3.5" />} Navigate
                     </Button>
                   </div>
                 </li>
