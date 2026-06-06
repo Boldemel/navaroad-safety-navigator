@@ -374,7 +374,7 @@ function Dashboard() {
     queryKey: ["fuel-stops", routeKey],
     queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "fuel", limit: 100 } }),
     enabled: geometry.length >= 2,
-    staleTime: 0,
+    staleTime: 10 * 60_000,
   });
   const { data: parkingStops, isLoading: parkingLoading } = useQuery({
     queryKey: ["rest-areas", routeKey],
