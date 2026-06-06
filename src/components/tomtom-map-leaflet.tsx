@@ -45,12 +45,14 @@ export default function TomTomMapClient({
   tomtomKey,
   markers,
   routeGeometry = [],
+  currentLocation = null,
   showTraffic = true,
   height = "100%",
 }: {
   tomtomKey: string | null;
   markers: MapMarker[];
   routeGeometry?: Array<[number, number]>; // [lon, lat]
+  currentLocation?: { lat: number; lon: number } | null;
   showTraffic?: boolean;
   height?: string;
 }) {
@@ -63,9 +65,14 @@ export default function TomTomMapClient({
     [routeGeometry],
   );
   const fitPoints = useMemo<Array<[number, number]>>(
-    () => [...routeLatLngs, ...validMarkers.map((m) => [m.lat, m.lon] as [number, number])],
-    [routeLatLngs, validMarkers],
+    () => {
+      const pts: Array<[number, number]> = [...routeLatLngs, ...validMarkers.map((m) => [m.lat, m.lon] as [number, number])];
+      if (currentLocation) pts.push([currentLocation.lat, currentLocation.lon]);
+      return pts;
+    },
+    [routeLatLngs, validMarkers, currentLocation],
   );
+
 
   const keyOk = isValidTomTomKey(tomtomKey);
   const tileUrl = keyOk
@@ -107,8 +114,17 @@ export default function TomTomMapClient({
             </Popup>
           </Marker>
         ))}
+        {currentLocation && (
+          <Marker position={[currentLocation.lat, currentLocation.lon]} icon={colorIcon("#22c55e")}>
+            <Popup>
+              <div className="text-sm font-medium">You are here</div>
+              <div className="text-xs text-gray-600">{currentLocation.lat.toFixed(4)}, {currentLocation.lon.toFixed(4)}</div>
+            </Popup>
+          </Marker>
+        )}
         <FitBounds points={fitPoints} />
       </MapContainer>
+
       {!keyOk && tomtomKey && (
         <div className="absolute top-2 right-2 z-[1000] rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-[11px] px-2 py-1">
           TomTom key invalid — using OpenStreetMap fallback
