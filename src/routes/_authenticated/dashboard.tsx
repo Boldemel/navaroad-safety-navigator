@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Wind, Construction, AlertTriangle, Route as RouteIcon, ShieldCheck, Loader2,
   CloudRain, Thermometer, MapPin, Radio, Users, Cloud, Lightbulb, Info, LocateFixed,
-  Navigation2, Fuel, ParkingCircle, ShieldAlert,
+  Navigation2, Fuel, ParkingCircle, ShieldAlert, Truck, Scale,
 } from "lucide-react";
+
 import { TRUCK_TYPES, TRAILER_TYPES, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
