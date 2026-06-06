@@ -457,6 +457,32 @@ function Dashboard() {
                 <span className="font-medium text-primary inline-flex items-center gap-1.5"><Lightbulb className="size-3.5" />Recommended action:</span>{" "}
                 <span className="text-foreground">{result.recommendedAction}</span>
               </div>
+
+              {/* Truck restriction risk — honest "not connected" notice with profile context. */}
+              <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm space-y-2">
+                <div className="font-medium text-warning inline-flex items-center gap-1.5">
+                  <ShieldAlert className="size-3.5" /> Truck Restriction Risk
+                </div>
+                <p className="text-foreground/90">{result.truckRestrictions.message}</p>
+                <ul className="text-xs text-muted-foreground space-y-0.5 list-disc pl-5">
+                  <li>Low clearance risk — not verified</li>
+                  <li>Weight restriction risk — not verified</li>
+                  <li>Hazmat restriction risk — not verified{result.truckRestrictions.profile?.hazmat ? " (hazmat load on profile)" : ""}</li>
+                </ul>
+                {result.truckRestrictions.profile && (
+                  <div className="text-[11px] text-muted-foreground pt-1 border-t border-border/60">
+                    <span className="font-medium text-foreground/70">Using profile:</span>{" "}
+                    {[
+                      result.truckRestrictions.profile.heightIn != null ? `${result.truckRestrictions.profile.heightIn}" tall` : null,
+                      result.truckRestrictions.profile.weightLbs != null ? `${result.truckRestrictions.profile.weightLbs.toLocaleString()} lbs` : null,
+                      result.truckRestrictions.profile.lengthFt != null ? `${result.truckRestrictions.profile.lengthFt}' long` : null,
+                      result.truckRestrictions.profile.axles != null ? `${result.truckRestrictions.profile.axles} axles` : null,
+                      result.truckRestrictions.profile.hazmat ? "hazmat" : null,
+                      result.truckRestrictions.profile.loaded === true ? "loaded" : result.truckRestrictions.profile.loaded === false ? "empty" : null,
+                    ].filter(Boolean).join(" · ") || "no dimensions saved — set in Profile › Truck Profile"}
+                  </div>
+                )}
+              </div>
               <div className="flex flex-wrap gap-2 items-center pt-1">
                 {navSession ? (
                   <>
