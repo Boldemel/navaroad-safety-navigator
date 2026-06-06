@@ -78,8 +78,7 @@ function Dashboard() {
 
   const score = result?.score ?? null;
   const breakdown = result?.breakdown;
-  const trailerBump = ["Dry Van", "Reefer", "Curtain Side"].includes(trailer) ? 6 : 2;
-  const totalPenalty = breakdown ? breakdown.weather + breakdown.wind + breakdown.closure + breakdown.hazard + trailerBump : 0;
+  const totalPenalty = breakdown ? breakdown.weather + breakdown.wind + breakdown.closure + breakdown.hazard : 0;
 
   function onAnalyze(e: React.FormEvent) {
     e.preventDefault();
@@ -191,7 +190,7 @@ function Dashboard() {
                   {result.risks.slice(0, 8).map((r, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
                       <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(r.severity)}`}>{r.severity}</span>
-                      <span className="flex-1">{r.message}</span>
+                      <span className="flex-1">{r.message} <span className="text-destructive">−{r.penalty}</span></span>
                       <span className="text-[10px] text-muted-foreground whitespace-nowrap">{r.source}</span>
                     </li>
                   ))}
@@ -231,22 +230,27 @@ function Dashboard() {
               </PopoverContent>
             </Popover>
           </div>
-          <div className={`mt-3 text-6xl font-bold ${score == null ? "text-muted-foreground" : score >= 80 ? "text-success" : score >= 60 ? "text-warning" : "text-destructive"}`}>
+          <div className={`mt-3 text-6xl font-bold ${score == null ? "text-muted-foreground" : score >= 85 ? "text-success" : score >= 70 ? "text-warning" : "text-destructive"}`}>
             {analysis.isPending ? <Loader2 className="size-12 animate-spin mx-auto" /> : (score ?? "—")}
           </div>
           <p className="text-xs text-muted-foreground mt-2">
             {score == null ? "Analyze a route to see your score." : result?.recommendedAction}
           </p>
+          {score != null && result?.riskLevel && (
+            <div className="mt-3 rounded-md border border-border bg-background p-3 text-left">
+              <div className="text-xs font-semibold">{result.riskLevel}</div>
+              <p className="mt-1 text-xs text-muted-foreground">{result.scoreExplanation}</p>
+            </div>
+          )}
           {breakdown && score != null && (
             <div className="mt-4 pt-4 border-t border-border text-left space-y-1.5">
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Breakdown (penalties)</div>
-              <BreakdownRow label="Weather" value={breakdown.weather} source="Open-Meteo" />
-              <BreakdownRow label="Wind" value={breakdown.wind} source="Open-Meteo" />
+              <BreakdownRow label="Weather" value={breakdown.weather} source="Open-Meteo + NWS" />
+              <BreakdownRow label="Wind" value={breakdown.wind} source="Open-Meteo + NWS" />
               <BreakdownRow label="Road closures" value={breakdown.closure} source={result?.providers.road ?? "not connected"} />
               <BreakdownRow label="Driver reports" value={breakdown.hazard} source="Community" />
-              <BreakdownRow label={`Trailer (${trailer})`} value={trailerBump} source="Profile" />
               <div className="flex justify-between text-xs pt-1.5 mt-1.5 border-t border-border">
-                <span className="font-medium">98 − {totalPenalty} =</span>
+                <span className="font-medium">100 − {totalPenalty} =</span>
                 <span className="font-semibold">{score}</span>
               </div>
             </div>
