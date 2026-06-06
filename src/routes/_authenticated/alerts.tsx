@@ -229,12 +229,21 @@ function AlertsCenter() {
         {visible.map((it) => {
           const driver = it.reporter_id ? drivers[it.reporter_id] : null;
           return (
-            <div key={it.source + it.id} className="rounded-xl border border-border bg-card p-4 md:p-5">
+            <div key={it.source + it.id} className={cn(
+              "rounded-xl border bg-card p-4 md:p-5",
+              it.onRoute ? "border-warning/40" : "border-border",
+            )}>
               <div className="flex items-start gap-3 flex-wrap">
                 <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(it.severity)}`}>
                   {it.severity}
                 </span>
                 <span className="text-xs text-muted-foreground px-2 py-0.5 rounded border border-border">{it.sourceLabel}</span>
+                {it.onRoute && (
+                  <span className="text-xs text-warning px-2 py-0.5 rounded border border-warning/40 bg-warning/10 inline-flex items-center gap-1">
+                    <RouteIcon className="size-3" />
+                    On route{it.distanceMi != null && <> · {it.distanceMi < 1 ? "<1 mi" : `${Math.round(it.distanceMi)} mi`} off route</>}
+                  </span>
+                )}
                 <div className="flex-1" />
                 <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                   <Clock className="size-3" /> {formatDistanceToNow(new Date(it.updatedAt), { addSuffix: true })}
