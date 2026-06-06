@@ -332,8 +332,15 @@ function Dashboard() {
   // Live safety feed scoped to the active route corridor (NWS + DOT).
   const result = analysis.isPending ? undefined : analysis.data;
   const routeUnavailable = result?.routeStatus === "unavailable";
-  const activeRouteForQueries = analysis.isPending || routeUnavailable ? null : activeRoute;
-  const geometry = routeUnavailable ? [] : (result?.geometry ?? activeRouteForQueries?.geometry ?? []);
+  const currentRouteKey = routeInputKey(
+    origin,
+    destination,
+    originPlace ? { lat: originPlace.lat, lon: originPlace.lon } : null,
+    destPlace ? { lat: destPlace.lat, lon: destPlace.lon } : null,
+  );
+  const routeMatchesCurrentInputs = !!result && analyzedRouteKey === currentRouteKey;
+  const activeRouteForQueries = analysis.isPending || routeUnavailable || !routeMatchesCurrentInputs ? null : activeRoute;
+  const geometry = routeUnavailable || !routeMatchesCurrentInputs ? [] : (result?.geometry ?? activeRouteForQueries?.geometry ?? []);
   const routeLabel = result
     ? `${origin || result.origin.name} → ${destination || result.destination.name}`
     : activeRouteForQueries
@@ -394,7 +401,7 @@ function Dashboard() {
   const routeRisks = result?.risks ?? [];
   const feedWeatherAlerts = feed?.weatherAlerts ?? [];
   const feedRoadAlerts = feed?.roadAlerts ?? [];
-  const usingRoute = !!result && !routeUnavailable;
+  const usingRoute = !!result && !routeUnavailable && routeMatchesCurrentInputs;
   const weatherCount = usingRoute
     ? routeRisks.filter((r) => r.type === "precip" || r.type === "visibility" || r.type === "temp" || r.type === "weather_alert").length
     : feedWeatherAlerts.length;
