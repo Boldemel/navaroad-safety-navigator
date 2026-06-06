@@ -30,6 +30,7 @@ export const Route = createFileRoute("/_authenticated/hazard-map")({
     focusLon: typeof search.focusLon === "number" ? search.focusLon
       : typeof search.focusLon === "string" ? Number(search.focusLon) : undefined,
     focusLabel: typeof search.focusLabel === "string" ? search.focusLabel : undefined,
+    focusDetails: typeof search.focusDetails === "string" ? search.focusDetails : undefined,
   }),
 });
 
@@ -79,11 +80,11 @@ function HazardMap() {
   const activeRoute = useActiveRoute();
   const geometry = activeRoute?.geometry ?? [];
   const geo = useGeolocation({ watch: true });
-  const { focusLat, focusLon, focusLabel } = Route.useSearch();
+  const { focusLat, focusLon, focusLabel, focusDetails } = Route.useSearch();
   const navigate = Route.useNavigate();
   const hasFocus = Number.isFinite(focusLat) && Number.isFinite(focusLon);
   const focusPoint = hasFocus ? { lat: focusLat as number, lon: focusLon as number } : null;
-  const clearFocus = () => navigate({ search: { focusLat: undefined, focusLon: undefined, focusLabel: undefined }, replace: true } as never);
+  const clearFocus = () => navigate({ search: { focusLat: undefined, focusLon: undefined, focusLabel: undefined, focusDetails: undefined }, replace: true } as never);
 
 
   const { data: tomtom } = useQuery({
@@ -299,7 +300,7 @@ function HazardMap() {
           <MapPin className="size-4 text-primary shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="font-medium truncate">{focusLabel ?? "Selected location"}</div>
-            <div className="text-xs text-muted-foreground">{focusPoint.lat.toFixed(4)}, {focusPoint.lon.toFixed(4)}</div>
+            <div className="text-xs text-muted-foreground">{focusDetails ? `${focusDetails} · ` : ""}{focusPoint.lat.toFixed(4)}, {focusPoint.lon.toFixed(4)}</div>
           </div>
           <button onClick={clearFocus} className="text-xs text-primary underline">Show all hazards</button>
         </div>
@@ -313,7 +314,7 @@ function HazardMap() {
           routeGeometry={focusPoint ? [] : geometry}
           currentLocation={focusPoint ? null : here}
           markers={focusPoint
-            ? [{ id: "focus", lat: focusPoint.lat, lon: focusPoint.lon, title: focusLabel ?? "Selected location", color: "#22c55e" }]
+            ? [{ id: "focus", lat: focusPoint.lat, lon: focusPoint.lon, title: focusLabel ?? "Selected location", description: focusDetails, color: "#22c55e" }]
             : allVisible
               .filter((m): m is Marker & { lat: number; lon: number } => m.lat != null && m.lon != null)
               .map<MapMarker>((m) => ({
