@@ -394,6 +394,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       data.kind === "fuel" ? "7311003,7309"
       : data.kind === "truck_stop" ? "7311,7311003"
       : data.kind === "weigh_station" ? "7314"
+      : data.kind === "cat_scale" ? "7311,7311003"
       : "7311,7395,7369,7397";
 
     const keywords =
@@ -402,7 +403,9 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       : data.kind === "truck_stop"
         ? ["truck stop", "travel center", "Pilot", "Flying J", "Loves", "TA", "Petro", "Sapp Bros", "Road Ranger"]
       : data.kind === "weigh_station"
-        ? ["weigh station", "truck inspection", "port of entry", "CAT scale", "inspection station", "scale house", "DOT scale"]
+        ? ["weigh station", "truck inspection", "port of entry", "inspection station", "scale house", "DOT scale", "agricultural inspection"]
+      : data.kind === "cat_scale"
+        ? ["CAT scale", "CAT scales", "certified scale", "truck scale"]
         : ["truck parking", "rest area", "welcome center", "travel center", "truck stop"];
 
     const radiusM = 50000; // initial provider search around each sample
