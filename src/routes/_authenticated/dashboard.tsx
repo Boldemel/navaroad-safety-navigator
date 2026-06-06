@@ -672,9 +672,31 @@ function PoiList({
   icon: React.ReactNode;
   title: string;
   loading: boolean;
-  result: { connected: boolean; provider: string; message?: string; pois: Array<{ id: string; name: string; brand: string | null; address: string; distanceMi?: number | null }> } | undefined;
+  result:
+    | {
+        connected: boolean;
+        provider: string;
+        message?: string;
+        pois: Array<{
+          id: string;
+          name: string;
+          brand: string | null;
+          address: string;
+          city?: string | null;
+          state?: string | null;
+          type?: string;
+          distanceMi?: number | null;
+        }>;
+      }
+    | undefined;
   emptyHint: string;
 }) {
+  const typeLabel = (t?: string) =>
+    t === "truck_stop" ? "Truck stop"
+    : t === "rest_area" ? "Rest area"
+    : t === "parking" ? "Parking"
+    : t === "fuel" ? "Fuel"
+    : "";
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-3">
       <div className="flex items-center gap-2">{icon}<h3 className="font-semibold">{title}</h3></div>
@@ -689,20 +711,33 @@ function PoiList({
       ) : result.pois.length === 0 ? (
         <div className="text-sm text-muted-foreground">{emptyHint}</div>
       ) : (
-        <ul className="divide-y divide-border max-h-80 overflow-auto">
-          {result.pois.slice(0, 12).map((p) => (
-            <li key={p.id} className="py-2 flex items-start gap-3 text-sm">
-              <MapPin className="size-3.5 mt-1 text-muted-foreground shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{p.name}{p.brand && p.brand !== p.name ? ` · ${p.brand}` : ""}</div>
-                <div className="text-[11px] text-muted-foreground truncate">{p.address}</div>
-              </div>
-              {p.distanceMi != null && (
-                <span className="text-[11px] text-muted-foreground whitespace-nowrap">{p.distanceMi < 1 ? "<1 mi" : `${Math.round(p.distanceMi)} mi`}</span>
-              )}
-            </li>
-          ))}
-        </ul>
+        <>
+          {result.message && (
+            <div className="text-[11px] text-muted-foreground border border-border bg-muted/30 rounded-md p-2">
+              {result.message}
+            </div>
+          )}
+          <ul className="divide-y divide-border max-h-80 overflow-auto">
+            {result.pois.slice(0, 20).map((p) => {
+              const region = [p.city, p.state].filter(Boolean).join(", ");
+              return (
+                <li key={p.id} className="py-2 flex items-start gap-3 text-sm">
+                  <MapPin className="size-3.5 mt-1 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{p.name}{p.brand && p.brand !== p.name ? ` · ${p.brand}` : ""}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">
+                      {region || p.address}
+                      {p.type && <> · <span className="uppercase tracking-wider">{typeLabel(p.type)}</span></>}
+                    </div>
+                  </div>
+                  {p.distanceMi != null && (
+                    <span className="text-[11px] text-muted-foreground whitespace-nowrap">{p.distanceMi < 1 ? "<1 mi" : `${Math.round(p.distanceMi)} mi from route`}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
       {result?.connected && (
         <div className="text-[10px] text-muted-foreground/80">Source: {result.provider}</div>
