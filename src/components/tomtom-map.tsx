@@ -9,7 +9,7 @@ export type MapMarker = {
   color?: string;
 };
 
-const InnerMap = lazy(() => import("./tomtom-map.client"));
+const InnerMap = lazy(() => import("./tomtom-map-leaflet"));
 
 export function TomTomMap(props: {
   tomtomKey: string | null;
