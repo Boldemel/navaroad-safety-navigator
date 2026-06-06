@@ -394,6 +394,12 @@ function Dashboard() {
     enabled: geometry.length >= 2,
     staleTime: 0,
   });
+  const { data: catScales, isLoading: catScalesLoading } = useQuery({
+    queryKey: ["cat-scales", routeKey],
+    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "cat_scale", limit: 100 } }),
+    enabled: geometry.length >= 2,
+    staleTime: 0,
+  });
 
 
   // Stat cards: prefer the analyzed route when present, else fall back to the
