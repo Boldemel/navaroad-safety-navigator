@@ -2,10 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Wind, AlertTriangle, Construction, Trash2, Car, ParkingCircleOff, CloudRain, CloudLightning } from "lucide-react";
+import { Wind, AlertTriangle, Construction, Trash2, Car, ParkingCircleOff, CloudRain, CloudLightning, Clock, User } from "lucide-react";
 import { HAZARD_TYPES, hazardLabel, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
+import { useDriverNames } from "@/hooks/use-driver-names";
+import { formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
   component: HazardMap,
