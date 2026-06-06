@@ -62,6 +62,14 @@ function HazardMap() {
 
   const { data: drivers = {} } = useDriverNames();
   const feedFn = useServerFn(getSafetyFeed);
+  const tomtomKeyFn = useServerFn(getTomTomKey);
+
+  const { data: tomtom } = useQuery({
+    queryKey: ["tomtom-key"],
+    queryFn: () => tomtomKeyFn(),
+    staleTime: Infinity,
+  });
+
 
 
   const { data: feed, isLoading: feedLoading } = useQuery({
