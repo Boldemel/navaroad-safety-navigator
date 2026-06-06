@@ -34,6 +34,10 @@ export function NavigationBanner() {
   const session = useNavigationSession();
   const geo = useGeolocation({ watch: true });
   const refetchFn = useServerFn(getTruckRoute);
+  const [voice, setVoice] = useVoiceSettings();
+  useVoiceGuidance();
+
+
 
   const here = geo.coords ? { lat: geo.coords.lat, lon: geo.coords.lon } : null;
 
