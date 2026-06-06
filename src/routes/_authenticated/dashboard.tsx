@@ -334,6 +334,46 @@ function Dashboard() {
                 <span className="font-medium text-primary inline-flex items-center gap-1.5"><Lightbulb className="size-3.5" />Recommended action:</span>{" "}
                 <span className="text-foreground">{result.recommendedAction}</span>
               </div>
+              <div className="flex flex-wrap gap-2 items-center pt-1">
+                {navSession ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => router.navigate({ to: "/hazard-map" })}
+                    >
+                      <Navigation2 className="size-4 mr-1" /> Open navigation
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={() => stopNavigation()}>
+                      End navigation
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={() => startNav.mutate()}
+                    disabled={startNav.isPending}
+                  >
+                    {startNav.isPending ? (
+                      <><Loader2 className="size-4 mr-1 animate-spin" /> Starting…</>
+                    ) : (
+                      <><Navigation2 className="size-4 mr-1" /> Start Navigation</>
+                    )}
+                  </Button>
+                )}
+                {geo.status === "denied" && (
+                  <span className="text-[11px] text-destructive">Location access is needed for live route safety alerts.</span>
+                )}
+                {geo.status !== "granted" && geo.status !== "denied" && (
+                  <span className="text-[11px] text-muted-foreground">Enable GPS for turn-by-turn from your current position.</span>
+                )}
+              </div>
+              {startNav.isError && (
+                <div className="text-sm text-destructive border border-destructive/30 bg-destructive/10 rounded-md p-3">
+                  {(startNav.error as Error).message || "Failed to start navigation."}
+                </div>
+              )}
+
             </div>
           )}
         </form>
