@@ -54,6 +54,17 @@ export type TruckPoiResult = {
   connected: boolean;
   provider: string;
   message?: string;
+  totalFound: number;
+  debug?: {
+    routeUsed: string;
+    routePointCount: number;
+    searchPointCount: number;
+    corridorRadiusMi: number;
+    rawResultsCount: number;
+    filteredResultsCount: number;
+    filteredOutCount: number;
+    searchingFullRoute: boolean;
+  };
   pois: TruckPoi[];
 };
 
@@ -121,11 +132,39 @@ function classify(
   return fallback;
 }
 
+function pointToSegmentDistanceMi(
+  lat: number,
+  lon: number,
+  aLat: number,
+  aLon: number,
+  bLat: number,
+  bLon: number,
+) {
+  const milesPerDegreeLat = 69;
+  const milesPerDegreeLon = 69 * Math.cos((lat * Math.PI) / 180);
+  const px = lon * milesPerDegreeLon;
+  const py = lat * milesPerDegreeLat;
+  const ax = aLon * milesPerDegreeLon;
+  const ay = aLat * milesPerDegreeLat;
+  const bx = bLon * milesPerDegreeLon;
+  const by = bLat * milesPerDegreeLat;
+  const dx = bx - ax;
+  const dy = by - ay;
+  if (dx === 0 && dy === 0) return distMi(lat, lon, aLat, aLon);
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+  const cx = ax + t * dx;
+  const cy = ay + t * dy;
+  return Math.hypot(px - cx, py - cy);
+}
+
 function distanceToRouteMi(geom: Array<[number, number]>, lat: number, lon: number) {
   let best = Infinity;
-  for (const [routeLon, routeLat] of geom) {
-    best = Math.min(best, distMi(lat, lon, routeLat, routeLon));
+  for (let i = 1; i < geom.length; i++) {
+    const [aLon, aLat] = geom[i - 1];
+    const [bLon, bLat] = geom[i];
+    best = Math.min(best, pointToSegmentDistanceMi(lat, lon, aLat, aLon, bLat, bLon));
   }
+  if (geom.length === 1) best = distMi(lat, lon, geom[0][1], geom[0][0]);
   return Number.isFinite(best) ? best : null;
 }
 
