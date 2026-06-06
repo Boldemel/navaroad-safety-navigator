@@ -40,9 +40,13 @@ function Dashboard() {
   const analyzeFn = useServerFn(analyzeRoute);
   const feedFn = useServerFn(getSafetyFeed);
   const reverseGeocodeFn = useServerFn(reverseGeocode);
+  const truckRouteFn = useServerFn(getTruckRoute);
   const activeRoute = useActiveRoute();
   const geo = useGeolocation();
+  const router = useRouter();
+  const navSession = useNavigationSession();
   const [locating, setLocating] = useState(false);
+
 
   async function useCurrentLocation() {
     if (geo.status !== "granted") {
