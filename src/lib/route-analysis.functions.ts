@@ -99,7 +99,19 @@ export const analyzeRoute = createServerFn({ method: "POST" })
     for (const list of perPointAlerts) for (const a of list) dedup.set(a.id, a);
     const weatherAlerts = Array.from(dedup.values());
 
-    const roadAlerts = await fetchRoadAlerts().catch(() => []);
+    // Compute route bbox so the DOT provider only returns incidents on/near the path.
+    let bbox: [number, number, number, number] | undefined;
+    if (r.geometry.length > 0) {
+      let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+      for (const [lon, lat] of r.geometry) {
+        if (lon < minLon) minLon = lon;
+        if (lat < minLat) minLat = lat;
+        if (lon > maxLon) maxLon = lon;
+        if (lat > maxLat) maxLat = lat;
+      }
+      bbox = [minLon, minLat, maxLon, maxLat];
+    }
+    const roadAlerts = await fetchRoadAlerts({ bbox }).catch(() => []);
 
     const weatherAvailable = weatherSamples.some((w) => w.available);
 
