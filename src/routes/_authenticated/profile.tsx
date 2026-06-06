@@ -89,6 +89,8 @@ function Profile() {
         <Button type="submit" disabled={saving} className="w-full sm:w-auto">{saving ? "Saving…" : "Save profile"}</Button>
       </form>
 
+      <TruckProfileCard />
+      <FavoriteLocationsCard />
       <VoiceSettingsCard />
     </div>
   );
