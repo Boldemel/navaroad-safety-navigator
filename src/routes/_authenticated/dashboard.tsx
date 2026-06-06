@@ -46,25 +46,42 @@ function Dashboard() {
   const router = useRouter();
   const navSession = useNavigationSession();
   const [locating, setLocating] = useState(false);
+  const [awaitingCoords, setAwaitingCoords] = useState(false);
 
-
-  async function useCurrentLocation() {
-    if (geo.status !== "granted") {
-      geo.request();
-      // Wait for coords briefly — the next click after permission grants will fill instantly.
-      return;
-    }
-    if (!geo.coords) return;
+  async function fillOriginFromCoords(lat: number, lon: number) {
     setLocating(true);
     try {
-      const r = await reverseGeocodeFn({ data: { lat: geo.coords.lat, lon: geo.coords.lon } });
+      const r = await reverseGeocodeFn({ data: { lat, lon } });
       setOrigin(r.label);
     } catch {
-      setOrigin(`${geo.coords.lat.toFixed(4)}, ${geo.coords.lon.toFixed(4)}`);
+      setOrigin(`${lat.toFixed(4)}, ${lon.toFixed(4)}`);
     } finally {
       setLocating(false);
     }
   }
+
+  async function useCurrentLocation() {
+    if (geo.status === "granted" && geo.coords) {
+      await fillOriginFromCoords(geo.coords.lat, geo.coords.lon);
+      return;
+    }
+    // Trigger the permission prompt; auto-fill once coords arrive (effect below).
+    setAwaitingCoords(true);
+    geo.request();
+  }
+
+  // Auto-fill the Origin once permission is granted from a pending request.
+  useEffect(() => {
+    if (!awaitingCoords) return;
+    if (geo.status === "granted" && geo.coords) {
+      setAwaitingCoords(false);
+      void fillOriginFromCoords(geo.coords.lat, geo.coords.lon);
+    } else if (geo.status === "denied" || geo.status === "unavailable" || geo.status === "error") {
+      setAwaitingCoords(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awaitingCoords, geo.status, geo.coords?.lat, geo.coords?.lon]);
+
 
 
   const analysis = useMutation({
