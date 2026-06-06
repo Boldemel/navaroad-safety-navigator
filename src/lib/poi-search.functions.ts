@@ -9,7 +9,7 @@ import { z } from "zod";
 const TRUCK_FUEL_BRANDS = ["Pilot", "Flying J", "Loves", "Love's", "TA", "TravelCenters", "Petro"];
 
 const Input = z.object({
-  geometry: z.array(z.tuple([z.number(), z.number()])).max(5000),
+  geometry: z.array(z.tuple([z.number(), z.number()])).max(100000),
   kind: z.enum(["fuel", "parking"]),
   limit: z.number().int().min(1).max(50).optional(),
 });
