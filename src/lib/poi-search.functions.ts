@@ -428,31 +428,32 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       const fallbackType: TruckPoiType =
         data.kind === "weigh_station" ? "weigh_station"
         : data.kind === "cat_scale" ? "cat_scale"
-        : data.kind === "parking" ? "parking"
+        : data.kind === "rest_area" ? "rest_area"
         : data.kind === "truck_stop" ? "truck_stop"
         : "fuel";
       const type = classify(name, brand, cats, fallbackType);
       const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
 
       if (data.kind === "fuel") {
-        // Exclude EV charging stations — Fuel Stops is diesel/gasoline only.
+        // Truck diesel only. Exclude EV charging and non-diesel/non-truck stations.
         if (isEvCharging(hay)) {
           tomtomFilteredCount += 1;
           return;
         }
-        const isFuel = type === "fuel" || type === "truck_stop" || truckStopAllowed(hay);
-        if (!isFuel) {
+        const isDieselOrTruck =
+          truckStopAllowed(hay) ||
+          /diesel|truck\s*fuel|truck-?friendly/.test(hay) ||
+          cats.some((c) => /7311003/.test(c));
+        if (!isDieselOrTruck) {
           tomtomFilteredCount += 1;
           return;
         }
       }
-      if (data.kind === "parking") {
-        const isTruckParking =
-          type === "truck_stop" ||
+      if (data.kind === "rest_area") {
+        const isRestArea =
           type === "rest_area" ||
-          truckStopAllowed(hay) ||
-          /truck\s*parking|rest\s*area|rest\s*stop|welcome\s*cent(er|re)|travel\s*cent(er|re)|safety\s*rest/.test(hay);
-        if (!isTruckParking) {
+          /rest\s*area|rest\s*stop|welcome\s*cent(er|re)|safety\s*rest/.test(hay);
+        if (!isRestArea) {
           tomtomFilteredCount += 1;
           return;
         }
