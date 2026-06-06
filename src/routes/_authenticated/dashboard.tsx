@@ -377,28 +377,28 @@ function Dashboard() {
     staleTime: 0,
   });
   const { data: parkingStops, isLoading: parkingLoading } = useQuery({
-    queryKey: ["parking-stops", routeKey],
-    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "parking", limit: 100 } }),
+    queryKey: ["rest-areas", routeKey],
+    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "rest_area", limit: 100 } }),
     enabled: geometry.length >= 2,
-    staleTime: 0,
+    staleTime: 10 * 60_000,
   });
   const { data: truckStops, isLoading: truckStopsLoading } = useQuery({
     queryKey: ["truck-stops", routeKey],
     queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "truck_stop", limit: 100 } }),
     enabled: geometry.length >= 2,
-    staleTime: 0,
+    staleTime: 10 * 60_000,
   });
   const { data: weighStations, isLoading: weighLoading } = useQuery({
     queryKey: ["weigh-stations", routeKey],
     queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "weigh_station", limit: 100 } }),
     enabled: geometry.length >= 2,
-    staleTime: 0,
+    staleTime: 10 * 60_000,
   });
   const { data: catScales, isLoading: catScalesLoading } = useQuery({
     queryKey: ["cat-scales", routeKey],
     queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "cat_scale", limit: 100 } }),
     enabled: geometry.length >= 2,
-    staleTime: 0,
+    staleTime: 10 * 60_000,
   });
 
 
