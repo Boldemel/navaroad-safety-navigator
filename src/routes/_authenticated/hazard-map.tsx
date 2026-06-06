@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Wind, AlertTriangle, Construction, Trash2, Car, ParkingCircleOff, CloudRain, CloudLightning } from "lucide-react";
 import { HAZARD_TYPES, hazardLabel, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
+import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
   component: HazardMap,
@@ -30,6 +31,9 @@ function pos(id: string) {
 
 function HazardMap() {
   const [filters, setFilters] = useState<Set<string>>(new Set(HAZARD_TYPES.map((h) => h.value)));
+  useRealtimeInvalidate(["hazard_reports"], [["map-hazards"]]);
+
+
 
   const { data: hazards = [] } = useQuery({
     queryKey: ["map-hazards"],
