@@ -48,6 +48,8 @@ function Dashboard() {
   const [locating, setLocating] = useState(false);
   const [awaitingCoords, setAwaitingCoords] = useState(false);
 
+  const [pendingAutoAnalyze, setPendingAutoAnalyze] = useState(false);
+
   async function fillOriginFromCoords(lat: number, lon: number) {
     setLocating(true);
     try {
@@ -57,8 +59,10 @@ function Dashboard() {
       setOrigin(`${lat.toFixed(4)}, ${lon.toFixed(4)}`);
     } finally {
       setLocating(false);
+      setPendingAutoAnalyze(true);
     }
   }
+
 
   async function useCurrentLocation() {
     if (geo.status === "granted" && geo.coords) {
@@ -81,6 +85,16 @@ function Dashboard() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [awaitingCoords, geo.status, geo.coords?.lat, geo.coords?.lon]);
+  // Auto-run Route Analysis once the Origin has been filled from GPS, so the
+  // driver gets a fresh Safety Score without a second click.
+  useEffect(() => {
+    if (!pendingAutoAnalyze) return;
+    if (!origin || !destination) return;
+    setPendingAutoAnalyze(false);
+    analysis.mutate({ origin, destination, truck, trailer });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingAutoAnalyze, origin, destination]);
+
 
 
 
