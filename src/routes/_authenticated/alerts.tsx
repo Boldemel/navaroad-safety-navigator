@@ -199,7 +199,19 @@ function AlertsCenter() {
               {t.label}
             </button>
           );
-        })}
+        {activeRoute && (
+          <button
+            onClick={() => setOnRouteOnly((v) => !v)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition",
+              onRouteOnly ? "border-warning/40 bg-warning/15 text-warning" : "border-border bg-card text-muted-foreground hover:text-foreground",
+            )}
+            title="Only show hazards within 10 mi of your active route"
+          >
+            <RouteIcon className="size-3.5" />
+            On route only ({onRouteCount})
+          </button>
+        )}
       </div>
 
       <div className="space-y-3">
