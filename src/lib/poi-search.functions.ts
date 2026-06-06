@@ -467,6 +467,9 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       filteredResultsCount: deduplicatedCount,
       filteredOutCount: tomtomFilteredCount,
       searchingFullRoute: samples.length > 1,
+      rawTomTomResults,
+      routeFilteredResults,
+      finalDisplayedResults: displayedPois.slice(0, 12).map((p) => `${p.name} · ${p.distanceMi != null ? p.distanceMi.toFixed(1) : "?"} mi`),
     };
 
     return {
