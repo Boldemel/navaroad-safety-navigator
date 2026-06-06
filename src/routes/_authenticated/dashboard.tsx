@@ -394,6 +394,12 @@ function Dashboard() {
     enabled: geometry.length >= 2,
     staleTime: 0,
   });
+  const { data: catScales, isLoading: catScalesLoading } = useQuery({
+    queryKey: ["cat-scales", routeKey],
+    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "cat_scale", limit: 100 } }),
+    enabled: geometry.length >= 2,
+    staleTime: 0,
+  });
 
 
   // Stat cards: prefer the analyzed route when present, else fall back to the
@@ -745,7 +751,8 @@ function Dashboard() {
           <StatCard icon={<Fuel className="size-5" />} label="Fuel Stations (optional)" count={usingRoute ? fuelStops?.totalFound ?? 0 : 0} sub={fuelStops && !fuelStops.connected ? "Not connected yet" : usingRoute ? `Route-filtered, deduplicated · ${fuelStops?.provider ?? "TomTom"}` : "Analyze a route to find stops"} accent="primary" loading={fuelLoading} onClick={usingRoute && (fuelStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Fuel Stations on this Route", result: fuelStops ?? null }) : undefined} />
           <StatCard icon={<ParkingCircle className="size-5" />} label="Parking Options" count={usingRoute ? parkingStops?.totalFound ?? 0 : 0} sub={parkingStops && !parkingStops.connected ? "Not connected yet" : usingRoute ? "Truck stops, rest areas, travel centers · route-filtered" : "Analyze a route to find parking"} accent="primary" loading={parkingLoading} onClick={usingRoute && (parkingStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Truck Parking on this Route", result: parkingStops ?? null }) : undefined} />
           <StatCard icon={<Truck className="size-5" />} label="Truck Stops" count={usingRoute ? truckStops?.totalFound ?? 0 : 0} sub={truckStops && !truckStops.connected ? "Not connected yet" : usingRoute ? "Pilot · Flying J · Love's · TA · Petro · verified plazas" : "Analyze a route to find truck stops"} accent="primary" loading={truckStopsLoading} onClick={usingRoute && (truckStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Truck Stops on this Route", result: truckStops ?? null }) : undefined} />
-          <StatCard icon={<Scale className="size-5" />} label="Weigh Stations" count={usingRoute ? weighStations?.totalFound ?? 0 : 0} sub={weighStations && !weighStations.connected ? "Not connected yet" : usingRoute ? `Route-filtered, deduplicated · ${weighStations?.provider ?? "TomTom"}` : "Analyze a route to find weigh stations"} accent="warning" loading={weighLoading} onClick={usingRoute && (weighStations?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Weigh Stations on this Route", result: weighStations ?? null }) : undefined} />
+          <StatCard icon={<Scale className="size-5" />} label="Weigh Stations" count={usingRoute ? weighStations?.totalFound ?? 0 : 0} sub={weighStations && !weighStations.connected ? "Not connected yet" : usingRoute ? `State weigh, port of entry, inspection · ${weighStations?.provider ?? "TomTom"}` : "Analyze a route to find weigh stations"} accent="warning" loading={weighLoading} onClick={usingRoute && (weighStations?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Weigh Stations on this Route", result: weighStations ?? null }) : undefined} />
+          <StatCard icon={<Scale className="size-5" />} label="CAT Scales" count={usingRoute ? catScales?.totalFound ?? 0 : 0} sub={catScales && !catScales.connected ? "Not connected yet" : usingRoute ? `Certified commercial scales · ${catScales?.provider ?? "TomTom"}` : "Analyze a route to find CAT scales"} accent="primary" loading={catScalesLoading} onClick={usingRoute && (catScales?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "CAT Scales on this Route", result: catScales ?? null }) : undefined} />
           <StatCard icon={<Users className="size-5" />} label="Driver Reports" count={driverCount} sub="Community layer · live" accent="warning" />
         </div>
       </div>
@@ -783,6 +790,14 @@ function Dashboard() {
             loading={weighLoading}
             result={weighStations}
             emptyHint="No weigh stations detected near this route."
+          />
+          <PoiList
+            icon={<Scale className="size-4 text-primary" />}
+            title="CAT Scales on this Route"
+            routeLabel={routeLabel}
+            loading={catScalesLoading}
+            result={catScales}
+            emptyHint="No CAT scales detected near this route."
           />
         </div>
       )}
@@ -853,6 +868,7 @@ function typeLabelShort(t?: string) {
     : t === "parking" ? "Parking"
     : t === "fuel" ? "Fuel"
     : t === "weigh_station" ? "Weigh station"
+    : t === "cat_scale" ? "CAT scale"
     : "POI";
 }
 
@@ -1009,6 +1025,7 @@ function PoiList({
     : t === "parking" ? "Parking"
     : t === "fuel" ? "Fuel"
     : t === "weigh_station" ? "Weigh station"
+    : t === "cat_scale" ? "CAT scale"
     : "";
 
   return (

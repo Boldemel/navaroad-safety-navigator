@@ -28,11 +28,11 @@ const RouteGeometry = z.preprocess((value) => {
 
 const Input = z.object({
   geometry: RouteGeometry,
-  kind: z.enum(["fuel", "parking", "truck_stop", "weigh_station"]),
+  kind: z.enum(["fuel", "parking", "truck_stop", "weigh_station", "cat_scale"]),
   limit: z.number().int().min(1).max(100).optional(),
 });
 
-export type TruckPoiType = "fuel" | "truck_stop" | "rest_area" | "parking" | "weigh_station";
+export type TruckPoiType = "fuel" | "truck_stop" | "rest_area" | "parking" | "weigh_station" | "cat_scale";
 
 export type TruckPoiSource = "TomTom" | "OpenStreetMap";
 
@@ -137,13 +137,18 @@ function classify(
   fallback: TruckPoiType = "fuel",
 ): TruckPoiType {
   const hay = `${name} ${brand ?? ""} ${categories.join(" ")}`.toLowerCase();
+  if (isCatScale(hay)) return "cat_scale";
   if (TRUCK_STOP_BRANDS.some((b) => hay.includes(b.toLowerCase()))) return "truck_stop";
   if (/truck stop|travel center|travel centre|truckstop|truck plaza/.test(hay)) return "truck_stop";
-  if (/weigh station|weigh-in-motion|inspection station|port of entry|cat scale/.test(hay)) return "weigh_station";
+  if (/weigh station|weigh-in-motion|inspection station|port of entry|agricultural inspection/.test(hay)) return "weigh_station";
   if (/rest area|rest stop/.test(hay)) return "rest_area";
   if (/diesel|fuel|gas station|petrol|gasoline/.test(hay)) return "fuel";
   if (/parking/.test(hay)) return "parking";
   return fallback;
+}
+
+function isCatScale(hay: string) {
+  return /\bcat\s*scale\b|certified\s*automated\s*truck\s*scale|certified\s*commercial\s*scale/.test(hay);
 }
 
 // Brands / keywords that indicate EV charging — excluded from Fuel Stops.
@@ -153,7 +158,8 @@ function isEvCharging(hay: string) {
 
 function isWeighStationStrict(hay: string) {
   if (truckStopAllowed(hay)) return false;
-  return /weigh\s*station|weigh-in-motion|truck\s*inspection|inspection\s*station|port\s*of\s*entry|cat\s*scale|dot\s*scale|scale\s*house/.test(hay);
+  if (isCatScale(hay)) return false;
+  return /weigh\s*station|weigh-in-motion|truck\s*inspection|inspection\s*station|port\s*of\s*entry|dot\s*scale|scale\s*house|agricultural\s*inspection/.test(hay);
 }
 
 
@@ -388,6 +394,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       data.kind === "fuel" ? "7311003,7309"
       : data.kind === "truck_stop" ? "7311,7311003"
       : data.kind === "weigh_station" ? "7314"
+      : data.kind === "cat_scale" ? "7311,7311003"
       : "7311,7395,7369,7397";
 
     const keywords =
@@ -396,7 +403,9 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       : data.kind === "truck_stop"
         ? ["truck stop", "travel center", "Pilot", "Flying J", "Loves", "TA", "Petro", "Sapp Bros", "Road Ranger"]
       : data.kind === "weigh_station"
-        ? ["weigh station", "truck inspection", "port of entry", "CAT scale", "inspection station", "scale house", "DOT scale"]
+        ? ["weigh station", "truck inspection", "port of entry", "inspection station", "scale house", "DOT scale", "agricultural inspection"]
+      : data.kind === "cat_scale"
+        ? ["CAT scale", "CAT scales", "certified scale", "truck scale"]
         : ["truck parking", "rest area", "welcome center", "travel center", "truck stop"];
 
     const radiusM = 50000; // initial provider search around each sample
@@ -418,6 +427,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       if (rawTomTomResults.length < 12) rawTomTomResults.push(`${name} · ${cats[0] ?? "uncategorized"}`);
       const fallbackType: TruckPoiType =
         data.kind === "weigh_station" ? "weigh_station"
+        : data.kind === "cat_scale" ? "cat_scale"
         : data.kind === "parking" ? "parking"
         : data.kind === "truck_stop" ? "truck_stop"
         : "fuel";
@@ -454,9 +464,15 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         }
       }
       if (data.kind === "weigh_station") {
-        // Strict: only state weigh stations, ports of entry, CAT scales, official
-        // inspection facilities. Reject truck-stop brands explicitly.
+        // Strict: only state weigh stations, ports of entry, official inspection
+        // facilities. CAT scales and truck-stop brands are explicitly rejected.
         if (!isWeighStationStrict(hay)) {
+          tomtomFilteredCount += 1;
+          return;
+        }
+      }
+      if (data.kind === "cat_scale") {
+        if (!isCatScale(hay)) {
           tomtomFilteredCount += 1;
           return;
         }
@@ -508,7 +524,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
 
     // Step 2: keyword fallback — run if category search yielded few results, or always for
     // brand-name coverage (truck-friendly fuel chains often miscategorize).
-    if (seen.size < 10 || data.kind === "weigh_station" || data.kind === "parking") {
+    if (seen.size < 10 || data.kind === "weigh_station" || data.kind === "parking" || data.kind === "cat_scale") {
       const keywordCalls: Array<Promise<TomTomCall>> = [];
       const keywordSamples: Array<{ lat: number; lon: number }> = [];
       for (const s of samples) {
