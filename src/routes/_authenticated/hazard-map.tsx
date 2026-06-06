@@ -15,6 +15,7 @@ import { formatDistanceToNow } from "date-fns";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { getTomTomKey } from "@/lib/tomtom.functions";
 import { TomTomMap, type MapMarker } from "@/components/tomtom-map";
+import { useActiveRoute } from "@/hooks/use-active-route";
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
   component: HazardMap,
