@@ -349,6 +349,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       return {
         connected: false,
         provider: "not_connected",
+        totalFound: 0,
         message:
           data.kind === "fuel"
             ? "Fuel stop data not connected yet."
@@ -357,7 +358,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       };
     }
     if (data.geometry.length < 2) {
-      return { connected: true, provider: "TomTom", pois: [] };
+      return { connected: true, provider: "TomTom", totalFound: 0, pois: [] };
     }
 
     // Sample every ~100 miles along the route corridor (cap 15 samples to bound API calls).
@@ -374,7 +375,8 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         ? ["truck stop", "travel center", "diesel", "Pilot", "Flying J", "Loves", "TA Petro"]
         : ["truck stop", "rest area", "travel center", "truck parking"];
 
-    const radiusM = 50000; // 50 km corridor around each sample
+    const radiusM = 50000; // initial provider search around each sample
+    const corridorRadiusMi = 20; // final route-corridor filter
     const seen = new Map<string, TruckPoi>();
     let tomtomRawCount = 0;
     let tomtomFilteredCount = 0;
@@ -395,12 +397,15 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         tomtomFilteredCount += 1;
         return;
       }
+      const routeDistance = distanceToRouteMi(data.geometry, r.position.lat, r.position.lon);
+      if (routeDistance == null || routeDistance > corridorRadiusMi) {
+        tomtomFilteredCount += 1;
+        return;
+      }
       const id = r.id ?? `${r.position.lat.toFixed(5)},${r.position.lon.toFixed(5)}`;
-      const distance =
-        r.dist != null ? r.dist / 1609.34 : distMi(sampleLat, sampleLon, r.position.lat, r.position.lon);
       const existing = seen.get(id);
       if (existing) {
-        if ((existing.distanceMi ?? Infinity) > distance) existing.distanceMi = distance;
+        if ((existing.distanceMi ?? Infinity) > routeDistance) existing.distanceMi = routeDistance;
         return;
       }
       seen.set(id, {
@@ -414,7 +419,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         state: r.address?.countrySubdivision ?? r.address?.countrySubdivisionName ?? null,
         lat: r.position.lat,
         lon: r.position.lon,
-        distanceMi: distance,
+        distanceMi: routeDistance,
         phone: r.poi?.phone ?? null,
         source: "TomTom",
       });
@@ -454,7 +459,9 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       routePointCount: data.geometry.length,
       sampleCount: samples.length,
       searchesFullRoute: samples.length > 1,
+      corridorRadiusMi,
       rawTomTomCount: tomtomRawCount,
+      filteredResultsCount: seen.size,
       filteredOutAfterTomTom: tomtomFilteredCount,
       firstTomTomStatus: categoryResults[0]?.status,
       firstTomTomError: firstError,
