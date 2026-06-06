@@ -217,16 +217,15 @@ function Dashboard() {
               </PopoverTrigger>
               <PopoverContent className="w-80 text-xs text-left space-y-2">
                 <div className="font-semibold text-sm">How the score is calculated</div>
-                <p>Start at <strong>98</strong>. Subtract penalties from four live sources, then subtract a small trailer-profile bump.</p>
+                <p>Start at <strong>100</strong>. Only subtract penalties for actual route conditions found in live data.</p>
                 <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                  <li><strong>Weather</strong> (Open-Meteo per route sample): precip ≥5 mm = 10, ≥1 mm = 4, snow = 14, thunderstorm = 20, fog / vis &lt; 1 km = 8, temp ≤ −5 °C = 6.</li>
-                  <li><strong>Wind</strong> (Open-Meteo): gusts ≥75 km/h = 28, ≥55 km/h or wind ≥45 km/h = 14, wind ≥30 km/h = 5.</li>
-                  <li><strong>NWS alerts</strong> intersecting route: critical 35 · high 18 · medium 8 · low 3 (wind/tornado count toward wind).</li>
-                  <li><strong>Road closures</strong> (DOT, when connected): same severity weights.</li>
-                  <li><strong>Driver reports</strong> nearby: up to 20.</li>
-                  <li><strong>Trailer profile</strong>: high-wind-sensitive trailers add 6, others 2.</li>
+                  <li><strong>Minor weather</strong>: light/moderate rain, reduced visibility, snow, thunderstorms, or extreme temperatures add 0–10 each, capped at 25.</li>
+                  <li><strong>Severe weather alerts</strong>: only medium or stronger active route alerts add 5–25. Low/normal alert counts add 0.</li>
+                  <li><strong>High winds</strong>: only elevated wind or gust thresholds add 8–30, capped at 30.</li>
+                  <li><strong>Road closures</strong>: only connected DOT incidents add 10–30. No DOT data adds 0.</li>
+                  <li><strong>Driver hazards</strong>: verified driver reports add 5–20. Zero reports add 0.</li>
                 </ul>
-                <p>Final score is clamped 20–99. Score = 98 − (weather + wind + closure + hazard + trailer).</p>
+                <p>Score = 100 − (weather + wind + closures + verified hazards). Clear/partly cloudy, low-wind routes remain high-scoring.</p>
               </PopoverContent>
             </Popover>
           </div>
