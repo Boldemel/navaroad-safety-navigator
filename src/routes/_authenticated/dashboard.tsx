@@ -78,8 +78,7 @@ function Dashboard() {
 
   const score = result?.score ?? null;
   const breakdown = result?.breakdown;
-  const trailerBump = ["Dry Van", "Reefer", "Curtain Side"].includes(trailer) ? 6 : 2;
-  const totalPenalty = breakdown ? breakdown.weather + breakdown.wind + breakdown.closure + breakdown.hazard + trailerBump : 0;
+  const totalPenalty = breakdown ? breakdown.weather + breakdown.wind + breakdown.closure + breakdown.hazard : 0;
 
   function onAnalyze(e: React.FormEvent) {
     e.preventDefault();
@@ -191,7 +190,7 @@ function Dashboard() {
                   {result.risks.slice(0, 8).map((r, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
                       <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(r.severity)}`}>{r.severity}</span>
-                      <span className="flex-1">{r.message}</span>
+                      <span className="flex-1">{r.message} <span className="text-destructive">−{r.penalty}</span></span>
                       <span className="text-[10px] text-muted-foreground whitespace-nowrap">{r.source}</span>
                     </li>
                   ))}
@@ -218,35 +217,39 @@ function Dashboard() {
               </PopoverTrigger>
               <PopoverContent className="w-80 text-xs text-left space-y-2">
                 <div className="font-semibold text-sm">How the score is calculated</div>
-                <p>Start at <strong>98</strong>. Subtract penalties from four live sources, then subtract a small trailer-profile bump.</p>
+                <p>Start at <strong>100</strong>. Only subtract penalties for actual route conditions found in live data.</p>
                 <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                  <li><strong>Weather</strong> (Open-Meteo per route sample): precip ≥5 mm = 10, ≥1 mm = 4, snow = 14, thunderstorm = 20, fog / vis &lt; 1 km = 8, temp ≤ −5 °C = 6.</li>
-                  <li><strong>Wind</strong> (Open-Meteo): gusts ≥75 km/h = 28, ≥55 km/h or wind ≥45 km/h = 14, wind ≥30 km/h = 5.</li>
-                  <li><strong>NWS alerts</strong> intersecting route: critical 35 · high 18 · medium 8 · low 3 (wind/tornado count toward wind).</li>
-                  <li><strong>Road closures</strong> (DOT, when connected): same severity weights.</li>
-                  <li><strong>Driver reports</strong> nearby: up to 20.</li>
-                  <li><strong>Trailer profile</strong>: high-wind-sensitive trailers add 6, others 2.</li>
+                  <li><strong>Minor weather</strong>: light/moderate rain, reduced visibility, snow, thunderstorms, or extreme temperatures add 0–10 each, capped at 25.</li>
+                  <li><strong>Severe weather alerts</strong>: only medium or stronger active route alerts add 5–25. Low/normal alert counts add 0.</li>
+                  <li><strong>High winds</strong>: only elevated wind or gust thresholds add 8–30, capped at 30.</li>
+                  <li><strong>Road closures</strong>: only connected DOT incidents add 10–30. No DOT data adds 0.</li>
+                  <li><strong>Driver hazards</strong>: verified driver reports add 5–20. Zero reports add 0.</li>
                 </ul>
-                <p>Final score is clamped 20–99. Score = 98 − (weather + wind + closure + hazard + trailer).</p>
+                <p>Score = 100 − (weather + wind + closures + verified hazards). Clear/partly cloudy, low-wind routes remain high-scoring.</p>
               </PopoverContent>
             </Popover>
           </div>
-          <div className={`mt-3 text-6xl font-bold ${score == null ? "text-muted-foreground" : score >= 80 ? "text-success" : score >= 60 ? "text-warning" : "text-destructive"}`}>
+          <div className={`mt-3 text-6xl font-bold ${score == null ? "text-muted-foreground" : score >= 85 ? "text-success" : score >= 70 ? "text-warning" : "text-destructive"}`}>
             {analysis.isPending ? <Loader2 className="size-12 animate-spin mx-auto" /> : (score ?? "—")}
           </div>
           <p className="text-xs text-muted-foreground mt-2">
             {score == null ? "Analyze a route to see your score." : result?.recommendedAction}
           </p>
+          {score != null && result?.riskLevel && (
+            <div className="mt-3 rounded-md border border-border bg-background p-3 text-left">
+              <div className="text-xs font-semibold">{result.riskLevel}</div>
+              <p className="mt-1 text-xs text-muted-foreground">{result.scoreExplanation}</p>
+            </div>
+          )}
           {breakdown && score != null && (
             <div className="mt-4 pt-4 border-t border-border text-left space-y-1.5">
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Breakdown (penalties)</div>
-              <BreakdownRow label="Weather" value={breakdown.weather} source="Open-Meteo" />
-              <BreakdownRow label="Wind" value={breakdown.wind} source="Open-Meteo" />
+              <BreakdownRow label="Weather" value={breakdown.weather} source="Open-Meteo + NWS" />
+              <BreakdownRow label="Wind" value={breakdown.wind} source="Open-Meteo + NWS" />
               <BreakdownRow label="Road closures" value={breakdown.closure} source={result?.providers.road ?? "not connected"} />
               <BreakdownRow label="Driver reports" value={breakdown.hazard} source="Community" />
-              <BreakdownRow label={`Trailer (${trailer})`} value={trailerBump} source="Profile" />
               <div className="flex justify-between text-xs pt-1.5 mt-1.5 border-t border-border">
-                <span className="font-medium">98 − {totalPenalty} =</span>
+                <span className="font-medium">100 − {totalPenalty} =</span>
                 <span className="font-semibold">{score}</span>
               </div>
             </div>

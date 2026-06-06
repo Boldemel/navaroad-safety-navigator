@@ -6,7 +6,7 @@ import type { CurrentWeather, WeatherAlert } from "./weather.service";
 import type { RoadAlert } from "./road-alert.service";
 
 export type RiskBreakdown = {
-  weather: number; // 0–100 risk (higher = worse)
+  weather: number; // capped route-condition penalty, higher = worse
   wind: number;
   closure: number;
   hazard: number;
@@ -27,21 +27,61 @@ export type SafetyResult = {
     type: "wind" | "precip" | "closure" | "hazard" | "temp" | "visibility" | "weather_alert";
     severity: "low" | "medium" | "high" | "critical";
     message: string;
+    penalty: number;
   }>;
   recommendedAction: string;
+  riskLevel: "Safe" | "Caution" | "High Risk" | "Extreme";
+  scoreExplanation: string;
 };
 
-function sevWeight(s: WeatherAlert["severity"] | RoadAlert["severity"]): number {
-  switch (s) {
-    case "critical":
-      return 35;
-    case "high":
-      return 18;
-    case "medium":
-      return 8;
-    default:
-      return 3;
+function addPenalty(
+  factors: SafetyResult["factors"],
+  breakdown: RiskBreakdown,
+  bucket: keyof RiskBreakdown,
+  factor: Omit<SafetyResult["factors"][number], "penalty">,
+  amount: number,
+) {
+  if (amount <= 0) return;
+  const caps: RiskBreakdown = { weather: 25, wind: 30, closure: 30, hazard: 20 };
+  const applied = Math.min(amount, Math.max(0, caps[bucket] - breakdown[bucket]));
+  if (applied <= 0) return;
+  breakdown[bucket] += applied;
+  factors.push({ ...factor, penalty: applied });
+}
+
+function weatherAlertPenalty(alert: WeatherAlert): { bucket: keyof RiskBreakdown; amount: number } {
+  const event = alert.event.toLowerCase();
+  const isWarning = event.includes("warning") || event.includes("emergency");
+  const isWatch = event.includes("watch");
+  const isAdvisory = event.includes("advisory") || event.includes("statement") || event.includes("outlook");
+  if (alert.severity === "low") return { bucket: "weather", amount: 0 };
+  if (alert.category === "tornado") return { bucket: "wind", amount: alert.severity === "critical" ? 30 : 25 };
+  if (alert.category === "high_wind") {
+    if (isWarning && alert.severity === "critical") return { bucket: "wind", amount: 30 };
+    if (isWarning || alert.severity === "high") return { bucket: "wind", amount: isWatch || isAdvisory ? 8 : 20 };
+    return { bucket: "wind", amount: 10 };
   }
+  if (isWatch || isAdvisory) return { bucket: "weather", amount: alert.severity === "high" ? 5 : 0 };
+  if (!isWarning && alert.severity === "medium") return { bucket: "weather", amount: 5 };
+  if (alert.severity === "critical") return { bucket: "weather", amount: 25 };
+  if (alert.severity === "high") return { bucket: "weather", amount: 15 };
+  return { bucket: "weather", amount: 5 };
+}
+
+function roadPenalty(alert: RoadAlert): number {
+  if (alert.category === "road_closure") {
+    if (alert.severity === "critical") return 30;
+    if (alert.severity === "high") return 25;
+    if (alert.severity === "medium") return 20;
+    return 10;
+  }
+  if (alert.category === "detour" || alert.category === "chain_restriction") {
+    if (alert.severity === "critical" || alert.severity === "high") return 20;
+    if (alert.severity === "medium") return 12;
+    return 8;
+  }
+  if (alert.severity === "critical" || alert.severity === "high") return 10;
+  return 0;
 }
 
 export function computeSafety(input: ScoredFactors): SafetyResult {
@@ -52,78 +92,75 @@ export function computeSafety(input: ScoredFactors): SafetyResult {
     const gust = w.gustKph ?? 0;
     const wind = w.windKph ?? 0;
     if (gust >= 75) {
-      breakdown.wind += 28;
-      factors.push({ type: "wind", severity: "critical", message: `Severe gusts ${Math.round(gust)} km/h` });
+      addPenalty(factors, breakdown, "wind", { type: "wind", severity: "critical", message: `Dangerous wind gusts ${Math.round(gust)} km/h` }, 30);
     } else if (gust >= 55 || wind >= 45) {
-      breakdown.wind += 14;
-      factors.push({ type: "wind", severity: "high", message: `High wind ${Math.round(Math.max(gust, wind))} km/h` });
-    } else if (wind >= 30) {
-      breakdown.wind += 5;
-      factors.push({ type: "wind", severity: "medium", message: "Moderate wind" });
+      addPenalty(factors, breakdown, "wind", { type: "wind", severity: "high", message: `High wind ${Math.round(Math.max(gust, wind))} km/h` }, 18);
+    } else if (gust >= 40 || wind >= 35) {
+      addPenalty(factors, breakdown, "wind", { type: "wind", severity: "medium", message: `Elevated wind ${Math.round(Math.max(gust, wind))} km/h` }, 8);
     }
 
     const precip = w.precipMm ?? 0;
-    if (precip >= 5) {
-      breakdown.weather += 10;
-      factors.push({ type: "precip", severity: "high", message: "Heavy precipitation" });
+    if (precip >= 8) {
+      addPenalty(factors, breakdown, "weather", { type: "precip", severity: "high", message: `${precip} mm heavy precipitation on route` }, 10);
+    } else if (precip >= 3) {
+      addPenalty(factors, breakdown, "weather", { type: "precip", severity: "medium", message: `${precip} mm precipitation on route` }, 5);
     } else if (precip >= 1) {
-      breakdown.weather += 4;
-      factors.push({ type: "precip", severity: "medium", message: "Rain on route" });
+      addPenalty(factors, breakdown, "weather", { type: "precip", severity: "low", message: `${precip} mm light precipitation on route` }, 2);
     }
 
     if (w.condition === "Snow") {
-      breakdown.weather += 14;
-      factors.push({ type: "precip", severity: "high", message: "Snow on route" });
+      addPenalty(factors, breakdown, "weather", { type: "precip", severity: "high", message: "Snow on route" }, 15);
     }
     if (w.condition === "Thunderstorm") {
-      breakdown.weather += 20;
-      factors.push({ type: "precip", severity: "critical", message: "Thunderstorms on route" });
+      addPenalty(factors, breakdown, "weather", { type: "precip", severity: "critical", message: "Thunderstorms on route" }, 20);
     }
-    if (w.condition === "Fog" || (w.visibilityKm != null && w.visibilityKm < 1)) {
-      breakdown.weather += 8;
-      factors.push({ type: "visibility", severity: "medium", message: "Reduced visibility" });
+    if (w.condition === "Fog" || (w.visibilityKm != null && w.visibilityKm < 1.6)) {
+      addPenalty(factors, breakdown, "weather", { type: "visibility", severity: "medium", message: `Reduced visibility${w.visibilityKm != null ? ` ${w.visibilityKm} km` : ""}` }, 8);
     }
-    if ((w.tempC ?? 99) <= -5) {
-      breakdown.weather += 6;
-      factors.push({ type: "temp", severity: "medium", message: `Freezing temps ${Math.round(w.tempC!)}°C` });
+    if ((w.tempC ?? 20) <= -5 || (w.tempC ?? 20) >= 40) {
+      addPenalty(factors, breakdown, "weather", { type: "temp", severity: "medium", message: `Extreme temperature ${Math.round(w.tempC!)}°C` }, 10);
     }
   }
 
   for (const a of input.weatherAlerts) {
-    const w = sevWeight(a.severity);
-    if (a.category === "high_wind" || a.category === "tornado") breakdown.wind += w;
-    else breakdown.weather += w;
-    factors.push({ type: "weather_alert", severity: a.severity, message: `${a.event} — ${a.areaDesc}` });
+    const p = weatherAlertPenalty(a);
+    addPenalty(factors, breakdown, p.bucket, { type: "weather_alert", severity: a.severity, message: `${a.event} — ${a.areaDesc}` }, p.amount);
   }
 
   for (const r of input.roadAlerts) {
-    const w = sevWeight(r.severity);
-    breakdown.closure += w;
-    factors.push({ type: "closure", severity: r.severity, message: `${r.category.replace("_", " ")} on ${r.roadway}` });
+    addPenalty(factors, breakdown, "closure", { type: "closure", severity: r.severity, message: `${r.category.replace("_", " ")} on ${r.roadway}` }, roadPenalty(r));
   }
 
   if (input.driverReportCount > 0) {
-    breakdown.hazard += Math.min(20, input.driverReportCount * 4);
+    const penalty = Math.min(20, input.driverReportCount * 5);
+    breakdown.hazard += penalty;
     factors.push({
       type: "hazard",
       severity: input.driverReportCount >= 3 ? "high" : "medium",
-      message: `${input.driverReportCount} driver-reported hazard${input.driverReportCount > 1 ? "s" : ""} nearby`,
+      message: `${input.driverReportCount} verified driver hazard${input.driverReportCount > 1 ? "s" : ""} nearby`,
+      penalty,
     });
   }
 
-  const trailerBump = ["Dry Van", "Reefer", "Curtain Side"].includes(input.trailerType ?? "") ? 6 : 2;
-  const totalPenalty =
-    breakdown.weather + breakdown.wind + breakdown.closure + breakdown.hazard + trailerBump;
-  const score = Math.max(20, Math.min(99, 98 - totalPenalty));
+  const totalPenalty = breakdown.weather + breakdown.wind + breakdown.closure + breakdown.hazard;
+  const score = Math.max(0, Math.min(100, 100 - totalPenalty));
+
+  const riskLevel: SafetyResult["riskLevel"] =
+    score >= 85 ? "Safe" : score >= 70 ? "Caution" : score >= 45 ? "High Risk" : "Extreme";
+
+  const scoreExplanation =
+    factors.length === 0
+      ? "Safe because route samples show no severe alerts, dangerous wind, road closures, extreme weather, or verified driver hazards."
+      : `${riskLevel} because ${factors.map((f) => `${f.message} (−${f.penalty})`).join("; ")}.`;
 
   const recommendedAction =
-    score >= 80
-      ? "Low risk — clear to roll. Standard pre-trip checks."
-      : score >= 60
-      ? "Caution — review alerts, reduce speed in risk zones, monitor weather."
-      : score >= 40
-      ? "High risk — consider alt route, stage if conditions worsen, brief dispatch."
-      : "Severe risk — recommend delay until conditions improve.";
+    riskLevel === "Safe"
+      ? "Safe — clear to roll. Standard pre-trip checks."
+      : riskLevel === "Caution"
+        ? "Caution — monitor listed conditions and reduce speed where needed."
+        : riskLevel === "High Risk"
+          ? "High risk — consider alternate routing or staging until hazards improve."
+          : "Extreme — delay departure until conditions improve.";
 
-  return { score, breakdown, factors, recommendedAction };
+  return { score, breakdown, factors, recommendedAction, riskLevel, scoreExplanation };
 }
