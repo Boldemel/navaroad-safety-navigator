@@ -51,10 +51,13 @@ export type RouteAnalysis = {
     type: "wind" | "precip" | "closure" | "hazard" | "temp" | "visibility" | "weather_alert";
     severity: "low" | "medium" | "high" | "critical";
     message: string;
+    penalty: number;
     source: "Weather API" | "DOT" | "Driver Report" | "System";
   }>;
   breakdown: { weather: number; wind: number; closure: number; hazard: number };
   score: number | null;
+  riskLevel: "Safe" | "Caution" | "High Risk" | "Extreme" | null;
+  scoreExplanation: string;
   recommendedAction: string;
   generatedAt: string;
   dataAvailability: {
@@ -163,6 +166,10 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       })),
       breakdown: result.breakdown,
       score: haveAnyLiveData ? result.score : null,
+      riskLevel: haveAnyLiveData ? result.riskLevel : null,
+      scoreExplanation: haveAnyLiveData
+        ? result.scoreExplanation
+        : "No score calculated because live route weather and road data are unavailable.",
       recommendedAction: haveAnyLiveData
         ? result.recommendedAction
         : "Connect live weather and road data to calculate route safety.",
