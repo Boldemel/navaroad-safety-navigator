@@ -291,14 +291,14 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     // 7395 = Rest Area, 7369 = Open Parking Area, 7309 = Petrol/Gasoline Station,
     // 7314 = Weigh Station / Truck inspection.
     const categorySet =
-      data.kind === "fuel" ? "7311,7311003,7309"
+      data.kind === "fuel" ? "7311003,7309"
       : data.kind === "truck_stop" ? "7311,7311003"
       : data.kind === "weigh_station" ? "7314"
       : "7311,7395,7369";
 
     const keywords =
       data.kind === "fuel"
-        ? ["truck stop", "travel center", "diesel", "Pilot", "Flying J", "Loves", "TA Petro"]
+        ? ["diesel", "fuel station", "gas station"]
       : data.kind === "truck_stop"
         ? ["truck stop", "travel center", "Pilot", "Flying J", "Loves", "TA", "Petro"]
       : data.kind === "weigh_station"
@@ -309,6 +309,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     const corridorRadiusMi = 35; // final route-corridor filter for simplified route geometry
     const seen = new Map<string, TruckPoi>();
     let tomtomRawCount = 0;
+    let routeFilteredCount = 0;
     let tomtomFilteredCount = 0;
 
     const addRaw = (r: RawResult, sampleLat: number, sampleLon: number) => {
@@ -323,7 +324,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         : data.kind === "truck_stop" ? "truck_stop"
         : "fuel";
       const type = classify(name, brand, cats, fallbackType);
-      if (data.kind === "fuel" && (type === "rest_area" || type === "parking" || type === "weigh_station")) {
+      if (data.kind === "fuel" && type !== "fuel") {
         tomtomFilteredCount += 1;
         return;
       }
@@ -360,6 +361,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         tomtomFilteredCount += 1;
         return;
       }
+      routeFilteredCount += 1;
       const id = r.id ?? `${r.position.lat.toFixed(5)},${r.position.lon.toFixed(5)}`;
       const existing = seen.get(id);
       if (existing) {
