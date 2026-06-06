@@ -656,6 +656,51 @@ function StatCard({ icon, label, count, sub, accent, loading }: { icon: React.Re
   );
 }
 
+function PoiList({
+  icon, title, loading, result, emptyHint,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  loading: boolean;
+  result: { connected: boolean; provider: string; message?: string; pois: Array<{ id: string; name: string; brand: string | null; address: string; distanceMi?: number | null }> } | undefined;
+  emptyHint: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+      <div className="flex items-center gap-2">{icon}<h3 className="font-semibold">{title}</h3></div>
+      {loading ? (
+        <div className="text-sm text-muted-foreground inline-flex items-center gap-2"><Loader2 className="size-3.5 animate-spin" /> Searching along route…</div>
+      ) : !result ? (
+        <div className="text-sm text-muted-foreground">Analyze a route to find stops.</div>
+      ) : !result.connected ? (
+        <div className="text-sm text-muted-foreground border border-border bg-muted/30 rounded-md p-3">
+          {result.message ?? "Not connected yet."}
+        </div>
+      ) : result.pois.length === 0 ? (
+        <div className="text-sm text-muted-foreground">{emptyHint}</div>
+      ) : (
+        <ul className="divide-y divide-border max-h-80 overflow-auto">
+          {result.pois.slice(0, 12).map((p) => (
+            <li key={p.id} className="py-2 flex items-start gap-3 text-sm">
+              <MapPin className="size-3.5 mt-1 text-muted-foreground shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">{p.name}{p.brand && p.brand !== p.name ? ` · ${p.brand}` : ""}</div>
+                <div className="text-[11px] text-muted-foreground truncate">{p.address}</div>
+              </div>
+              {p.distanceMi != null && (
+                <span className="text-[11px] text-muted-foreground whitespace-nowrap">{p.distanceMi < 1 ? "<1 mi" : `${Math.round(p.distanceMi)} mi`}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {result?.connected && (
+        <div className="text-[10px] text-muted-foreground/80">Source: {result.provider}</div>
+      )}
+    </div>
+  );
+}
+
 function BreakdownRow({ label, value, source }: { label: string; value: number; source: string }) {
   return (
     <div className="flex items-center justify-between text-xs">
