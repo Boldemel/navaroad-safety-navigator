@@ -502,19 +502,16 @@ export const searchTruckPois = createServerFn({ method: "POST" })
 
     // TomTom POI categories:
     // 7311 = Truck Stop / Travel Center, 7311003 = Truck-friendly fuel,
-    // 7395 = Rest Area, 7369 = Open Parking Area, 7309 = Petrol/Gasoline Station,
-    // 7314 = Weigh Station / Truck inspection, 7397 = Tourist Information / Welcome Center.
+    // 7395 = Rest Area, 7397 = Tourist Information / Welcome Center,
+    // 7314 = Weigh Station / Truck inspection.
     const categorySet =
-      data.kind === "fuel" ? "7311003,7309"
-      : data.kind === "truck_stop" ? "7311,7311003"
+      data.kind === "truck_stop" ? "7311,7311003"
       : data.kind === "weigh_station" ? "7314"
       : data.kind === "cat_scale" ? "7311,7311003"
       : "7395,7397"; // rest_area: Rest Area + Welcome Center
 
     const keywords =
-      data.kind === "fuel"
-        ? ["diesel", "truck diesel", "Pilot", "Flying J", "Loves", "TA", "Petro"]
-      : data.kind === "truck_stop"
+      data.kind === "truck_stop"
         ? ["truck stop", "travel center", "Pilot", "Flying J", "Loves", "TA", "Petro", "Sapp Bros", "Road Ranger"]
       : data.kind === "weigh_station"
         ? ["weigh station", "truck inspection", "port of entry", "inspection station", "scale house", "DOT scale", "agricultural inspection"]
