@@ -78,14 +78,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Navaroad" },
+      { name: "description", content: "Real-time hazard, wind, and closure intelligence for professional drivers, owner operators, and small fleets." },
+      { name: "author", content: "Navaroad" },
+      { property: "og:title", content: "Navaroad — Trucking Safety Intelligence" },
+      { property: "og:description", content: "Avoid dangerous conditions before you reach them." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:site", content: "@Navaroad" },
     ],
     links: [
       {
