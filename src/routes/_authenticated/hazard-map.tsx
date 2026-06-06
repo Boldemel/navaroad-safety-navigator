@@ -33,11 +33,11 @@ function pos(id: string) {
 
 function HazardMap() {
   const [filters, setFilters] = useState<Set<string>>(new Set(HAZARD_TYPES.map((h) => h.value)));
-  useRealtimeInvalidate(["hazard_reports"], [["map-hazards"]]);
+  useRealtimeInvalidate(["hazard_reports"], [["map-hazards"], ["driver-names"]]);
 
+  const { data: drivers = {} } = useDriverNames();
 
-
-  const { data: hazards = [] } = useQuery({
+  const { data: hazards = [], isLoading } = useQuery({
     queryKey: ["map-hazards"],
     queryFn: async () => {
       const { data, error } = await supabase.from("hazard_reports").select("*").order("created_at", { ascending: false });
