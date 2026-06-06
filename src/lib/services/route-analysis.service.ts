@@ -15,9 +15,13 @@ export async function geocode(query: string): Promise<GeoPoint> {
   const res = await fetch(url, {
     headers: { "User-Agent": "Navaroad/1.0 (route-analysis)", "Accept-Language": "en" },
   });
-  if (!res.ok) throw new Error(`Geocoding failed for "${query}"`);
+  if (!res.ok) throw new Error(`Geocoding service unavailable. Try again in a moment.`);
   const json = (await res.json()) as Array<{ lat: string; lon: string; display_name: string }>;
-  if (!json.length) throw new Error(`Could not find location "${query}"`);
+  if (!json.length) {
+    throw new Error(
+      `Could not find "${query}". Check the spelling and try a format like "City, ST" (e.g. "Salt Lake City, UT").`,
+    );
+  }
   return { name: json[0].display_name, lat: parseFloat(json[0].lat), lon: parseFloat(json[0].lon) };
 }
 
