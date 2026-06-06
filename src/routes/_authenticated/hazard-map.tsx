@@ -91,6 +91,7 @@ function HazardMap() {
       id: a.id, layer: "api", source: `NWS (${a.provider})`,
       category: a.category, severity: a.severity, title: a.event,
       location: a.areaDesc, description: a.headline, updatedAt: a.effective,
+      lat: a.lat ?? null, lon: a.lon ?? null,
     }));
     const road: Marker[] = (feed?.roadAlerts ?? []).map((r) => ({
       id: r.id, layer: "api", source: `DOT (${r.provider})`,
