@@ -47,6 +47,51 @@ export type Database = {
         }
         Relationships: []
       }
+      favorite_locations: {
+        Row: {
+          address: string
+          category: string
+          city: string | null
+          country: string | null
+          created_at: string
+          id: string
+          label: string
+          latitude: number | null
+          longitude: number | null
+          notes: string | null
+          state: string | null
+          user_id: string
+        }
+        Insert: {
+          address: string
+          category?: string
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          label: string
+          latitude?: number | null
+          longitude?: number | null
+          notes?: string | null
+          state?: string | null
+          user_id: string
+        }
+        Update: {
+          address?: string
+          category?: string
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          latitude?: number | null
+          longitude?: number | null
+          notes?: string | null
+          state?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       hazard_reports: {
         Row: {
           created_at: string
@@ -96,7 +141,12 @@ export type Database = {
           notify_push: boolean | null
           notify_sms: boolean | null
           trailer_type: string | null
+          truck_axles: number | null
+          truck_hazmat: boolean
+          truck_height_in: number | null
+          truck_length_ft: number | null
           truck_type: string | null
+          truck_weight_lbs: number | null
           updated_at: string
         }
         Insert: {
@@ -108,7 +158,12 @@ export type Database = {
           notify_push?: boolean | null
           notify_sms?: boolean | null
           trailer_type?: string | null
+          truck_axles?: number | null
+          truck_hazmat?: boolean
+          truck_height_in?: number | null
+          truck_length_ft?: number | null
           truck_type?: string | null
+          truck_weight_lbs?: number | null
           updated_at?: string
         }
         Update: {
@@ -120,7 +175,12 @@ export type Database = {
           notify_push?: boolean | null
           notify_sms?: boolean | null
           trailer_type?: string | null
+          truck_axles?: number | null
+          truck_hazmat?: boolean
+          truck_height_in?: number | null
+          truck_length_ft?: number | null
           truck_type?: string | null
+          truck_weight_lbs?: number | null
           updated_at?: string
         }
         Relationships: []
