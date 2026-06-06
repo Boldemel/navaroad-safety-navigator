@@ -868,6 +868,7 @@ function typeLabelShort(t?: string) {
     : t === "parking" ? "Parking"
     : t === "fuel" ? "Fuel"
     : t === "weigh_station" ? "Weigh station"
+    : t === "cat_scale" ? "CAT scale"
     : "POI";
 }
 
