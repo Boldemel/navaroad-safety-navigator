@@ -249,7 +249,7 @@ function Dashboard() {
 
 
   const navToPoi = useMutation({
-    mutationFn: async (p: { lat: number; lon: number; name: string }) => {
+    mutationFn: async (p: PoiItem) => {
       let originLat: number | undefined;
       let originLon: number | undefined;
       let originLabel = "Current location";
@@ -268,12 +268,28 @@ function Dashboard() {
         geo.request();
         throw new Error("Enable GPS or set an Origin to navigate.");
       }
+      const destinationLabel = [p.name, [p.city, p.state].filter(Boolean).join(", ")].filter(Boolean).join(" — ");
+      const routeAnalysis = await analyzeFn({
+        data: {
+          origin: originLabel,
+          destination: destinationLabel,
+          truck,
+          trailer,
+          truckProfile,
+          originCoords: { lat: originLat, lon: originLon },
+          destinationCoords: { lat: p.lat, lon: p.lon },
+        },
+      });
+      if (routeAnalysis.geometry.length < 2) {
+        throw new Error(routeAnalysis.routeMessage ?? "Route could not be calculated. Please check the address or try another destination.");
+      }
+      saveActiveRoute({ origin: originLabel, destination: destinationLabel, geometry: routeAnalysis.geometry });
       const route = await truckRouteFn({
         data: { originLat, originLon, destLat: p.lat, destLon: p.lon, truck: true },
       });
       startNavigation({
         origin: { lat: originLat, lon: originLon, label: originLabel },
-        destination: { lat: p.lat, lon: p.lon, label: p.name },
+        destination: { lat: p.lat, lon: p.lon, label: destinationLabel },
         geometry: route.geometry,
         instructions: route.instructions,
         totalKm: route.distanceKm,
@@ -281,8 +297,18 @@ function Dashboard() {
         trafficDurationMin: route.durationTrafficMin,
         truck: true,
       });
-      saveActiveRoute({ origin: originLabel, destination: p.name, geometry: route.geometry });
+      saveActiveRoute({ origin: originLabel, destination: destinationLabel, geometry: route.geometry });
       return route;
+    },
+    onMutate: (p) => {
+      const destinationLabel = [p.name, [p.city, p.state].filter(Boolean).join(", ")].filter(Boolean).join(" — ");
+      setDestination(destinationLabel);
+      setDestPlace({ label: destinationLabel, lat: p.lat, lon: p.lon, city: p.city ?? null, state: p.state ?? null, country: null });
+      clearActiveRoute();
+      queryClient.removeQueries({ queryKey: ["fuel-stops"] });
+      queryClient.removeQueries({ queryKey: ["parking-stops"] });
+      queryClient.removeQueries({ queryKey: ["truck-stops"] });
+      queryClient.removeQueries({ queryKey: ["weigh-stations"] });
     },
     onSuccess: () => router.navigate({ to: "/hazard-map" }),
   });
