@@ -330,9 +330,15 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         : data.kind === "truck_stop" ? "truck_stop"
         : "fuel";
       const type = classify(name, brand, cats, fallbackType);
-      if (data.kind === "fuel" && type !== "fuel") {
-        tomtomFilteredCount += 1;
-        return;
+      if (data.kind === "fuel") {
+        // Fuel includes branded truck stops (Pilot/Flying J/Love's/TA/Petro all sell diesel)
+        // plus any classified fuel station. Exclude rest areas, parking, weigh stations.
+        const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
+        const isFuel = type === "fuel" || type === "truck_stop" || truckStopAllowed(hay);
+        if (!isFuel) {
+          tomtomFilteredCount += 1;
+          return;
+        }
       }
       if (data.kind === "parking") {
         // Only show truck-relevant parking: brand truck stops, rest areas,
