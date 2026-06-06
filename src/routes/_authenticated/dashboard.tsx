@@ -282,6 +282,19 @@ function Dashboard() {
     enabled: geometry.length >= 2,
     staleTime: 0,
   });
+  const { data: truckStops, isLoading: truckStopsLoading } = useQuery({
+    queryKey: ["truck-stops", routeKey],
+    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "truck_stop", limit: 100 } }),
+    enabled: geometry.length >= 2,
+    staleTime: 0,
+  });
+  const { data: weighStations, isLoading: weighLoading } = useQuery({
+    queryKey: ["weigh-stations", routeKey],
+    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "weigh_station", limit: 100 } }),
+    enabled: geometry.length >= 2,
+    staleTime: 0,
+  });
+
 
   // Stat cards: prefer the analyzed route when present, else fall back to the
   // live national feed. This keeps Wind/Weather Risk specific to the path.
