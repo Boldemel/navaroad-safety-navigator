@@ -549,16 +549,10 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
 
       if (data.kind === "fuel") {
-        // Truck diesel only. Exclude EV charging and non-diesel/non-truck stations.
+        // Exclude EV charging. Accept any station returned by the fuel
+        // category search (TomTom rarely embeds "diesel" in station names,
+        // and virtually every interstate gas station sells diesel).
         if (isEvCharging(hay)) {
-          tomtomFilteredCount += 1;
-          return;
-        }
-        const isDieselOrTruck =
-          truckStopAllowed(hay) ||
-          /diesel|truck\s*fuel|truck-?friendly/.test(hay) ||
-          cats.some((c) => /7311003/.test(c));
-        if (!isDieselOrTruck) {
           tomtomFilteredCount += 1;
           return;
         }
