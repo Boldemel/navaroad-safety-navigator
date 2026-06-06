@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { geocode, getRoute, sampleRoute } from "./services/route-analysis.service";
+import { geocode, getRoute, sampleRoute, ROUTE_NOT_CALCULATED_MESSAGE } from "./services/route-analysis.service";
 import {
   fetchCurrentWeather,
   fetchAlertsForPoint,
@@ -34,6 +34,8 @@ export type RouteAnalysis = {
   distanceKm: number;
   durationMin: number;
   geometry: Array<[number, number]>;
+  routeStatus: "ok" | "fallback" | "unavailable";
+  routeMessage?: string;
   weather: Array<{
     label: string;
     lat: number;
@@ -104,7 +106,8 @@ export const analyzeRoute = createServerFn({ method: "POST" })
         ? Promise.resolve({ name: data.destination, lat: data.destinationCoords.lat, lon: data.destinationCoords.lon })
         : geocode(data.destination),
     ]);
-    const r = await getRoute(o, d2);
+    const r = await getRoute(o, d2, { truckMode: true });
+    const routeAvailable = r.geometry.length >= 2;
 
     const samples = sampleRoute(r.geometry, 3);
     const labels = ["Origin", "Midpoint", "Destination"];
@@ -168,7 +171,7 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       trailerType: data.trailer,
     });
 
-    const haveAnyLiveData = weatherAvailable || weatherAlerts.length > 0 || roadAlerts.length > 0;
+    const haveAnyLiveData = routeAvailable && (weatherAvailable || weatherAlerts.length > 0 || roadAlerts.length > 0);
 
     return {
       origin: o,
@@ -176,6 +179,8 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       distanceKm: r.distanceKm,
       durationMin: r.durationMin,
       geometry: r.geometry,
+      routeStatus: !routeAvailable ? "unavailable" : r.truckRestrictionsVerified ? "ok" : "fallback",
+      routeMessage: !routeAvailable ? ROUTE_NOT_CALCULATED_MESSAGE : r.warning,
       weather: weatherSamples,
       weatherAlerts: weatherAlerts.map((a) => ({
         id: a.id,
@@ -204,21 +209,27 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       riskLevel: haveAnyLiveData ? result.riskLevel : null,
       scoreExplanation: haveAnyLiveData
         ? result.scoreExplanation
-        : "No score calculated because live route weather and road data are unavailable.",
+        : routeAvailable
+          ? "No score calculated because live route weather and road data are unavailable."
+          : ROUTE_NOT_CALCULATED_MESSAGE,
       recommendedAction: haveAnyLiveData
         ? result.recommendedAction
-        : "Connect live weather and road data to calculate route safety.",
+        : routeAvailable
+          ? "Connect live weather and road data to calculate route safety."
+          : ROUTE_NOT_CALCULATED_MESSAGE,
       generatedAt: new Date().toISOString(),
       dataAvailability: {
         weather: weatherAvailable,
         weatherAlerts: weatherAlerts.length > 0,
         road: roadAlerts.length > 0,
-        truckRestrictions: false,
+        truckRestrictions: r.truckRestrictionsVerified,
       },
       truckRestrictions: {
         connected: false,
         message:
-          "Truck restriction data not connected yet. Route not verified against bridge clearance, weight limits, or hazmat restrictions.",
+          r.truckRestrictionsVerified
+            ? "Truck route calculated with truck routing enabled. Always verify posted restrictions before departure."
+            : (r.warning ?? "Truck restriction data not connected yet. Route not verified against bridge clearance, weight limits, or hazmat restrictions."),
         profile: data.truckProfile
           ? {
               heightIn: data.truckProfile.heightIn ?? null,
