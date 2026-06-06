@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Wind, Construction, AlertTriangle, Route as RouteIcon, ShieldCheck, Loader2,
   CloudRain, Thermometer, MapPin, Radio, Users, Cloud, Lightbulb, Info, LocateFixed,
-  Navigation2, Fuel, ParkingCircle, ShieldAlert,
+  Navigation2, Fuel, ParkingCircle, ShieldAlert, Truck, Scale,
 } from "lucide-react";
+
 import { TRUCK_TYPES, TRAILER_TYPES, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -183,6 +184,9 @@ function Dashboard() {
       clearActiveRoute();
       queryClient.removeQueries({ queryKey: ["fuel-stops"] });
       queryClient.removeQueries({ queryKey: ["parking-stops"] });
+      queryClient.removeQueries({ queryKey: ["truck-stops"] });
+      queryClient.removeQueries({ queryKey: ["weigh-stations"] });
+
     },
     onSuccess: (data, vars) => {
       saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
@@ -282,6 +286,19 @@ function Dashboard() {
     enabled: geometry.length >= 2,
     staleTime: 0,
   });
+  const { data: truckStops, isLoading: truckStopsLoading } = useQuery({
+    queryKey: ["truck-stops", routeKey],
+    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "truck_stop", limit: 100 } }),
+    enabled: geometry.length >= 2,
+    staleTime: 0,
+  });
+  const { data: weighStations, isLoading: weighLoading } = useQuery({
+    queryKey: ["weigh-stations", routeKey],
+    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "weigh_station", limit: 100 } }),
+    enabled: geometry.length >= 2,
+    staleTime: 0,
+  });
+
 
   // Stat cards: prefer the analyzed route when present, else fall back to the
   // live national feed. This keeps Wind/Weather Risk specific to the path.
@@ -621,6 +638,8 @@ function Dashboard() {
           <StatCard icon={<ShieldAlert className="size-5" />} label="Truck Restriction Risk" count={0} sub="Bridge / weight / hazmat data not connected yet" accent="warning" />
           <StatCard icon={<Fuel className="size-5" />} label="Fuel Stops" count={fuelStops?.totalFound ?? 0} sub={fuelStops && !fuelStops.connected ? "Not connected yet" : usingRoute ? `Truck-friendly · ${fuelStops?.provider ?? "TomTom"}` : "Analyze a route to find stops"} accent="primary" loading={fuelLoading} />
           <StatCard icon={<ParkingCircle className="size-5" />} label="Parking Options" count={parkingStops?.totalFound ?? 0} sub={parkingStops && !parkingStops.connected ? "Not connected yet" : usingRoute ? `Truck stops & rest areas · ${parkingStops?.provider ?? "TomTom"}` : "Analyze a route to find parking"} accent="primary" loading={parkingLoading} />
+          <StatCard icon={<Truck className="size-5" />} label="Truck Stops" count={truckStops?.totalFound ?? 0} sub={truckStops && !truckStops.connected ? "Not connected yet" : usingRoute ? `Pilot/Flying J/Loves/TA · ${truckStops?.provider ?? "TomTom"}` : "Analyze a route to find truck stops"} accent="primary" loading={truckStopsLoading} />
+          <StatCard icon={<Scale className="size-5" />} label="Weigh Stations" count={weighStations?.totalFound ?? 0} sub={weighStations && !weighStations.connected ? "Not connected yet" : usingRoute ? `On route · ${weighStations?.provider ?? "TomTom"}` : "Analyze a route to find weigh stations"} accent="warning" loading={weighLoading} />
           <StatCard icon={<Users className="size-5" />} label="Driver Reports" count={driverCount} sub="Community layer · live" accent="warning" />
         </div>
       </div>
@@ -643,8 +662,25 @@ function Dashboard() {
             result={parkingStops}
             emptyHint="No truck stops, rest areas, or parking detected near this route."
           />
+          <PoiList
+            icon={<Truck className="size-4 text-primary" />}
+            title="Truck Stops on this Route"
+            routeLabel={routeLabel}
+            loading={truckStopsLoading}
+            result={truckStops}
+            emptyHint="No truck stops detected near this route."
+          />
+          <PoiList
+            icon={<Scale className="size-4 text-primary" />}
+            title="Weigh Stations on this Route"
+            routeLabel={routeLabel}
+            loading={weighLoading}
+            result={weighStations}
+            emptyHint="No weigh stations detected near this route."
+          />
         </div>
       )}
+
 
       <div>
         <h2 className="font-semibold mb-3">Recent live alerts (grouped by type & region)</h2>
@@ -733,7 +769,9 @@ function PoiList({
     : t === "rest_area" ? "Rest area"
     : t === "parking" ? "Parking"
     : t === "fuel" ? "Fuel"
+    : t === "weigh_station" ? "Weigh station"
     : "";
+
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-3">
       <div className="flex items-center gap-2">{icon}<h3 className="font-semibold">{title}</h3></div>
