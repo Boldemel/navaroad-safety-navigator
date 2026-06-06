@@ -10,6 +10,8 @@ import { TRUCK_TYPES, TRAILER_TYPES } from "@/lib/navaroad";
 import { toast } from "sonner";
 import { User } from "lucide-react";
 import { VoiceSettingsCard } from "@/components/voice-settings-card";
+import { TruckProfileCard } from "@/components/truck-profile-card";
+import { FavoriteLocationsCard } from "@/components/favorite-locations-card";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   component: Profile,
