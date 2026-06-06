@@ -32,6 +32,17 @@ export type TruckPoiType = "fuel" | "truck_stop" | "rest_area" | "parking" | "we
 
 export type TruckPoiSource = "TomTom" | "OpenStreetMap";
 
+// Truck-routing restriction placeholder (future implementation).
+// Populated as null today; reserved for low-bridge, weight, hazmat, prohibited road,
+// and state truck-route attribution once the truck-routing layer is connected.
+export type TruckRestrictionInfo = {
+  lowBridgeFt?: number | null;
+  maxWeightLbs?: number | null;
+  hazmatAllowed?: boolean | null;
+  truckProhibited?: boolean | null;
+  stateTruckRoute?: string | null;
+};
+
 export type TruckPoi = {
   id: string;
   name: string;
@@ -44,8 +55,10 @@ export type TruckPoi = {
   lat: number;
   lon: number;
   distanceMi?: number | null;
+  routeProgressMi?: number | null;
   phone?: string | null;
   source: TruckPoiSource;
+  restrictions?: TruckRestrictionInfo | null;
 };
 
 export type TruckPoiResult = {
@@ -120,15 +133,25 @@ function classify(
   fallback: TruckPoiType = "fuel",
 ): TruckPoiType {
   const hay = `${name} ${brand ?? ""} ${categories.join(" ")}`.toLowerCase();
-  if (/weigh station|weigh-in-motion|inspection station|port of entry/.test(hay)) return "weigh_station";
-  if (/rest area|rest stop/.test(hay)) return "rest_area";
-  if (/truck stop|travel center|travel centre|truckstop|truck plaza/.test(hay)) return "truck_stop";
   if (TRUCK_STOP_BRANDS.some((b) => hay.includes(b.toLowerCase()))) return "truck_stop";
+  if (/truck stop|travel center|travel centre|truckstop|truck plaza/.test(hay)) return "truck_stop";
+  if (/weigh station|weigh-in-motion|inspection station|port of entry|cat scale/.test(hay)) return "weigh_station";
+  if (/rest area|rest stop/.test(hay)) return "rest_area";
   if (/diesel|fuel|gas station|petrol|gasoline/.test(hay)) return "fuel";
   if (/parking/.test(hay)) return "parking";
   return fallback;
-
 }
+
+// Brands / keywords that indicate EV charging — excluded from Fuel Stops.
+function isEvCharging(hay: string) {
+  return /\bev\b|electric vehicle|charging station|supercharger|tesla|chargepoint|charge\s*point|electrify america|blink charging|\bblink\b(?!\s*charging)?|evgo|ev-go|wattstation|wattzilla|greenlots|semaconnect|flo charging|volta charging/.test(hay);
+}
+
+function isWeighStationStrict(hay: string) {
+  if (truckStopAllowed(hay)) return false;
+  return /weigh\s*station|weigh-in-motion|truck\s*inspection|inspection\s*station|port\s*of\s*entry|cat\s*scale|dot\s*scale|scale\s*house/.test(hay);
+}
+
 
 function pointToSegmentDistanceMi(
   lat: number,
@@ -165,6 +188,62 @@ function distanceToRouteMi(geom: Array<[number, number]>, lat: number, lon: numb
   if (geom.length === 1) best = distMi(lat, lon, geom[0][1], geom[0][0]);
   return Number.isFinite(best) ? best : null;
 }
+
+// Precompute cumulative miles along the route polyline.
+function buildCumMi(geom: Array<[number, number]>): number[] {
+  const cum: number[] = [0];
+  for (let i = 1; i < geom.length; i++) {
+    const [aLon, aLat] = geom[i - 1];
+    const [bLon, bLat] = geom[i];
+    cum.push(cum[i - 1] + distMi(aLat, aLon, bLat, bLon));
+  }
+  return cum;
+}
+
+// Project (lat,lon) onto the route and return cumulative miles from origin
+// to the closest point on the route (route progression). Also returns the
+// perpendicular distance to the route.
+function projectOnRouteMi(
+  geom: Array<[number, number]>,
+  cumMi: number[],
+  lat: number,
+  lon: number,
+): { perpMi: number; progressMi: number } | null {
+  let bestPerp = Infinity;
+  let bestProgress = 0;
+  for (let i = 1; i < geom.length; i++) {
+    const [aLon, aLat] = geom[i - 1];
+    const [bLon, bLat] = geom[i];
+    const milesPerDegLat = 69;
+    const milesPerDegLon = 69 * Math.cos((lat * Math.PI) / 180);
+    const px = lon * milesPerDegLon;
+    const py = lat * milesPerDegLat;
+    const ax = aLon * milesPerDegLon;
+    const ay = aLat * milesPerDegLat;
+    const bx = bLon * milesPerDegLon;
+    const by = bLat * milesPerDegLat;
+    const dx = bx - ax;
+    const dy = by - ay;
+    let t = 0;
+    let perp: number;
+    if (dx === 0 && dy === 0) {
+      perp = Math.hypot(px - ax, py - ay);
+    } else {
+      t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+      const cx = ax + t * dx;
+      const cy = ay + t * dy;
+      perp = Math.hypot(px - cx, py - cy);
+    }
+    if (perp < bestPerp) {
+      bestPerp = perp;
+      const segLen = cumMi[i] - cumMi[i - 1];
+      bestProgress = cumMi[i - 1] + t * segLen;
+    }
+  }
+  if (!Number.isFinite(bestPerp)) return null;
+  return { perpMi: bestPerp, progressMi: bestProgress };
+}
+
 
 function tomtomError(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
@@ -311,13 +390,14 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     const radiusM = 50000; // initial provider search around each sample
     const corridorRadiusMi = 35; // final route-corridor filter for simplified route geometry
     const seen = new Map<string, TruckPoi>();
+    const cumMi = buildCumMi(data.geometry);
     let tomtomRawCount = 0;
     let routeFilteredCount = 0;
     let tomtomFilteredCount = 0;
     const rawTomTomResults: string[] = [];
     const routeFilteredResults: string[] = [];
 
-    const addRaw = (r: RawResult, sampleLat: number, sampleLon: number) => {
+    const addRaw = (r: RawResult, _sampleLat: number, _sampleLon: number) => {
       if (!r.position) return;
       tomtomRawCount += 1;
       const brand = r.poi?.brands?.[0]?.name ?? null;
@@ -330,10 +410,14 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         : data.kind === "truck_stop" ? "truck_stop"
         : "fuel";
       const type = classify(name, brand, cats, fallbackType);
+      const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
+
       if (data.kind === "fuel") {
-        // Fuel includes branded truck stops (Pilot/Flying J/Love's/TA/Petro all sell diesel)
-        // plus any classified fuel station. Exclude rest areas, parking, weigh stations.
-        const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
+        // Exclude EV charging stations — Fuel Stops is diesel/gasoline only.
+        if (isEvCharging(hay)) {
+          tomtomFilteredCount += 1;
+          return;
+        }
         const isFuel = type === "fuel" || type === "truck_stop" || truckStopAllowed(hay);
         if (!isFuel) {
           tomtomFilteredCount += 1;
@@ -341,9 +425,6 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         }
       }
       if (data.kind === "parking") {
-        // Only show truck-relevant parking: brand truck stops, rest areas,
-        // travel centers, truck plazas, or named truck parking.
-        const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
         const isTruckParking =
           (type === "truck_stop" && truckStopAllowed(hay)) ||
           type === "rest_area" ||
@@ -355,30 +436,36 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         }
       }
       if (data.kind === "truck_stop") {
-        // Strict allow-list: only major truck-stop chains + generic truck plazas.
-        const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
-        const isAllowedTruckStop = truckStopAllowed(hay);
-        if (!isAllowedTruckStop) {
+        if (!truckStopAllowed(hay)) {
           tomtomFilteredCount += 1;
           return;
         }
       }
-      if (data.kind === "weigh_station" && type !== "weigh_station") {
-        tomtomFilteredCount += 1;
-        return;
+      if (data.kind === "weigh_station") {
+        // Strict: only state weigh stations, ports of entry, CAT scales, official
+        // inspection facilities. Reject truck-stop brands explicitly.
+        if (!isWeighStationStrict(hay)) {
+          tomtomFilteredCount += 1;
+          return;
+        }
       }
 
-      const routeDistance = distanceToRouteMi(data.geometry, r.position.lat, r.position.lon);
-      if (routeDistance == null || routeDistance > corridorRadiusMi) {
+      const projection = projectOnRouteMi(data.geometry, cumMi, r.position.lat, r.position.lon);
+      if (!projection || projection.perpMi > corridorRadiusMi) {
         tomtomFilteredCount += 1;
         return;
       }
+      const routeDistance = projection.perpMi;
+      const progressMi = projection.progressMi;
       routeFilteredCount += 1;
       if (routeFilteredResults.length < 12) routeFilteredResults.push(`${name} · ${routeDistance.toFixed(1)} mi`);
       const id = r.id ?? `${r.position.lat.toFixed(5)},${r.position.lon.toFixed(5)}`;
       const existing = seen.get(id);
       if (existing) {
-        if ((existing.distanceMi ?? Infinity) > routeDistance) existing.distanceMi = routeDistance;
+        if ((existing.distanceMi ?? Infinity) > routeDistance) {
+          existing.distanceMi = routeDistance;
+          existing.routeProgressMi = progressMi;
+        }
         return;
       }
       seen.set(id, {
@@ -393,10 +480,13 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         lat: r.position.lat,
         lon: r.position.lon,
         distanceMi: routeDistance,
+        routeProgressMi: progressMi,
         phone: r.poi?.phone ?? null,
         source: "TomTom",
+        restrictions: null,
       });
     };
+
 
     // Step 1: category search at every sample, in parallel.
     const categoryResults = await Promise.all(
@@ -440,9 +530,14 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       firstTomTomError: firstError,
     });
 
-    let pois = Array.from(seen.values()).sort(
-      (a, b) => (a.distanceMi ?? Infinity) - (b.distanceMi ?? Infinity),
-    );
+    // Sort by route progression (driving order) — closest upcoming stop first.
+    // Tiebreak by perpendicular distance from the route.
+    let pois = Array.from(seen.values()).sort((a, b) => {
+      const pa = a.routeProgressMi ?? Infinity;
+      const pb = b.routeProgressMi ?? Infinity;
+      if (pa !== pb) return pa - pb;
+      return (a.distanceMi ?? Infinity) - (b.distanceMi ?? Infinity);
+    });
     let provider = "TomTom";
     let message =
       data.kind === "parking" && pois.length > 0
