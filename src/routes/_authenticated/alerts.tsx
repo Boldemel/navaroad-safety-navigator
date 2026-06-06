@@ -29,10 +29,13 @@ function AlertsCenter() {
   const [filters, setFilters] = useState<Set<Source>>(new Set(SOURCES.map((s) => s.value)));
   const { data: drivers = {} } = useDriverNames();
   const feedFn = useServerFn(getSafetyFeed);
+  const activeRoute = useActiveRoute();
+  const geometry = activeRoute?.geometry ?? [];
 
   const { data: feed, isLoading: feedLoading } = useQuery({
-    queryKey: ["safety-feed"],
-    queryFn: () => feedFn(),
+    queryKey: ["safety-feed", activeRoute?.savedAt ?? "none"],
+    queryFn: () => feedFn({ data: { geometry } }),
+    enabled: geometry.length >= 2,
     refetchInterval: 5 * 60_000,
     staleTime: 60_000,
   });
