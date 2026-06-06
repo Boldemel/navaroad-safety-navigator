@@ -181,21 +181,7 @@ export type Database = {
       }
     }
     Views: {
-      driver_public: {
-        Row: {
-          driver_name: string | null
-          id: string | null
-        }
-        Insert: {
-          driver_name?: string | null
-          id?: string | null
-        }
-        Update: {
-          driver_name?: string | null
-          id?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       has_role: {
