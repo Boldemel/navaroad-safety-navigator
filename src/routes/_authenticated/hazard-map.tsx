@@ -294,28 +294,41 @@ function HazardMap() {
         </div>
       )}
 
+      {focusPoint && (
+        <div className="rounded-xl border border-primary/40 bg-primary/10 p-3 text-sm flex items-center gap-2">
+          <MapPin className="size-4 text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="font-medium truncate">{focusLabel ?? "Selected location"}</div>
+            <div className="text-xs text-muted-foreground">{focusPoint.lat.toFixed(4)}, {focusPoint.lon.toFixed(4)}</div>
+          </div>
+          <button onClick={clearFocus} className="text-xs text-primary underline">Show all hazards</button>
+        </div>
+      )}
+
       <div className="relative aspect-[16/8] overflow-hidden">
         <TomTomMap
           tomtomKey={tomtom?.key ?? null}
           showTraffic
           height="100%"
-          routeGeometry={geometry}
-          currentLocation={here}
-          markers={allVisible
-            .filter((m): m is Marker & { lat: number; lon: number } => m.lat != null && m.lon != null)
-            .map<MapMarker>((m) => ({
-              id: m.layer + m.id,
-              lat: m.lat,
-              lon: m.lon,
-              title: m.title,
-              description: `${m.source} · ${m.location}`,
-              color:
-                m.layer === "driver"
-                  ? "#f59e0b"
-                  : m.severity === "critical" || m.severity === "high"
-                    ? "#ef4444"
-                    : "#3b82f6",
-            }))}
+          routeGeometry={focusPoint ? [] : geometry}
+          currentLocation={focusPoint ? null : here}
+          markers={focusPoint
+            ? [{ id: "focus", lat: focusPoint.lat, lon: focusPoint.lon, title: focusLabel ?? "Selected location", color: "#22c55e" }]
+            : allVisible
+              .filter((m): m is Marker & { lat: number; lon: number } => m.lat != null && m.lon != null)
+              .map<MapMarker>((m) => ({
+                id: m.layer + m.id,
+                lat: m.lat,
+                lon: m.lon,
+                title: m.title,
+                description: `${m.source} · ${m.location}`,
+                color:
+                  m.layer === "driver"
+                    ? "#f59e0b"
+                    : m.severity === "critical" || m.severity === "high"
+                      ? "#ef4444"
+                      : "#3b82f6",
+              }))}
         />
       </div>
 
