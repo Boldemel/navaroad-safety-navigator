@@ -368,14 +368,8 @@ function Dashboard() {
     },
   });
 
-  // Truck-friendly fuel + parking POIs along the active route (TomTom).
+  // Truck-friendly POIs along the active route (TomTom + OSM).
   const poiGeometry = sampleRouteGeometry(geometry, 1000);
-  const { data: fuelStops, isLoading: fuelLoading } = useQuery({
-    queryKey: ["fuel-stops", routeKey],
-    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "fuel", limit: 100 } }),
-    enabled: geometry.length >= 2,
-    staleTime: 10 * 60_000,
-  });
   const { data: parkingStops, isLoading: parkingLoading } = useQuery({
     queryKey: ["rest-areas", routeKey],
     queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "rest_area", limit: 100 } }),
