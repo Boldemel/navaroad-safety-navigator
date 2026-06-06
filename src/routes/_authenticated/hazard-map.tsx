@@ -130,6 +130,24 @@ function HazardMap() {
   );
   const loading = feedLoading || hazardsLoading;
 
+  // Proximity (25mi from current GPS) — works regardless of active route.
+  const allHazardsForProximity: HazardLike[] = useMemo(
+    () => [...apiMarkers, ...driverMarkers].map((m) => ({
+      id: m.layer + m.id, title: m.title, category: m.category, severity: m.severity,
+      lat: m.lat, lon: m.lon, source: m.source, description: m.description,
+    })),
+    [apiMarkers, driverMarkers],
+  );
+  const here = geo.coords ? { lat: geo.coords.lat, lon: geo.coords.lon } : null;
+  const nearby = useMemo(
+    () => (here ? hazardsWithin(here, allHazardsForProximity, 25) : []),
+    [here, allHazardsForProximity],
+  );
+  const voiceAlert = useMemo(
+    () => nearestHazardAlert(here, allHazardsForProximity),
+    [here, allHazardsForProximity],
+  );
+
   function toggleType(v: string) {
     setTypeFilters((s) => {
       const n = new Set(s);
@@ -137,6 +155,7 @@ function HazardMap() {
       return n;
     });
   }
+
 
   return (
     <div className="p-4 md:p-8 space-y-4 max-w-7xl mx-auto">
