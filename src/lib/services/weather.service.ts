@@ -111,12 +111,33 @@ function recommend(category: WeatherAlert["category"]): string {
   }
 }
 
+function centroid(geom: unknown): { lat: number | null; lon: number | null } {
+  const g = geom as { type?: string; coordinates?: unknown } | null;
+  if (!g || !g.coordinates) return { lat: null, lon: null };
+  const coords: Array<[number, number]> = [];
+  const walk = (n: unknown): void => {
+    if (Array.isArray(n)) {
+      if (typeof n[0] === "number" && typeof n[1] === "number") {
+        coords.push([n[0] as number, n[1] as number]);
+      } else {
+        for (const c of n) walk(c);
+      }
+    }
+  };
+  walk(g.coordinates);
+  if (!coords.length) return { lat: null, lon: null };
+  const lon = coords.reduce((s, c) => s + c[0], 0) / coords.length;
+  const lat = coords.reduce((s, c) => s + c[1], 0) / coords.length;
+  return { lat, lon };
+}
+
 function mapFeatures(
-  feats: Array<{ id: string; properties: Record<string, string> }>,
+  feats: Array<{ id: string; geometry?: unknown; properties: Record<string, string> }>,
 ): WeatherAlert[] {
   return feats.map((f) => {
     const p = f.properties;
     const category = categorize(p.event ?? "");
+    const c = centroid(f.geometry);
     return {
       id: f.id,
       source: "weather_api" as const,
@@ -130,6 +151,8 @@ function mapFeatures(
       recommendedAction: p.instruction?.slice(0, 400) || recommend(category),
       effective: p.effective ?? p.sent ?? new Date().toISOString(),
       expires: p.expires ?? null,
+      lat: c.lat,
+      lon: c.lon,
     };
   });
 }
