@@ -28,7 +28,7 @@ const RouteGeometry = z.preprocess((value) => {
 
 const Input = z.object({
   geometry: RouteGeometry,
-  kind: z.enum(["fuel", "rest_area", "truck_stop", "weigh_station", "cat_scale"]),
+  kind: z.enum(["rest_area", "truck_stop", "weigh_station", "cat_scale"]),
   limit: z.number().int().min(1).max(100).optional(),
 });
 
@@ -332,15 +332,13 @@ function overpassQueryFor(kind: "rest_area" | "weigh_station", samples: Array<{ 
   for (const s of samples) {
     const around = `around:${radius},${s.lat.toFixed(5)},${s.lon.toFixed(5)}`;
     if (kind === "rest_area") {
-      // Rest areas, service areas, and truck-friendly parking (hgv=yes).
+      // Strictly rest areas + service areas. Truck parking lots are
+      // intentionally excluded because they often sit at truck-stop brands
+      // (Pilot/Love's) and would leak into the Rest Areas list.
       clauses.push(`node["highway"="rest_area"](${around});`);
       clauses.push(`way["highway"="rest_area"](${around});`);
       clauses.push(`node["highway"="services"](${around});`);
       clauses.push(`way["highway"="services"](${around});`);
-      clauses.push(`node["amenity"="parking"]["hgv"="yes"](${around});`);
-      clauses.push(`way["amenity"="parking"]["hgv"="yes"](${around});`);
-      clauses.push(`node["amenity"="parking"]["access"="hgv"](${around});`);
-      clauses.push(`way["amenity"="parking"]["access"="hgv"](${around});`);
     } else {
       clauses.push(`node["highway"="weigh_station"](${around});`);
       clauses.push(`way["highway"="weigh_station"](${around});`);
@@ -502,19 +500,16 @@ export const searchTruckPois = createServerFn({ method: "POST" })
 
     // TomTom POI categories:
     // 7311 = Truck Stop / Travel Center, 7311003 = Truck-friendly fuel,
-    // 7395 = Rest Area, 7369 = Open Parking Area, 7309 = Petrol/Gasoline Station,
-    // 7314 = Weigh Station / Truck inspection, 7397 = Tourist Information / Welcome Center.
+    // 7395 = Rest Area, 7397 = Tourist Information / Welcome Center,
+    // 7314 = Weigh Station / Truck inspection.
     const categorySet =
-      data.kind === "fuel" ? "7311003,7309"
-      : data.kind === "truck_stop" ? "7311,7311003"
+      data.kind === "truck_stop" ? "7311,7311003"
       : data.kind === "weigh_station" ? "7314"
       : data.kind === "cat_scale" ? "7311,7311003"
       : "7395,7397"; // rest_area: Rest Area + Welcome Center
 
     const keywords =
-      data.kind === "fuel"
-        ? ["diesel", "truck diesel", "Pilot", "Flying J", "Loves", "TA", "Petro"]
-      : data.kind === "truck_stop"
+      data.kind === "truck_stop"
         ? ["truck stop", "travel center", "Pilot", "Flying J", "Loves", "TA", "Petro", "Sapp Bros", "Road Ranger"]
       : data.kind === "weigh_station"
         ? ["weigh station", "truck inspection", "port of entry", "inspection station", "scale house", "DOT scale", "agricultural inspection"]
@@ -543,25 +538,21 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         data.kind === "weigh_station" ? "weigh_station"
         : data.kind === "cat_scale" ? "cat_scale"
         : data.kind === "rest_area" ? "rest_area"
-        : data.kind === "truck_stop" ? "truck_stop"
-        : "fuel";
+        : "truck_stop";
       const type = classify(name, brand, cats, fallbackType);
       const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
 
-      if (data.kind === "fuel") {
-        // Exclude EV charging. Accept any station returned by the fuel
-        // category search (TomTom rarely embeds "diesel" in station names,
-        // and virtually every interstate gas station sells diesel).
-        if (isEvCharging(hay)) {
-          tomtomFilteredCount += 1;
-          return;
-        }
-      }
       if (data.kind === "rest_area") {
-        const isRestArea =
+        // Strict rest-area: must look like a rest area / welcome center AND
+        // must NOT be a truck stop, fuel station, or CAT scale.
+        const looksLikeRestArea =
           type === "rest_area" ||
           /rest\s*area|rest\s*stop|welcome\s*cent(er|re)|safety\s*rest/.test(hay);
-        if (!isRestArea) {
+        const isOtherCategory =
+          truckStopAllowed(hay) ||
+          isCatScale(hay) ||
+          /gas\s*station|petrol|gasoline|fuel\s*station/.test(hay);
+        if (!looksLikeRestArea || isOtherCategory) {
           tomtomFilteredCount += 1;
           return;
         }

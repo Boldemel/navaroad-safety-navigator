@@ -196,7 +196,7 @@ function Dashboard() {
     onMutate: () => {
       setAnalyzedRouteKey(null);
       clearActiveRoute();
-      queryClient.removeQueries({ queryKey: ["fuel-stops"] });
+      queryClient.removeQueries({ queryKey: ["cat-scales"] });
       queryClient.removeQueries({ queryKey: ["rest-areas"] });
       queryClient.removeQueries({ queryKey: ["truck-stops"] });
       queryClient.removeQueries({ queryKey: ["weigh-stations"] });
@@ -319,7 +319,7 @@ function Dashboard() {
       setDestination(destinationLabel);
       setDestPlace({ label: destinationLabel, lat: p.lat, lon: p.lon, city: p.city ?? null, state: p.state ?? null, country: null });
       clearActiveRoute();
-      queryClient.removeQueries({ queryKey: ["fuel-stops"] });
+      queryClient.removeQueries({ queryKey: ["cat-scales"] });
       queryClient.removeQueries({ queryKey: ["rest-areas"] });
       queryClient.removeQueries({ queryKey: ["truck-stops"] });
       queryClient.removeQueries({ queryKey: ["weigh-stations"] });
@@ -368,14 +368,8 @@ function Dashboard() {
     },
   });
 
-  // Truck-friendly fuel + parking POIs along the active route (TomTom).
+  // Truck-friendly POIs along the active route (TomTom + OSM).
   const poiGeometry = sampleRouteGeometry(geometry, 1000);
-  const { data: fuelStops, isLoading: fuelLoading } = useQuery({
-    queryKey: ["fuel-stops", routeKey],
-    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "fuel", limit: 100 } }),
-    enabled: geometry.length >= 2,
-    staleTime: 10 * 60_000,
-  });
   const { data: parkingStops, isLoading: parkingLoading } = useQuery({
     queryKey: ["rest-areas", routeKey],
     queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "rest_area", limit: 100 } }),
@@ -748,7 +742,6 @@ function Dashboard() {
           <StatCard icon={<Wind className="size-5" />} label="Wind Risk" count={windCount} sub={usingRoute ? "Wind/gust risks on this route" : "Active high-wind / tornado (NWS)"} accent="primary" loading={feedLoading} />
           <StatCard icon={<Construction className="size-5" />} label="Road Closure Risk" count={closureCount} sub={feed?.providers.road === "not_connected" ? "Connect DOT API" : usingRoute ? "Closures on this route" : "Active closures"} accent="destructive" loading={feedLoading} />
           <StatCard icon={<ShieldAlert className="size-5" />} label="Truck Restriction Risk" count={0} sub="Bridge / weight / hazmat data not connected yet" accent="warning" />
-          <StatCard icon={<Fuel className="size-5" />} label="Fuel Stops (Diesel)" count={usingRoute ? fuelStops?.totalFound ?? 0 : 0} sub={fuelStops && !fuelStops.connected ? "Not connected yet" : usingRoute ? `Truck diesel only · ${fuelStops?.provider ?? "TomTom"}` : "Analyze a route to find diesel"} accent="primary" loading={fuelLoading} onClick={usingRoute && (fuelStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Truck Diesel on this Route", result: fuelStops ?? null }) : undefined} />
           <StatCard icon={<ParkingCircle className="size-5" />} label="Rest Areas" count={usingRoute ? parkingStops?.totalFound ?? 0 : 0} sub={parkingStops && !parkingStops.connected ? "Not connected yet" : usingRoute ? "Rest areas & welcome centers · route-filtered" : "Analyze a route to find rest areas"} accent="primary" loading={parkingLoading} onClick={usingRoute && (parkingStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Rest Areas on this Route", result: parkingStops ?? null }) : undefined} />
           <StatCard icon={<Truck className="size-5" />} label="Truck Stops" count={usingRoute ? truckStops?.totalFound ?? 0 : 0} sub={truckStops && !truckStops.connected ? "Not connected yet" : usingRoute ? "Pilot · Flying J · Love's · TA · Petro · verified plazas" : "Analyze a route to find truck stops"} accent="primary" loading={truckStopsLoading} onClick={usingRoute && (truckStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Truck Stops on this Route", result: truckStops ?? null }) : undefined} />
           <StatCard icon={<Scale className="size-5" />} label="Weigh Stations" count={usingRoute ? weighStations?.totalFound ?? 0 : 0} sub={weighStations && !weighStations.connected ? "Not connected yet" : usingRoute ? `State weigh, port of entry, inspection · ${weighStations?.provider ?? "TomTom"}` : "Analyze a route to find weigh stations"} accent="warning" loading={weighLoading} onClick={usingRoute && (weighStations?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Weigh Stations on this Route", result: weighStations ?? null }) : undefined} />
@@ -759,14 +752,6 @@ function Dashboard() {
 
       {usingRoute && (
         <div className="grid lg:grid-cols-2 gap-4">
-          <PoiList
-            icon={<Fuel className="size-4 text-primary" />}
-            title="Fuel Stops on this Route"
-            routeLabel={routeLabel}
-            loading={fuelLoading}
-            result={fuelStops}
-            emptyHint="No truck-friendly fuel stops detected near this route."
-          />
           <PoiList
             icon={<ParkingCircle className="size-4 text-primary" />}
             title="Rest Areas on this Route"
