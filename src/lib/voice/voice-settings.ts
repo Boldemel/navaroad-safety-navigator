@@ -15,7 +15,7 @@ const KEY = "navaroad.voiceSettings";
 const EVT = "navaroad:voice-settings";
 
 const DEFAULTS: VoiceSettings = {
-  muted: true,
+  muted: false,
   volume: 1,
   rate: 1,
   hazardAlerts: true,
