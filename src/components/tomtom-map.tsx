@@ -15,6 +15,7 @@ export function TomTomMap(props: {
   tomtomKey: string | null;
   markers: MapMarker[];
   routeGeometry?: Array<[number, number]>;
+  currentLocation?: { lat: number; lon: number } | null;
   showTraffic?: boolean;
   height?: string;
 }) {

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Wind, Construction, AlertTriangle, Route as RouteIcon, ShieldCheck, Loader2,
-  CloudRain, Thermometer, MapPin, Radio, Users, Cloud, Lightbulb, Info,
+  CloudRain, Thermometer, MapPin, Radio, Users, Cloud, Lightbulb, Info, LocateFixed,
 } from "lucide-react";
 import { TRUCK_TYPES, TRAILER_TYPES, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
@@ -18,10 +18,13 @@ import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { analyzeRoute } from "@/lib/route-analysis.functions";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { useActiveRoute, saveActiveRoute } from "@/hooks/use-active-route";
+import { useGeolocation } from "@/hooks/use-geolocation";
+import { reverseGeocode } from "@/lib/geo.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
 });
+
 
 function Dashboard() {
   const [origin, setOrigin] = useState("");
@@ -32,7 +35,29 @@ function Dashboard() {
 
   const analyzeFn = useServerFn(analyzeRoute);
   const feedFn = useServerFn(getSafetyFeed);
+  const reverseGeocodeFn = useServerFn(reverseGeocode);
   const activeRoute = useActiveRoute();
+  const geo = useGeolocation();
+  const [locating, setLocating] = useState(false);
+
+  async function useCurrentLocation() {
+    if (geo.status !== "granted") {
+      geo.request();
+      // Wait for coords briefly — the next click after permission grants will fill instantly.
+      return;
+    }
+    if (!geo.coords) return;
+    setLocating(true);
+    try {
+      const r = await reverseGeocodeFn({ data: { lat: geo.coords.lat, lon: geo.coords.lon } });
+      setOrigin(r.label);
+    } catch {
+      setOrigin(`${geo.coords.lat.toFixed(4)}, ${geo.coords.lon.toFixed(4)}`);
+    } finally {
+      setLocating(false);
+    }
+  }
+
 
   const analysis = useMutation({
     mutationFn: (vars: { origin: string; destination: string; truck: string; trailer: string }) =>
@@ -114,9 +139,31 @@ function Dashboard() {
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Origin</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label>Origin</Label>
+                <button
+                  type="button"
+                  onClick={useCurrentLocation}
+                  disabled={locating || geo.status === "prompting"}
+                  className="text-[11px] inline-flex items-center gap-1 text-primary hover:underline disabled:opacity-60"
+                >
+                  <LocateFixed className="size-3" />
+                  {locating || geo.status === "prompting"
+                    ? "Locating…"
+                    : geo.status === "granted"
+                      ? "Use my current location"
+                      : "Use my current location"}
+                </button>
+              </div>
               <Input required value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Denver, CO" />
+              {geo.status === "denied" && (
+                <p className="text-[11px] text-destructive">Location access is needed for live route safety alerts.</p>
+              )}
+              {geo.status === "unavailable" && (
+                <p className="text-[11px] text-muted-foreground">Geolocation not supported in this browser.</p>
+              )}
             </div>
+
             <div className="space-y-1.5">
               <Label>Destination</Label>
               <Input required value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Salt Lake City, UT" />

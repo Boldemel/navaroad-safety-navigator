@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Wind, AlertTriangle, Construction, Trash2, Car, ParkingCircleOff, CloudRain,
-  CloudLightning, Clock, User, Cloud, Radio, MapPin,
+  CloudLightning, Clock, User, Cloud, Radio, MapPin, LocateFixed, Megaphone,
 } from "lucide-react";
 import { HAZARD_TYPES, hazardLabel, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,9 @@ import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { getTomTomKey } from "@/lib/tomtom.functions";
 import { TomTomMap, type MapMarker } from "@/components/tomtom-map";
 import { useActiveRoute } from "@/hooks/use-active-route";
+import { useGeolocation } from "@/hooks/use-geolocation";
+import { hazardsWithin, nearestHazardAlert, type HazardLike } from "@/lib/hazard-proximity";
+
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
   component: HazardMap,
@@ -66,6 +69,8 @@ function HazardMap() {
   const tomtomKeyFn = useServerFn(getTomTomKey);
   const activeRoute = useActiveRoute();
   const geometry = activeRoute?.geometry ?? [];
+  const geo = useGeolocation({ watch: true });
+
 
   const { data: tomtom } = useQuery({
     queryKey: ["tomtom-key"],
@@ -125,6 +130,24 @@ function HazardMap() {
   );
   const loading = feedLoading || hazardsLoading;
 
+  // Proximity (25mi from current GPS) — works regardless of active route.
+  const allHazardsForProximity: HazardLike[] = useMemo(
+    () => [...apiMarkers, ...driverMarkers].map((m) => ({
+      id: m.layer + m.id, title: m.title, category: m.category, severity: m.severity,
+      lat: m.lat, lon: m.lon, source: m.source, description: m.description,
+    })),
+    [apiMarkers, driverMarkers],
+  );
+  const here = geo.coords ? { lat: geo.coords.lat, lon: geo.coords.lon } : null;
+  const nearby = useMemo(
+    () => (here ? hazardsWithin(here, allHazardsForProximity, 25) : []),
+    [here, allHazardsForProximity],
+  );
+  const voiceAlert = useMemo(
+    () => nearestHazardAlert(here, allHazardsForProximity),
+    [here, allHazardsForProximity],
+  );
+
   function toggleType(v: string) {
     setTypeFilters((s) => {
       const n = new Set(s);
@@ -132,6 +155,7 @@ function HazardMap() {
       return n;
     });
   }
+
 
   return (
     <div className="p-4 md:p-8 space-y-4 max-w-7xl mx-auto">
@@ -199,12 +223,52 @@ function HazardMap() {
         </div>
       )}
 
+      {/* GPS status / request bar */}
+      <div className="rounded-xl border border-border bg-card p-3 flex items-center justify-between flex-wrap gap-2">
+        <div className="text-xs text-muted-foreground inline-flex items-center gap-2">
+          <LocateFixed className={cn("size-3.5", geo.status === "granted" ? "text-success" : "text-muted-foreground")} />
+          {geo.status === "granted" && here
+            ? <>Your location: <span className="text-foreground">{here.lat.toFixed(4)}, {here.lon.toFixed(4)}</span>{geo.coords?.accuracyM != null && <> · ±{Math.round(geo.coords.accuracyM)}m</>}</>
+            : geo.status === "denied"
+              ? <span className="text-destructive">Location access is needed for live route safety alerts.</span>
+              : geo.status === "unavailable"
+                ? <>Geolocation not supported in this browser.</>
+                : <>Share your GPS location to see hazards within 25 miles.</>}
+        </div>
+        {geo.status !== "granted" && geo.status !== "unavailable" && (
+          <button
+            type="button"
+            onClick={geo.request}
+            disabled={geo.status === "prompting"}
+            className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs text-primary hover:bg-primary/15 disabled:opacity-60"
+          >
+            <LocateFixed className="size-3.5" />
+            {geo.status === "prompting" ? "Requesting…" : "Use my current location"}
+          </button>
+        )}
+      </div>
+
+      {voiceAlert && (
+        <div className="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm flex items-start gap-2">
+          <Megaphone className="size-4 text-warning shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <div className="text-xs uppercase tracking-wider text-warning font-medium">Nearest hazard (voice-alert preview)</div>
+            <div className="font-medium mt-0.5">{voiceAlert.hazard.title}</div>
+            <div className="text-xs text-muted-foreground">
+              {voiceAlert.distanceMi < 1 ? "<1 mi" : `${Math.round(voiceAlert.distanceMi)} mi`} away · severity <span className="uppercase">{voiceAlert.severity}</span>
+            </div>
+            <div className="text-xs mt-1">{voiceAlert.recommendedAction}</div>
+          </div>
+        </div>
+      )}
+
       <div className="relative aspect-[16/8] overflow-hidden">
         <TomTomMap
           tomtomKey={tomtom?.key ?? null}
           showTraffic
           height="100%"
           routeGeometry={geometry}
+          currentLocation={here}
           markers={allVisible
             .filter((m): m is Marker & { lat: number; lon: number } => m.lat != null && m.lon != null)
             .map<MapMarker>((m) => ({
@@ -222,6 +286,28 @@ function HazardMap() {
             }))}
         />
       </div>
+
+      {here && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="text-sm font-medium mb-2 inline-flex items-center gap-2">
+            <LocateFixed className="size-4 text-primary" /> Within 25 miles of you ({nearby.length})
+          </div>
+          {nearby.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No hazards detected within 25 miles of your current location.</div>
+          ) : (
+            <ul className="space-y-1.5">
+              {nearby.slice(0, 8).map((h) => (
+                <li key={h.id} className="flex items-start gap-2 text-sm">
+                  <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(h.severity)}`}>{h.severity}</span>
+                  <span className="flex-1 min-w-0 truncate">{h.title}</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{h.distanceMi < 1 ? "<1 mi" : `${Math.round(h.distanceMi)} mi`}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
 
       {activeRoute && !loading && apiMarkers.length === 0 && (
         <div className="rounded-xl border border-border bg-card p-4 text-center text-sm text-muted-foreground">
