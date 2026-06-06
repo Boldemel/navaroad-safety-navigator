@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Wind, Construction, AlertTriangle, Route as RouteIcon, ShieldCheck, Loader2,
   CloudRain, Thermometer, MapPin, Radio, Users, Cloud, Lightbulb, Info, LocateFixed,
-  Navigation2,
+  Navigation2, Truck, Fuel, ParkingCircle, ShieldAlert,
 } from "lucide-react";
 import { TRUCK_TYPES, TRAILER_TYPES, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
@@ -23,7 +23,10 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { reverseGeocode } from "@/lib/geo.functions";
 import { getTruckRoute } from "@/lib/navigation.functions";
 import { startNavigation, useNavigationSession, stopNavigation } from "@/hooks/use-navigation-session";
-import { AddressAutocomplete, type SelectedPlace } from "@/components/address-autocomplete";
+import { AddressAutocomplete, type SelectedPlace, type FavoriteSuggestion } from "@/components/address-autocomplete";
+import { useFavoriteLocations } from "@/components/favorite-locations-card";
+import { favoriteCategoryLabel } from "@/lib/favorite-locations";
+import { searchTruckPois } from "@/lib/poi-search.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
