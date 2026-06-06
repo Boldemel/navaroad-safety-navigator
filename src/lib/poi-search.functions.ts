@@ -368,7 +368,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         : ["truck stop", "rest area", "travel center", "truck parking"];
 
     const radiusM = 50000; // initial provider search around each sample
-    const corridorRadiusMi = 20; // final route-corridor filter
+    const corridorRadiusMi = 35; // final route-corridor filter for simplified route geometry
     const seen = new Map<string, TruckPoi>();
     let tomtomRawCount = 0;
     let tomtomFilteredCount = 0;
