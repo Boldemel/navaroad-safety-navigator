@@ -244,7 +244,46 @@ function Dashboard() {
     onSuccess: () => {
       router.navigate({ to: "/hazard-map" });
     },
+
+  const navToPoi = useMutation({
+    mutationFn: async (p: { lat: number; lon: number; name: string }) => {
+      let originLat: number | undefined;
+      let originLon: number | undefined;
+      let originLabel = "Current location";
+      if (geo.status === "granted" && geo.coords) {
+        originLat = geo.coords.lat;
+        originLon = geo.coords.lon;
+      } else if (analysis.data?.origin) {
+        originLat = analysis.data.origin.lat;
+        originLon = analysis.data.origin.lon;
+        originLabel = analysis.data.origin.name;
+      } else if (originPlace) {
+        originLat = originPlace.lat;
+        originLon = originPlace.lon;
+        originLabel = originPlace.label;
+      } else {
+        geo.request();
+        throw new Error("Enable GPS or set an Origin to navigate.");
+      }
+      const route = await truckRouteFn({
+        data: { originLat, originLon, destLat: p.lat, destLon: p.lon, truck: true },
+      });
+      startNavigation({
+        origin: { lat: originLat, lon: originLon, label: originLabel },
+        destination: { lat: p.lat, lon: p.lon, label: p.name },
+        geometry: route.geometry,
+        instructions: route.instructions,
+        totalKm: route.distanceKm,
+        baseDurationMin: route.durationMin,
+        trafficDurationMin: route.durationTrafficMin,
+        truck: true,
+      });
+      saveActiveRoute({ origin: originLabel, destination: p.name, geometry: route.geometry });
+      return route;
+    },
+    onSuccess: () => router.navigate({ to: "/hazard-map" }),
   });
+
 
 
   // Live safety feed scoped to the active route corridor (NWS + DOT).
