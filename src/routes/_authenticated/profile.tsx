@@ -83,34 +83,8 @@ function Profile() {
           <Input value={form.driver_name} onChange={(e) => setForm({ ...form, driver_name: e.target.value })} />
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label>Truck type</Label>
-            <Select value={form.truck_type} onValueChange={(v) => setForm({ ...form, truck_type: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{TRUCK_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Trailer type</Label>
-            <Select value={form.trailer_type} onValueChange={(v) => setForm({ ...form, trailer_type: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{TRAILER_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground">Truck, trailer, dimensions, and load status are managed in the Truck Profile below.</p>
 
-        <div className="space-y-1.5">
-          <Label>Load status</Label>
-          <Select value={form.load_status} onValueChange={(v) => setForm({ ...form, load_status: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="loaded">Loaded</SelectItem>
-              <SelectItem value="empty">Empty</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">Empty trailers get sharper wind-risk warnings.</p>
-        </div>
 
         <div className="pt-4 border-t border-border space-y-4">
           <div className="font-medium">Notification preferences</div>
