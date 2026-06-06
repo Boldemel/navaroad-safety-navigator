@@ -885,6 +885,9 @@ function PoiDialog({
             <div>Route-filtered results: <span className="font-mono">{debug.routeFilteredResultsCount ?? debug.filteredResultsCount}</span> (excluded {debug.filteredOutCount})</div>
             <div>Deduplicated results: <span className="font-mono">{debug.deduplicatedResultsCount ?? result?.totalFound ?? 0}</span></div>
             <div>Final displayed count: <span className="font-mono">{debug.finalDisplayedCount ?? pois.length}</span> · Corridor: {debug.corridorRadiusMi} mi · Search points: {debug.searchPointCount}</div>
+            {debug.rawTomTomResults?.length > 0 && <div>Raw sample: <span className="font-mono">{debug.rawTomTomResults.join(" | ")}</span></div>}
+            {debug.routeFilteredResults?.length > 0 && <div>Filtered sample: <span className="font-mono">{debug.routeFilteredResults.join(" | ")}</span></div>}
+            {debug.finalDisplayedResults?.length > 0 && <div>Displayed sample: <span className="font-mono">{debug.finalDisplayedResults.join(" | ")}</span></div>}
           </div>
         )}
         {pois.length === 0 ? (
@@ -978,6 +981,9 @@ function PoiList({
           filteredResultsCount: number;
           filteredOutCount: number;
           searchingFullRoute: boolean;
+          rawTomTomResults?: string[];
+          routeFilteredResults?: string[];
+          finalDisplayedResults?: string[];
         };
         pois: Array<{
           id: string;
