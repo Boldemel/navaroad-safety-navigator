@@ -443,8 +443,9 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     }
 
 
-    const totalFound = pois.length;
+    const deduplicatedCount = pois.length;
     const displayedPois = pois.slice(0, data.limit ?? 60);
+    const totalFound = displayedPois.length;
     const routeStart = data.geometry[0];
     const routeEnd = data.geometry[data.geometry.length - 1];
     const debug = {
@@ -454,9 +455,9 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       corridorRadiusMi,
       rawResultsCount: tomtomRawCount,
       routeFilteredResultsCount: routeFilteredCount,
-      deduplicatedResultsCount: totalFound,
+      deduplicatedResultsCount: deduplicatedCount,
       finalDisplayedCount: displayedPois.length,
-      filteredResultsCount: totalFound,
+      filteredResultsCount: deduplicatedCount,
       filteredOutCount: tomtomFilteredCount,
       searchingFullRoute: samples.length > 1,
     };
