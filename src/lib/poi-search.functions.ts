@@ -508,7 +508,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
 
     // Step 2: keyword fallback — run if category search yielded few results, or always for
     // brand-name coverage (truck-friendly fuel chains often miscategorize).
-    if (seen.size < 10) {
+    if (seen.size < 10 || data.kind === "weigh_station" || data.kind === "parking") {
       const keywordCalls: Array<Promise<TomTomCall>> = [];
       const keywordSamples: Array<{ lat: number; lon: number }> = [];
       for (const s of samples) {
