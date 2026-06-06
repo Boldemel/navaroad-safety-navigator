@@ -258,25 +258,22 @@ type OsmElement = {
   tags?: Record<string, string>;
 };
 
-function osmQuery(kind: "fuel" | "parking", samples: Array<{ lat: number; lon: number }>) {
-  const radiusM = 30000;
+function osmQuery(kind: "fuel" | "parking", sample: { lat: number; lon: number }, radiusM: number) {
   const parts: string[] = [];
-  for (const s of samples) {
-    if (kind === "fuel") {
-      parts.push(`node(around:${radiusM},${s.lat},${s.lon})["amenity"="fuel"];`);
-      parts.push(`way(around:${radiusM},${s.lat},${s.lon})["amenity"="fuel"];`);
-      parts.push(`node(around:${radiusM},${s.lat},${s.lon})["highway"="services"];`);
-      parts.push(`way(around:${radiusM},${s.lat},${s.lon})["highway"="services"];`);
-    } else {
-      parts.push(`node(around:${radiusM},${s.lat},${s.lon})["highway"="rest_area"];`);
-      parts.push(`way(around:${radiusM},${s.lat},${s.lon})["highway"="rest_area"];`);
-      parts.push(`node(around:${radiusM},${s.lat},${s.lon})["highway"="services"];`);
-      parts.push(`way(around:${radiusM},${s.lat},${s.lon})["highway"="services"];`);
-      parts.push(`node(around:${radiusM},${s.lat},${s.lon})["amenity"="parking"]["hgv"];`);
-      parts.push(`way(around:${radiusM},${s.lat},${s.lon})["amenity"="parking"]["hgv"];`);
-    }
+  if (kind === "fuel") {
+    parts.push(`node(around:${radiusM},${sample.lat},${sample.lon})["amenity"="fuel"];`);
+    parts.push(`way(around:${radiusM},${sample.lat},${sample.lon})["amenity"="fuel"];`);
+    parts.push(`node(around:${radiusM},${sample.lat},${sample.lon})["highway"="services"];`);
+    parts.push(`way(around:${radiusM},${sample.lat},${sample.lon})["highway"="services"];`);
+  } else {
+    parts.push(`node(around:${radiusM},${sample.lat},${sample.lon})["highway"="rest_area"];`);
+    parts.push(`way(around:${radiusM},${sample.lat},${sample.lon})["highway"="rest_area"];`);
+    parts.push(`node(around:${radiusM},${sample.lat},${sample.lon})["highway"="services"];`);
+    parts.push(`way(around:${radiusM},${sample.lat},${sample.lon})["highway"="services"];`);
+    parts.push(`node(around:${radiusM},${sample.lat},${sample.lon})["amenity"="parking"];`);
+    parts.push(`way(around:${radiusM},${sample.lat},${sample.lon})["amenity"="parking"];`);
   }
-  return `[out:json][timeout:25];(${parts.join("\n")});out center tags;`;
+  return `[out:json][timeout:12];(${parts.join("\n")});out center tags;`;
 }
 
 async function searchOpenStreetMapPois(
@@ -284,18 +281,20 @@ async function searchOpenStreetMapPois(
   geometry: Array<[number, number]>,
   samples: Array<{ lat: number; lon: number }>,
 ): Promise<TruckPoi[]> {
-  try {
+  const radiusM = 45000;
+  const seen = new Map<string, TruckPoi>();
+  for (const sample of samples) {
+    try {
     const res = await fetch("https://overpass-api.de/api/interpreter", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         "User-Agent": "Navaroad/1.0 route-poi-search",
       },
-      body: `data=${encodeURIComponent(osmQuery(kind, samples))}`,
+      body: `data=${encodeURIComponent(osmQuery(kind, sample, radiusM))}`,
     });
-    if (!res.ok) return [];
+    if (!res.ok) continue;
     const json = (await res.json()) as { elements?: OsmElement[] };
-    const seen = new Map<string, TruckPoi>();
     for (const el of json.elements ?? []) {
       const lat = el.lat ?? el.center?.lat;
       const lon = el.lon ?? el.center?.lon;
@@ -325,12 +324,13 @@ async function searchOpenStreetMapPois(
         source: "OpenStreetMap",
       });
     }
-    return Array.from(seen.values()).sort(
-      (a, b) => (a.distanceMi ?? Infinity) - (b.distanceMi ?? Infinity),
-    );
-  } catch {
-    return [];
+    } catch {
+      continue;
+    }
   }
+  return Array.from(seen.values()).sort(
+    (a, b) => (a.distanceMi ?? Infinity) - (b.distanceMi ?? Infinity),
+  );
 }
 
 export const searchTruckPois = createServerFn({ method: "POST" })
