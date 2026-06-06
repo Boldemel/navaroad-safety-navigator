@@ -569,8 +569,8 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     });
     let provider = "TomTom";
     let message =
-      data.kind === "parking" && pois.length > 0
-        ? "Parking locations found. Live availability not connected."
+      data.kind === "rest_area" && pois.length > 0
+        ? "Rest areas found along the route corridor."
         : undefined;
 
     if (pois.length === 0) {
