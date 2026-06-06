@@ -11,6 +11,8 @@ import { useDriverNames } from "@/hooks/use-driver-names";
 import { cn } from "@/lib/utils";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { useActiveRoute } from "@/hooks/use-active-route";
+import { hazardsAlongRoute, recommendedActionFor, type HazardLike } from "@/lib/hazard-proximity";
+import { Route as RouteIcon } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/alerts")({
   component: AlertsCenter,
@@ -60,6 +62,11 @@ function AlertsCenter() {
     action?: string | null;
     updatedAt: string;
     reporter_id?: string | null;
+    lat?: number | null;
+    lon?: number | null;
+    category?: string;
+    onRoute?: boolean;
+    distanceMi?: number;
   };
 
   const items: Item[] = useMemo(() => {
@@ -73,6 +80,9 @@ function AlertsCenter() {
       message: a.headline,
       action: a.recommendedAction,
       updatedAt: a.effective,
+      lat: a.lat ?? null,
+      lon: a.lon ?? null,
+      category: a.category,
     }));
     const road: Item[] = (feed?.roadAlerts ?? []).map((r) => ({
       id: r.id,
@@ -84,8 +94,11 @@ function AlertsCenter() {
       message: r.description,
       action: r.recommendedAction,
       updatedAt: r.updatedAt,
+      lat: r.lat ?? null,
+      lon: r.lon ?? null,
+      category: r.category,
     }));
-    const drivers: Item[] = hazards.map((h) => ({
+    const driverItems: Item[] = hazards.map((h) => ({
       id: h.id,
       source: "driver",
       sourceLabel: "Driver Report",
@@ -96,11 +109,52 @@ function AlertsCenter() {
       action: null,
       updatedAt: h.created_at,
       reporter_id: h.reporter_id,
+      lat: h.latitude ?? null,
+      lon: h.longitude ?? null,
+      category: h.hazard_type,
     }));
-    return [...weather, ...road, ...drivers].sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt));
-  }, [feed, hazards]);
+    const all = [...weather, ...road, ...driverItems];
 
-  const visible = items.filter((it) => filters.has(it.source));
+    // Tag items inside the 10mi route corridor and compute distance-to-route.
+    if (geometry.length >= 2) {
+      const probes: HazardLike[] = all
+        .filter((i) => i.lat != null && i.lon != null)
+        .map((i) => ({
+          id: i.source + i.id,
+          title: i.type,
+          category: i.category ?? i.type,
+          severity: i.severity,
+          lat: i.lat ?? null,
+          lon: i.lon ?? null,
+          source: i.sourceLabel,
+        }));
+      const onRoute = hazardsAlongRoute(geometry, probes, 10);
+      const byKey = new Map(onRoute.map((h) => [h.id, h.distanceMi]));
+      for (const it of all) {
+        const key = it.source + it.id;
+        if (byKey.has(key)) {
+          it.onRoute = true;
+          it.distanceMi = byKey.get(key);
+          if (!it.action) {
+            it.action = recommendedActionFor(
+              { id: key, title: it.type, category: it.category ?? it.type, severity: it.severity, lat: it.lat, lon: it.lon, source: it.sourceLabel },
+              it.distanceMi ?? 0,
+            );
+          }
+        }
+      }
+    }
+
+    return all.sort((a, b) => {
+      // On-route items first, then newest.
+      if (!!b.onRoute !== !!a.onRoute) return b.onRoute ? 1 : -1;
+      return +new Date(b.updatedAt) - +new Date(a.updatedAt);
+    });
+  }, [feed, hazards, geometry]);
+
+  const [onRouteOnly, setOnRouteOnly] = useState(false);
+  const visible = items.filter((it) => filters.has(it.source) && (!onRouteOnly || it.onRoute));
+  const onRouteCount = items.filter((i) => i.onRoute).length;
   const loading = feedLoading || hazardsLoading;
 
   function toggle(v: Source) {
@@ -146,6 +200,19 @@ function AlertsCenter() {
             </button>
           );
         })}
+        {activeRoute && (
+          <button
+            onClick={() => setOnRouteOnly((v) => !v)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition",
+              onRouteOnly ? "border-warning/40 bg-warning/15 text-warning" : "border-border bg-card text-muted-foreground hover:text-foreground",
+            )}
+            title="Only show hazards within 10 mi of your active route"
+          >
+            <RouteIcon className="size-3.5" />
+            On route only ({onRouteCount})
+          </button>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -162,12 +229,21 @@ function AlertsCenter() {
         {visible.map((it) => {
           const driver = it.reporter_id ? drivers[it.reporter_id] : null;
           return (
-            <div key={it.source + it.id} className="rounded-xl border border-border bg-card p-4 md:p-5">
+            <div key={it.source + it.id} className={cn(
+              "rounded-xl border bg-card p-4 md:p-5",
+              it.onRoute ? "border-warning/40" : "border-border",
+            )}>
               <div className="flex items-start gap-3 flex-wrap">
                 <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(it.severity)}`}>
                   {it.severity}
                 </span>
                 <span className="text-xs text-muted-foreground px-2 py-0.5 rounded border border-border">{it.sourceLabel}</span>
+                {it.onRoute && (
+                  <span className="text-xs text-warning px-2 py-0.5 rounded border border-warning/40 bg-warning/10 inline-flex items-center gap-1">
+                    <RouteIcon className="size-3" />
+                    On route{it.distanceMi != null && <> · {it.distanceMi < 1 ? "<1 mi" : `${Math.round(it.distanceMi)} mi`} off route</>}
+                  </span>
+                )}
                 <div className="flex-1" />
                 <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                   <Clock className="size-3" /> {formatDistanceToNow(new Date(it.updatedAt), { addSuffix: true })}
