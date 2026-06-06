@@ -1,5 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { geocode, getRoute, sampleRoute } from "./services/route-analysis.service";
+import { fetchCurrentWeather, fetchSevereWeatherAlerts } from "./services/weather.service";
+import { computeSafety } from "./services/safety-score.service";
+import { fetchRoadAlerts } from "./services/road-alert.service";
 
 const InputSchema = z.object({
   origin: z.string().trim().min(2).max(200),
@@ -13,7 +17,7 @@ export type RouteAnalysis = {
   destination: { name: string; lat: number; lon: number };
   distanceKm: number;
   durationMin: number;
-  geometry: Array<[number, number]>; // [lon,lat]
+  geometry: Array<[number, number]>;
   weather: Array<{
     label: string;
     lat: number;
@@ -22,119 +26,71 @@ export type RouteAnalysis = {
     windKph: number | null;
     gustKph: number | null;
     precipMm: number | null;
+    visibilityKm: number | null;
     condition: string;
   }>;
-  risks: Array<{ type: "wind" | "precip" | "closure" | "hazard" | "temp"; severity: "low" | "medium" | "high" | "critical"; message: string }>;
+  weatherAlertCount: number;
+  roadAlertCount: number;
+  risks: Array<{
+    type: "wind" | "precip" | "closure" | "hazard" | "temp" | "visibility" | "weather_alert";
+    severity: "low" | "medium" | "high" | "critical";
+    message: string;
+  }>;
+  breakdown: { weather: number; wind: number; closure: number; hazard: number };
   score: number;
+  recommendedAction: string;
 };
-
-async function geocode(query: string) {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-  const res = await fetch(url, { headers: { "User-Agent": "Navaroad/1.0 (route-analysis)", "Accept-Language": "en" } });
-  if (!res.ok) throw new Error(`Geocoding failed for "${query}"`);
-  const json = (await res.json()) as Array<{ lat: string; lon: string; display_name: string }>;
-  if (!json.length) throw new Error(`Could not find location "${query}"`);
-  return { name: json[0].display_name, lat: parseFloat(json[0].lat), lon: parseFloat(json[0].lon) };
-}
-
-async function route(o: { lat: number; lon: number }, d: { lat: number; lon: number }) {
-  const url = `https://router.project-osrm.org/route/v1/driving/${o.lon},${o.lat};${d.lon},${d.lat}?overview=simplified&geometries=geojson`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Routing service unavailable");
-  const json = (await res.json()) as any;
-  if (!json.routes?.length) throw new Error("No route found between locations");
-  const r = json.routes[0];
-  return {
-    distanceKm: r.distance / 1000,
-    durationMin: r.duration / 60,
-    geometry: r.geometry.coordinates as Array<[number, number]>,
-  };
-}
-
-async function weatherAt(lat: number, lon: number) {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m&wind_speed_unit=kmh&timezone=auto`;
-  const res = await fetch(url);
-  if (!res.ok) return null;
-  const j = (await res.json()) as any;
-  const c = j.current ?? {};
-  return {
-    tempC: c.temperature_2m ?? null,
-    windKph: c.wind_speed_10m ?? null,
-    gustKph: c.wind_gusts_10m ?? null,
-    precipMm: c.precipitation ?? null,
-    condition: wmoToText(c.weather_code),
-  };
-}
-
-function wmoToText(code: number | undefined): string {
-  if (code == null) return "Unknown";
-  if (code === 0) return "Clear";
-  if ([1, 2, 3].includes(code)) return "Partly cloudy";
-  if ([45, 48].includes(code)) return "Fog";
-  if ([51, 53, 55, 56, 57].includes(code)) return "Drizzle";
-  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "Rain";
-  if ([71, 73, 75, 77, 85, 86].includes(code)) return "Snow";
-  if ([95, 96, 99].includes(code)) return "Thunderstorm";
-  return "Unknown";
-}
 
 export const analyzeRoute = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => InputSchema.parse(d))
   .handler(async ({ data }): Promise<RouteAnalysis> => {
     const [o, d2] = await Promise.all([geocode(data.origin), geocode(data.destination)]);
-    const r = await route(o, d2);
+    const r = await getRoute(o, d2);
 
-    // Sample 3 points: start, mid, end
-    const midCoordinate = r.geometry[Math.floor(r.geometry.length / 2)];
-    const midLon = midCoordinate ? midCoordinate[0] : (o.lon + d2.lon) / 2;
-    const midLat = midCoordinate ? midCoordinate[1] : (o.lat + d2.lat) / 2;
-    const samples = [
-      { label: "Origin", lat: o.lat, lon: o.lon },
-      { label: "Midpoint", lat: midLat, lon: midLon },
-      { label: "Destination", lat: d2.lat, lon: d2.lon },
-    ];
-    const weather = await Promise.all(
-      samples.map(async (s) => {
-        const currentWeather = await weatherAt(s.lat, s.lon);
+    const samples = sampleRoute(r.geometry, 3);
+    const labels = ["Origin", "Midpoint", "Destination"];
+    const weatherSamples = await Promise.all(
+      samples.map(async (s, i) => {
+        const w = await fetchCurrentWeather(s.lat, s.lon);
         return {
-          ...s,
-          ...(currentWeather ?? { tempC: null, windKph: null, gustKph: null, precipMm: null, condition: "Unknown" }),
+          label: labels[i] ?? `Point ${i + 1}`,
+          lat: s.lat,
+          lon: s.lon,
+          tempC: w?.tempC ?? null,
+          windKph: w?.windKph ?? null,
+          gustKph: w?.gustKph ?? null,
+          precipMm: w?.precipMm ?? null,
+          visibilityKm: w?.visibilityKm ?? null,
+          condition: w?.condition ?? "Unknown",
         };
-      })
+      }),
     );
 
-    // Compute risks
-    const risks: RouteAnalysis["risks"] = [];
-    let penalty = 0;
-    for (const w of weather) {
-      if ((w.gustKph ?? 0) >= 75) { risks.push({ type: "wind", severity: "critical", message: `Severe wind gusts ${Math.round(w.gustKph!)} km/h near ${w.label}` }); penalty += 25; }
-      else if ((w.gustKph ?? 0) >= 55 || (w.windKph ?? 0) >= 45) { risks.push({ type: "wind", severity: "high", message: `High wind ${Math.round(w.gustKph ?? w.windKph!)} km/h near ${w.label}` }); penalty += 12; }
-      else if ((w.windKph ?? 0) >= 30) { risks.push({ type: "wind", severity: "medium", message: `Moderate wind near ${w.label}` }); penalty += 5; }
+    const [weatherAlerts, roadAlerts] = await Promise.all([
+      fetchSevereWeatherAlerts().catch(() => []),
+      fetchRoadAlerts().catch(() => []),
+    ]);
 
-      if ((w.precipMm ?? 0) >= 5) { risks.push({ type: "precip", severity: "high", message: `Heavy precipitation near ${w.label}` }); penalty += 10; }
-      else if ((w.precipMm ?? 0) >= 1) { risks.push({ type: "precip", severity: "medium", message: `Rain near ${w.label}` }); penalty += 4; }
+    const result = computeSafety({
+      weatherSamples,
+      weatherAlerts,
+      roadAlerts,
+      driverReportCount: 0,
+      trailerType: data.trailer,
+    });
 
-      if (w.condition === "Snow") { risks.push({ type: "precip", severity: "high", message: `Snow near ${w.label}` }); penalty += 12; }
-      if (w.condition === "Thunderstorm") { risks.push({ type: "precip", severity: "critical", message: `Thunderstorms near ${w.label}` }); penalty += 18; }
-      if (w.condition === "Fog") { risks.push({ type: "precip", severity: "medium", message: `Fog near ${w.label}` }); penalty += 6; }
-
-      if ((w.tempC ?? 99) <= -5) { risks.push({ type: "temp", severity: "medium", message: `Freezing temps (${Math.round(w.tempC!)}°C) near ${w.label}` }); penalty += 6; }
-    }
-
-    // Trailer risk
-    const trailer = data.trailer ?? "";
-    const trailerRisk = ["Dry Van", "Reefer", "Curtain Side"].includes(trailer) ? 6 : 2;
-    penalty += trailerRisk;
-
-    const score = Math.max(20, Math.min(99, 98 - penalty));
     return {
       origin: o,
       destination: d2,
       distanceKm: r.distanceKm,
       durationMin: r.durationMin,
       geometry: r.geometry,
-      weather,
-      risks,
-      score,
+      weather: weatherSamples,
+      weatherAlertCount: weatherAlerts.length,
+      roadAlertCount: roadAlerts.length,
+      risks: result.factors,
+      breakdown: result.breakdown,
+      score: result.score,
+      recommendedAction: result.recommendedAction,
     };
   });
