@@ -276,7 +276,7 @@ function osmQuery(kind: "fuel" | "parking", samples: Array<{ lat: number; lon: n
       parts.push(`way(around:${radiusM},${s.lat},${s.lon})["amenity"="parking"]["hgv"];`);
     }
   }
-  return `[out:json][timeout:25];(${parts.join("\n")});out center tags 100;`;
+  return `[out:json][timeout:25];(${parts.join("\n")});out center tags;`;
 }
 
 async function searchOpenStreetMapPois(
