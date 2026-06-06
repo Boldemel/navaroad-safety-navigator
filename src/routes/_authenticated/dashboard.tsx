@@ -736,7 +736,13 @@ function Dashboard() {
           } as never);
           setPoiDialog(null);
         }}
+        onNavigate={(p) => {
+          navToPoi.mutate(p);
+          setPoiDialog(null);
+        }}
+        navigating={navToPoi.isPending}
       />
+
     </div>
   );
 }
