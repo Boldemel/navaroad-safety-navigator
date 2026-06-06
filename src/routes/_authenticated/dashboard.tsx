@@ -16,6 +16,7 @@ import {
 import { TRUCK_TYPES, TRAILER_TYPES, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { analyzeRoute } from "@/lib/route-analysis.functions";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
@@ -56,6 +57,7 @@ function Dashboard() {
   const navSession = useNavigationSession();
   const [locating, setLocating] = useState(false);
   const [awaitingCoords, setAwaitingCoords] = useState(false);
+  const [poiDialog, setPoiDialog] = useState<{ title: string; result: PoiDialogResult | null } | null>(null);
 
   function sampleRouteGeometry(geom: Array<[number, number]>, maxPoints: number) {
     if (geom.length <= maxPoints) return geom;
@@ -651,10 +653,10 @@ function Dashboard() {
           <StatCard icon={<Wind className="size-5" />} label="Wind Risk" count={windCount} sub={usingRoute ? "Wind/gust risks on this route" : "Active high-wind / tornado (NWS)"} accent="primary" loading={feedLoading} />
           <StatCard icon={<Construction className="size-5" />} label="Road Closure Risk" count={closureCount} sub={feed?.providers.road === "not_connected" ? "Connect DOT API" : usingRoute ? "Closures on this route" : "Active closures"} accent="destructive" loading={feedLoading} />
           <StatCard icon={<ShieldAlert className="size-5" />} label="Truck Restriction Risk" count={0} sub="Bridge / weight / hazmat data not connected yet" accent="warning" />
-          <StatCard icon={<Fuel className="size-5" />} label="Fuel Stops" count={fuelStops?.totalFound ?? 0} sub={fuelStops && !fuelStops.connected ? "Not connected yet" : usingRoute ? `Truck-friendly · ${fuelStops?.provider ?? "TomTom"}` : "Analyze a route to find stops"} accent="primary" loading={fuelLoading} />
-          <StatCard icon={<ParkingCircle className="size-5" />} label="Parking Options" count={parkingStops?.totalFound ?? 0} sub={parkingStops && !parkingStops.connected ? "Not connected yet" : usingRoute ? `Truck stops & rest areas · ${parkingStops?.provider ?? "TomTom"}` : "Analyze a route to find parking"} accent="primary" loading={parkingLoading} />
-          <StatCard icon={<Truck className="size-5" />} label="Truck Stops" count={truckStops?.totalFound ?? 0} sub={truckStops && !truckStops.connected ? "Not connected yet" : usingRoute ? `Pilot/Flying J/Loves/TA · ${truckStops?.provider ?? "TomTom"}` : "Analyze a route to find truck stops"} accent="primary" loading={truckStopsLoading} />
-          <StatCard icon={<Scale className="size-5" />} label="Weigh Stations" count={weighStations?.totalFound ?? 0} sub={weighStations && !weighStations.connected ? "Not connected yet" : usingRoute ? `On route · ${weighStations?.provider ?? "TomTom"}` : "Analyze a route to find weigh stations"} accent="warning" loading={weighLoading} />
+          <StatCard icon={<Fuel className="size-5" />} label="Fuel Stations (optional)" count={fuelStops?.totalFound ?? 0} sub={fuelStops && !fuelStops.connected ? "Not connected yet" : usingRoute ? `Truck-friendly diesel · ${fuelStops?.provider ?? "TomTom"}` : "Analyze a route to find stops"} accent="primary" loading={fuelLoading} onClick={usingRoute && (fuelStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Fuel Stations on this Route", result: fuelStops ?? null }) : undefined} />
+          <StatCard icon={<ParkingCircle className="size-5" />} label="Parking Options" count={parkingStops?.totalFound ?? 0} sub={parkingStops && !parkingStops.connected ? "Not connected yet" : usingRoute ? `Truck stops & rest areas · ${parkingStops?.provider ?? "TomTom"}` : "Analyze a route to find parking"} accent="primary" loading={parkingLoading} onClick={usingRoute && (parkingStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Truck Parking on this Route", result: parkingStops ?? null }) : undefined} />
+          <StatCard icon={<Truck className="size-5" />} label="Truck Stops" count={truckStops?.totalFound ?? 0} sub={truckStops && !truckStops.connected ? "Not connected yet" : usingRoute ? `Pilot · Flying J · Love's · TA · Petro` : "Analyze a route to find truck stops"} accent="primary" loading={truckStopsLoading} onClick={usingRoute && (truckStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Truck Stops on this Route", result: truckStops ?? null }) : undefined} />
+          <StatCard icon={<Scale className="size-5" />} label="Weigh Stations" count={weighStations?.totalFound ?? 0} sub={weighStations && !weighStations.connected ? "Not connected yet" : usingRoute ? `On route · ${weighStations?.provider ?? "TomTom"}` : "Analyze a route to find weigh stations"} accent="warning" loading={weighLoading} onClick={usingRoute && (weighStations?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Weigh Stations on this Route", result: weighStations ?? null }) : undefined} />
           <StatCard icon={<Users className="size-5" />} label="Driver Reports" count={driverCount} sub="Community layer · live" accent="warning" />
         </div>
       </div>
@@ -721,22 +723,120 @@ function Dashboard() {
           ))}
         </div>
       </div>
+
+      <PoiDialog
+        open={!!poiDialog}
+        onOpenChange={(v) => { if (!v) setPoiDialog(null); }}
+        title={poiDialog?.title ?? ""}
+        result={poiDialog?.result ?? null}
+        onShowOnMap={(p) => {
+          router.navigate({
+            to: "/hazard-map",
+            search: { focusLat: p.lat, focusLon: p.lon, focusLabel: p.name },
+          } as never);
+          setPoiDialog(null);
+        }}
+      />
     </div>
   );
 }
 
-function StatCard({ icon, label, count, sub, accent, loading }: { icon: React.ReactNode; label: string; count: number; sub?: string; accent: "primary" | "destructive" | "warning"; loading?: boolean }) {
+type PoiDialogResult = NonNullable<Awaited<ReturnType<typeof searchTruckPois>>>;
+type PoiItem = PoiDialogResult["pois"][number];
+
+function typeLabelShort(t?: string) {
+  return t === "truck_stop" ? "Truck stop"
+    : t === "rest_area" ? "Rest area"
+    : t === "parking" ? "Parking"
+    : t === "fuel" ? "Fuel"
+    : t === "weigh_station" ? "Weigh station"
+    : "POI";
+}
+
+function PoiDialog({
+  open, onOpenChange, title, result, onShowOnMap,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  title: string;
+  result: PoiDialogResult | null;
+  onShowOnMap: (p: PoiItem) => void;
+}) {
+  const pois = result?.pois ?? [];
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {pois.length} location{pois.length === 1 ? "" : "s"} along your route · Source: {result?.provider ?? "TomTom"}
+          </DialogDescription>
+        </DialogHeader>
+        {pois.length === 0 ? (
+          <div className="text-sm text-muted-foreground py-8 text-center">No locations found.</div>
+        ) : (
+          <ul className="divide-y divide-border max-h-[60vh] overflow-auto -mx-2 px-2">
+            {pois.map((p) => {
+              const region = [p.city, p.state].filter(Boolean).join(", ");
+              const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}`;
+              return (
+                <li key={p.id} className="py-3 flex items-start gap-3">
+                  <MapPin className="size-4 mt-1 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <div className="font-medium truncate">{p.name}{p.brand && p.brand !== p.name ? ` · ${p.brand}` : ""}</div>
+                    <div className="text-[12px] text-muted-foreground">
+                      {region || p.address || "Location"}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground/80 flex flex-wrap items-center gap-x-2">
+                      <span className="uppercase tracking-wider">{typeLabelShort(p.type)}</span>
+                      {p.distanceMi != null && (
+                        <span>· {p.distanceMi < 1 ? "<1 mi" : `${Math.round(p.distanceMi)} mi`} from route</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    <Button size="sm" variant="outline" onClick={() => onShowOnMap(p)}>
+                      <MapPin className="size-3.5" /> Show on Map
+                    </Button>
+                    <Button size="sm" asChild>
+                      <a href={navUrl} target="_blank" rel="noopener noreferrer">
+                        <Navigation2 className="size-3.5" /> Navigate
+                      </a>
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function StatCard({ icon, label, count, sub, accent, loading, onClick }: { icon: React.ReactNode; label: string; count: number; sub?: string; accent: "primary" | "destructive" | "warning"; loading?: boolean; onClick?: () => void }) {
   const colors = {
     primary: "text-primary bg-primary/10 border-primary/20",
     destructive: "text-destructive bg-destructive/10 border-destructive/20",
     warning: "text-warning bg-warning/10 border-warning/20",
   }[accent];
+  const clickable = !!onClick;
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick?.(); } } : undefined}
+      className={cn(
+        "rounded-xl border border-border bg-card p-5",
+        clickable && "cursor-pointer hover:border-primary/50 hover:bg-card/80 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+      )}
+    >
       <div className={`size-10 rounded-md flex items-center justify-center border ${colors}`}>{icon}</div>
       <div className="mt-4 text-3xl font-semibold">{loading ? <Loader2 className="size-7 animate-spin" /> : count}</div>
       <div className="text-sm text-muted-foreground">{label}</div>
       {sub && <div className="text-[11px] text-muted-foreground/80 mt-0.5">{sub}</div>}
+      {clickable && <div className="text-[10px] text-primary/80 mt-1">View locations →</div>}
     </div>
   );
 }

@@ -318,9 +318,22 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         tomtomFilteredCount += 1;
         return;
       }
-      if (data.kind === "truck_stop" && type !== "truck_stop") {
-        tomtomFilteredCount += 1;
-        return;
+      if (data.kind === "truck_stop") {
+        // Strict allow-list: only major truck-stop chains + generic truck plazas.
+        const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
+        const isAllowedTruckStop =
+          /\bpilot\b/.test(hay) ||
+          /flying\s*j/.test(hay) ||
+          /love'?s/.test(hay) ||
+          /\bta\b/.test(hay) ||
+          /travel\s*cent(er|re)s?/.test(hay) ||
+          /\bpetro\b/.test(hay) ||
+          /truck\s*plaza/.test(hay) ||
+          /truck\s*stop|truckstop/.test(hay);
+        if (!isAllowedTruckStop) {
+          tomtomFilteredCount += 1;
+          return;
+        }
       }
       if (data.kind === "weigh_station" && type !== "weigh_station") {
         tomtomFilteredCount += 1;

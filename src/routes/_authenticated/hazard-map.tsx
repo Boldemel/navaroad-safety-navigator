@@ -24,6 +24,13 @@ import { hazardsWithin, hazardsAlongRoute, nearestHazardAlert, type HazardLike }
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
   component: HazardMap,
+  validateSearch: (search: Record<string, unknown>) => ({
+    focusLat: typeof search.focusLat === "number" ? search.focusLat
+      : typeof search.focusLat === "string" ? Number(search.focusLat) : undefined,
+    focusLon: typeof search.focusLon === "number" ? search.focusLon
+      : typeof search.focusLon === "string" ? Number(search.focusLon) : undefined,
+    focusLabel: typeof search.focusLabel === "string" ? search.focusLabel : undefined,
+  }),
 });
 
 const HAZARD_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -72,6 +79,11 @@ function HazardMap() {
   const activeRoute = useActiveRoute();
   const geometry = activeRoute?.geometry ?? [];
   const geo = useGeolocation({ watch: true });
+  const { focusLat, focusLon, focusLabel } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const hasFocus = Number.isFinite(focusLat) && Number.isFinite(focusLon);
+  const focusPoint = hasFocus ? { lat: focusLat as number, lon: focusLon as number } : null;
+  const clearFocus = () => navigate({ search: { focusLat: undefined, focusLon: undefined, focusLabel: undefined }, replace: true } as never);
 
 
   const { data: tomtom } = useQuery({
@@ -282,28 +294,41 @@ function HazardMap() {
         </div>
       )}
 
+      {focusPoint && (
+        <div className="rounded-xl border border-primary/40 bg-primary/10 p-3 text-sm flex items-center gap-2">
+          <MapPin className="size-4 text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="font-medium truncate">{focusLabel ?? "Selected location"}</div>
+            <div className="text-xs text-muted-foreground">{focusPoint.lat.toFixed(4)}, {focusPoint.lon.toFixed(4)}</div>
+          </div>
+          <button onClick={clearFocus} className="text-xs text-primary underline">Show all hazards</button>
+        </div>
+      )}
+
       <div className="relative aspect-[16/8] overflow-hidden">
         <TomTomMap
           tomtomKey={tomtom?.key ?? null}
           showTraffic
           height="100%"
-          routeGeometry={geometry}
-          currentLocation={here}
-          markers={allVisible
-            .filter((m): m is Marker & { lat: number; lon: number } => m.lat != null && m.lon != null)
-            .map<MapMarker>((m) => ({
-              id: m.layer + m.id,
-              lat: m.lat,
-              lon: m.lon,
-              title: m.title,
-              description: `${m.source} · ${m.location}`,
-              color:
-                m.layer === "driver"
-                  ? "#f59e0b"
-                  : m.severity === "critical" || m.severity === "high"
-                    ? "#ef4444"
-                    : "#3b82f6",
-            }))}
+          routeGeometry={focusPoint ? [] : geometry}
+          currentLocation={focusPoint ? null : here}
+          markers={focusPoint
+            ? [{ id: "focus", lat: focusPoint.lat, lon: focusPoint.lon, title: focusLabel ?? "Selected location", color: "#22c55e" }]
+            : allVisible
+              .filter((m): m is Marker & { lat: number; lon: number } => m.lat != null && m.lon != null)
+              .map<MapMarker>((m) => ({
+                id: m.layer + m.id,
+                lat: m.lat,
+                lon: m.lon,
+                title: m.title,
+                description: `${m.source} · ${m.location}`,
+                color:
+                  m.layer === "driver"
+                    ? "#f59e0b"
+                    : m.severity === "critical" || m.severity === "high"
+                      ? "#ef4444"
+                      : "#3b82f6",
+              }))}
         />
       </div>
 
