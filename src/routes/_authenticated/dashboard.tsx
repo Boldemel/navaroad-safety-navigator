@@ -228,7 +228,7 @@ function Dashboard() {
 
 
   // Live safety feed scoped to the active route corridor (NWS + DOT).
-  const result = analysis.data;
+  const result = analysis.isPending ? undefined : analysis.data;
   const geometry = result?.geometry ?? activeRoute?.geometry ?? [];
   const routeLabel = result
     ? `${origin || result.origin.name} → ${destination || result.destination.name}`
@@ -610,8 +610,8 @@ function Dashboard() {
           <StatCard icon={<Wind className="size-5" />} label="Wind Risk" count={windCount} sub={usingRoute ? "Wind/gust risks on this route" : "Active high-wind / tornado (NWS)"} accent="primary" loading={feedLoading} />
           <StatCard icon={<Construction className="size-5" />} label="Road Closure Risk" count={closureCount} sub={feed?.providers.road === "not_connected" ? "Connect DOT API" : usingRoute ? "Closures on this route" : "Active closures"} accent="destructive" loading={feedLoading} />
           <StatCard icon={<ShieldAlert className="size-5" />} label="Truck Restriction Risk" count={0} sub="Bridge / weight / hazmat data not connected yet" accent="warning" />
-          <StatCard icon={<Fuel className="size-5" />} label="Fuel Stops" count={fuelStops?.pois.length ?? 0} sub={fuelStops && !fuelStops.connected ? "Not connected yet" : usingRoute ? `Truck-friendly · ${fuelStops?.provider ?? "TomTom"}` : "Analyze a route to find stops"} accent="primary" loading={fuelLoading} />
-          <StatCard icon={<ParkingCircle className="size-5" />} label="Parking Options" count={parkingStops?.pois.length ?? 0} sub={parkingStops && !parkingStops.connected ? "Not connected yet" : usingRoute ? `Truck stops & rest areas · ${parkingStops?.provider ?? "TomTom"}` : "Analyze a route to find parking"} accent="primary" loading={parkingLoading} />
+          <StatCard icon={<Fuel className="size-5" />} label="Fuel Stops" count={fuelStops?.totalFound ?? 0} sub={fuelStops && !fuelStops.connected ? "Not connected yet" : usingRoute ? `Truck-friendly · ${fuelStops?.provider ?? "TomTom"}` : "Analyze a route to find stops"} accent="primary" loading={fuelLoading} />
+          <StatCard icon={<ParkingCircle className="size-5" />} label="Parking Options" count={parkingStops?.totalFound ?? 0} sub={parkingStops && !parkingStops.connected ? "Not connected yet" : usingRoute ? `Truck stops & rest areas · ${parkingStops?.provider ?? "TomTom"}` : "Analyze a route to find parking"} accent="primary" loading={parkingLoading} />
           <StatCard icon={<Users className="size-5" />} label="Driver Reports" count={driverCount} sub="Community layer · live" accent="warning" />
         </div>
       </div>
@@ -621,6 +621,7 @@ function Dashboard() {
           <PoiList
             icon={<Fuel className="size-4 text-primary" />}
             title="Fuel Stops on this Route"
+            routeLabel={routeLabel}
             loading={fuelLoading}
             result={fuelStops}
             emptyHint="No truck-friendly fuel stops detected near this route."
@@ -628,6 +629,7 @@ function Dashboard() {
           <PoiList
             icon={<ParkingCircle className="size-4 text-primary" />}
             title="Truck Parking on this Route"
+            routeLabel={routeLabel}
             loading={parkingLoading}
             result={parkingStops}
             emptyHint="No truck stops, rest areas, or parking detected near this route."
