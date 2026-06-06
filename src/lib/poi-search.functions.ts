@@ -540,9 +540,56 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       );
     }
 
+    // Step 3 (supplemental): OpenStreetMap Overpass for rest areas, truck
+    // parking, and weigh stations. TomTom coverage of these categories is
+    // sparse in the US; OSM has much better data. Routing/navigation/fuel
+    // remain TomTom-only.
+    let osmRawCount = 0;
+    let osmAddedCount = 0;
+    let osmError: string | null = null;
+    if (data.kind === "rest_area" || data.kind === "weigh_station") {
+      const osm = await overpassAlongRoute(samples, data.kind);
+      osmError = osm.error;
+      osmRawCount = osm.results.length;
+      for (const o of osm.results) {
+        const projection = projectOnRouteMi(data.geometry, cumMi, o.lat, o.lon);
+        if (!projection || projection.perpMi > corridorRadiusMi) continue;
+        let dupe = false;
+        for (const existing of seen.values()) {
+          if (distMi(existing.lat, existing.lon, o.lat, o.lon) < 0.25) {
+            dupe = true;
+            break;
+          }
+        }
+        if (dupe) continue;
+        const id = `osm-${o.osmType}-${o.osmId}`;
+        seen.set(id, {
+          id,
+          name: o.name,
+          brand: null,
+          category: o.category,
+          type: o.type,
+          address: o.address ?? "",
+          city: null,
+          state: null,
+          lat: o.lat,
+          lon: o.lon,
+          distanceMi: projection.perpMi,
+          routeProgressMi: projection.progressMi,
+          phone: null,
+          source: "OpenStreetMap",
+          restrictions: null,
+        });
+        osmAddedCount += 1;
+      }
+    }
+
     const tomtomCalls = [...categoryResults];
     const firstError = tomtomCalls.find((c) => c.error)?.error ?? null;
     const firstFuelUrl = redactTomTomKey(categoryResults[0]?.url ?? "", key);
+    console.info("Navaroad OSM Overpass diagnostics", {
+      kind: data.kind, osmRawCount, osmAddedCount, osmError,
+    });
     console.info("Navaroad TomTom POI diagnostics", {
       kind: data.kind,
       keyRead: true,
