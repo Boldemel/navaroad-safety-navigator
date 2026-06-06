@@ -427,6 +427,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       if (rawTomTomResults.length < 12) rawTomTomResults.push(`${name} · ${cats[0] ?? "uncategorized"}`);
       const fallbackType: TruckPoiType =
         data.kind === "weigh_station" ? "weigh_station"
+        : data.kind === "cat_scale" ? "cat_scale"
         : data.kind === "parking" ? "parking"
         : data.kind === "truck_stop" ? "truck_stop"
         : "fuel";
@@ -463,9 +464,15 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         }
       }
       if (data.kind === "weigh_station") {
-        // Strict: only state weigh stations, ports of entry, CAT scales, official
-        // inspection facilities. Reject truck-stop brands explicitly.
+        // Strict: only state weigh stations, ports of entry, official inspection
+        // facilities. CAT scales and truck-stop brands are explicitly rejected.
         if (!isWeighStationStrict(hay)) {
+          tomtomFilteredCount += 1;
+          return;
+        }
+      }
+      if (data.kind === "cat_scale") {
+        if (!isCatScale(hay)) {
           tomtomFilteredCount += 1;
           return;
         }
