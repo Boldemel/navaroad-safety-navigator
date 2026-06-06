@@ -153,8 +153,23 @@ export function NavigationBanner() {
         <button
           type="button"
           onClick={() => {
+            const nextMuted = !voice.muted;
+            setVoice({ muted: nextMuted });
+            if (nextMuted) cancelSpeech();
+          }}
+          className="inline-flex items-center gap-1 rounded-md border border-border bg-card hover:bg-accent px-2 py-1 text-xs"
+          aria-label={voice.muted ? "Unmute voice guidance" : "Mute voice guidance"}
+          aria-pressed={!voice.muted}
+          title={voice.muted ? "Voice muted" : "Voice on"}
+        >
+          {voice.muted ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
             stopNavigation();
             clearActiveRoute();
+            cancelSpeech();
           }}
           className="inline-flex items-center gap-1 rounded-md border border-border bg-card hover:bg-accent px-2 py-1 text-xs"
           aria-label="End navigation"
