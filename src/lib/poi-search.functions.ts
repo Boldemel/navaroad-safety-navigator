@@ -399,8 +399,8 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         }
       }
       const kwResults = await Promise.all(keywordCalls);
-      kwResults.forEach((list, i) =>
-        list.results.forEach((r) => addRaw(r, keywordSamples[i].lat, keywordSamples[i].lon)),
+      kwResults.forEach((call, i) =>
+        call.results.forEach((r) => addRaw(r, keywordSamples[i].lat, keywordSamples[i].lon)),
       );
     }
 
