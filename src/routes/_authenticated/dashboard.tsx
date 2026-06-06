@@ -723,7 +723,94 @@ function Dashboard() {
           ))}
         </div>
       </div>
+
+      <PoiDialog
+        open={!!poiDialog}
+        onOpenChange={(v) => { if (!v) setPoiDialog(null); }}
+        title={poiDialog?.title ?? ""}
+        result={poiDialog?.result ?? null}
+        onShowOnMap={(p) => {
+          router.navigate({
+            to: "/hazard-map",
+            search: { focusLat: p.lat, focusLon: p.lon, focusLabel: p.name },
+          } as never);
+          setPoiDialog(null);
+        }}
+      />
     </div>
+  );
+}
+
+type PoiDialogResult = NonNullable<Awaited<ReturnType<typeof searchTruckPois>>>;
+type PoiItem = PoiDialogResult["pois"][number];
+
+function typeLabelShort(t?: string) {
+  return t === "truck_stop" ? "Truck stop"
+    : t === "rest_area" ? "Rest area"
+    : t === "parking" ? "Parking"
+    : t === "fuel" ? "Fuel"
+    : t === "weigh_station" ? "Weigh station"
+    : "POI";
+}
+
+function PoiDialog({
+  open, onOpenChange, title, result, onShowOnMap,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  title: string;
+  result: PoiDialogResult | null;
+  onShowOnMap: (p: PoiItem) => void;
+}) {
+  const pois = result?.pois ?? [];
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {pois.length} location{pois.length === 1 ? "" : "s"} along your route · Source: {result?.provider ?? "TomTom"}
+          </DialogDescription>
+        </DialogHeader>
+        {pois.length === 0 ? (
+          <div className="text-sm text-muted-foreground py-8 text-center">No locations found.</div>
+        ) : (
+          <ul className="divide-y divide-border max-h-[60vh] overflow-auto -mx-2 px-2">
+            {pois.map((p) => {
+              const region = [p.city, p.state].filter(Boolean).join(", ");
+              const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}`;
+              return (
+                <li key={p.id} className="py-3 flex items-start gap-3">
+                  <MapPin className="size-4 mt-1 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <div className="font-medium truncate">{p.name}{p.brand && p.brand !== p.name ? ` · ${p.brand}` : ""}</div>
+                    <div className="text-[12px] text-muted-foreground">
+                      {region || p.address || "Location"}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground/80 flex flex-wrap items-center gap-x-2">
+                      <span className="uppercase tracking-wider">{typeLabelShort(p.type)}</span>
+                      {p.distanceMi != null && (
+                        <span>· {p.distanceMi < 1 ? "<1 mi" : `${Math.round(p.distanceMi)} mi`} from route</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    <Button size="sm" variant="outline" onClick={() => onShowOnMap(p)}>
+                      <MapPin className="size-3.5" /> Show on Map
+                    </Button>
+                    <Button size="sm" asChild>
+                      <a href={navUrl} target="_blank" rel="noopener noreferrer">
+                        <Navigation2 className="size-3.5" /> Navigate
+                      </a>
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
