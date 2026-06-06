@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { TRUCK_TYPES, TRAILER_TYPES } from "@/lib/navaroad";
 import { toast } from "sonner";
 import { User } from "lucide-react";
+import { VoiceSettingsCard } from "@/components/voice-settings-card";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   component: Profile,
@@ -118,6 +119,8 @@ function Profile() {
 
         <Button type="submit" disabled={saving} className="w-full sm:w-auto">{saving ? "Saving…" : "Save profile"}</Button>
       </form>
+
+      <VoiceSettingsCard />
     </div>
   );
 }
