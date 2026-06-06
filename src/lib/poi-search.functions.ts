@@ -32,6 +32,17 @@ export type TruckPoiType = "fuel" | "truck_stop" | "rest_area" | "parking" | "we
 
 export type TruckPoiSource = "TomTom" | "OpenStreetMap";
 
+// Truck-routing restriction placeholder (future implementation).
+// Populated as null today; reserved for low-bridge, weight, hazmat, prohibited road,
+// and state truck-route attribution once the truck-routing layer is connected.
+export type TruckRestrictionInfo = {
+  lowBridgeFt?: number | null;
+  maxWeightLbs?: number | null;
+  hazmatAllowed?: boolean | null;
+  truckProhibited?: boolean | null;
+  stateTruckRoute?: string | null;
+};
+
 export type TruckPoi = {
   id: string;
   name: string;
@@ -44,8 +55,10 @@ export type TruckPoi = {
   lat: number;
   lon: number;
   distanceMi?: number | null;
+  routeProgressMi?: number | null;
   phone?: string | null;
   source: TruckPoiSource;
+  restrictions?: TruckRestrictionInfo | null;
 };
 
 export type TruckPoiResult = {
