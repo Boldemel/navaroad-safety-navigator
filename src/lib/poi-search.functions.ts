@@ -28,7 +28,7 @@ const RouteGeometry = z.preprocess((value) => {
 
 const Input = z.object({
   geometry: RouteGeometry,
-  kind: z.enum(["fuel", "parking", "truck_stop", "weigh_station", "cat_scale"]),
+  kind: z.enum(["fuel", "rest_area", "truck_stop", "weigh_station", "cat_scale"]),
   limit: z.number().int().min(1).max(100).optional(),
 });
 
