@@ -202,6 +202,19 @@ type TomTomCall = {
   results: RawResult[];
 };
 
+function truckStopAllowed(hay: string) {
+  return (
+    /\bpilot\b/.test(hay) ||
+    /flying\s*j/.test(hay) ||
+    /love'?s/.test(hay) ||
+    /\bta\b/.test(hay) ||
+    /\bpetro\b/.test(hay) ||
+    /travel\s*cent(er|re)s?/.test(hay) ||
+    /truck\s*plaza/.test(hay) ||
+    /truck\s*stop|truckstop/.test(hay)
+  );
+}
+
 async function tomtomNearby(
   key: string,
   lat: number,
@@ -319,16 +332,9 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         // travel centers, truck plazas, or named truck parking.
         const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
         const isTruckParking =
-          type === "truck_stop" ||
+          (type === "truck_stop" && truckStopAllowed(hay)) ||
           type === "rest_area" ||
-          /\bpilot\b/.test(hay) ||
-          /flying\s*j/.test(hay) ||
-          /love'?s/.test(hay) ||
-          /\bta\b/.test(hay) ||
-          /\bpetro\b/.test(hay) ||
-          /travel\s*cent(er|re)s?/.test(hay) ||
-          /truck\s*plaza/.test(hay) ||
-          /truck\s*stop|truckstop/.test(hay) ||
+          truckStopAllowed(hay) ||
           /truck\s*parking/.test(hay);
         if (!isTruckParking) {
           tomtomFilteredCount += 1;
@@ -338,15 +344,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       if (data.kind === "truck_stop") {
         // Strict allow-list: only major truck-stop chains + generic truck plazas.
         const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
-        const isAllowedTruckStop =
-          /\bpilot\b/.test(hay) ||
-          /flying\s*j/.test(hay) ||
-          /love'?s/.test(hay) ||
-          /\bta\b/.test(hay) ||
-          /travel\s*cent(er|re)s?/.test(hay) ||
-          /\bpetro\b/.test(hay) ||
-          /truck\s*plaza/.test(hay) ||
-          /truck\s*stop|truckstop/.test(hay);
+        const isAllowedTruckStop = truckStopAllowed(hay);
         if (!isAllowedTruckStop) {
           tomtomFilteredCount += 1;
           return;
