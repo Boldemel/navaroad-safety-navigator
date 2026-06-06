@@ -127,10 +127,19 @@ export async function fetchRoadAlerts(opts?: {
     `&timeValidityFilter=present` +
     `&key=${encodeURIComponent(key)}`;
 
-  const res = await fetch(url);
-  if (!res.ok) return [];
-  const j = (await res.json()) as { incidents?: TomTomIncident[] };
-  const incidents = j.incidents ?? [];
+  let incidents: TomTomIncident[] = [];
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn("TomTom traffic incidents request failed", { status: res.status });
+      return [];
+    }
+    const j = (await res.json()) as { incidents?: TomTomIncident[] };
+    incidents = j.incidents ?? [];
+  } catch (e) {
+    console.warn("TomTom traffic incidents request failed", { error: (e as Error).message });
+    return [];
+  }
 
   return incidents.slice(0, 200).map((inc, idx) => {
     const p = inc.properties ?? {};

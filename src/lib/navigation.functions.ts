@@ -26,6 +26,20 @@ export type TruckRoute = {
   provider: "TomTom" | "fallback";
 };
 
+function isValidCoordinate(lat: number, lon: number) {
+  return Number.isFinite(lat) && Number.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+}
+
+function redactTomTomKey(url: string) {
+  try {
+    const u = new URL(url);
+    if (u.searchParams.has("key")) u.searchParams.set("key", "REDACTED_TOMTOM_API_KEY");
+    return u.toString();
+  } catch {
+    return url.replace(/([?&]key=)[^&]+/i, "$1REDACTED_TOMTOM_API_KEY");
+  }
+}
+
 /**
  * Truck-grade route with turn-by-turn text instructions and live traffic ETA.
  * Falls back to a straight-line stub if no TomTom key is configured so the
@@ -34,11 +48,17 @@ export type TruckRoute = {
 export const getTruckRoute = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => Input.parse(d))
   .handler(async ({ data }): Promise<TruckRoute> => {
+    if (!isValidCoordinate(data.originLat, data.originLon) || !isValidCoordinate(data.destLat, data.destLon)) {
+      console.warn("Invalid TomTom navigation route coordinates", {
+        origin: { lat: data.originLat, lon: data.originLon },
+        destination: { lat: data.destLat, lon: data.destLon },
+      });
+      return fallbackRoute(data);
+    }
     const key = process.env.TOMTOM_API_KEY;
     if (key) {
       try {
         const params = new URLSearchParams({
-          travelMode: data.truck === false ? "car" : "truck",
           traffic: "true",
           routeType: "fastest",
           instructionsType: "text",
@@ -46,9 +66,11 @@ export const getTruckRoute = createServerFn({ method: "POST" })
           sectionType: "traffic",
           key,
         });
+        if (data.truck !== false) params.set("travelMode", "truck");
         const url =
           `https://api.tomtom.com/routing/1/calculateRoute/` +
           `${data.originLat},${data.originLon}:${data.destLat},${data.destLon}/json?${params.toString()}`;
+        console.info("TomTom Routing API URL", { mode: data.truck === false ? "standard" : "truck", url: redactTomTomKey(url) });
         const res = await fetch(url);
         if (res.ok) {
           const j = (await res.json()) as {
@@ -95,13 +117,20 @@ export const getTruckRoute = createServerFn({ method: "POST" })
               provider: "TomTom",
             };
           }
+        } else {
+          const body = await res.text().catch(() => "");
+          console.warn("TomTom navigation routing failed", { status: res.status, body: body.slice(0, 500) });
         }
-      } catch {
-        /* fall through */
+      } catch (e) {
+        console.warn("TomTom navigation routing request failed", { error: (e as Error).message });
       }
     }
-    // Fallback: straight line + single "head to destination" instruction.
-    return {
+    return fallbackRoute(data);
+  });
+
+function fallbackRoute(data: z.infer<typeof Input>): TruckRoute {
+  // Fallback: straight line + single "head to destination" instruction.
+  return {
       distanceKm: haversineKm(data.originLat, data.originLon, data.destLat, data.destLon),
       durationMin: haversineKm(data.originLat, data.originLon, data.destLat, data.destLon) / 80 * 60,
       durationTrafficMin: haversineKm(data.originLat, data.originLon, data.destLat, data.destLon) / 80 * 60,
@@ -127,7 +156,7 @@ export const getTruckRoute = createServerFn({ method: "POST" })
       ],
       provider: "fallback",
     };
-  });
+}
 
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;

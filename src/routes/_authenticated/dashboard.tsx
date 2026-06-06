@@ -189,7 +189,11 @@ function Dashboard() {
 
     },
     onSuccess: (data, vars) => {
-      saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
+      if (data.geometry.length >= 2) {
+        saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
+      } else {
+        clearActiveRoute();
+      }
     },
   });
 
@@ -243,8 +247,9 @@ function Dashboard() {
 
   // Live safety feed scoped to the active route corridor (NWS + DOT).
   const result = analysis.isPending ? undefined : analysis.data;
-  const activeRouteForQueries = analysis.isPending ? null : activeRoute;
-  const geometry = result?.geometry ?? activeRouteForQueries?.geometry ?? [];
+  const routeUnavailable = result?.routeStatus === "unavailable";
+  const activeRouteForQueries = analysis.isPending || routeUnavailable ? null : activeRoute;
+  const geometry = routeUnavailable ? [] : (result?.geometry ?? activeRouteForQueries?.geometry ?? []);
   const routeLabel = result
     ? `${origin || result.origin.name} → ${destination || result.destination.name}`
     : activeRouteForQueries
@@ -305,7 +310,7 @@ function Dashboard() {
   const routeRisks = result?.risks ?? [];
   const feedWeatherAlerts = feed?.weatherAlerts ?? [];
   const feedRoadAlerts = feed?.roadAlerts ?? [];
-  const usingRoute = !!result;
+  const usingRoute = !!result && !routeUnavailable;
   const weatherCount = usingRoute
     ? routeRisks.filter((r) => r.type === "precip" || r.type === "visibility" || r.type === "temp" || r.type === "weather_alert").length
     : feedWeatherAlerts.length;
@@ -416,10 +421,20 @@ function Dashboard() {
           </Button>
           {analysis.isError && (
             <div className="text-sm text-destructive border border-destructive/30 bg-destructive/10 rounded-md p-3">
-              {(analysis.error as Error).message || "Failed to analyze route."}
+              {(analysis.error as Error).message || "Route could not be calculated. Please check the address or try another destination."}
             </div>
           )}
-          {result && (
+          {routeUnavailable && (
+            <div className="text-sm text-destructive border border-destructive/30 bg-destructive/10 rounded-md p-3">
+              {result?.routeMessage ?? "Route could not be calculated. Please check the address or try another destination."}
+            </div>
+          )}
+          {result?.routeMessage && !routeUnavailable && (
+            <div className="text-sm text-warning border border-warning/40 bg-warning/10 rounded-md p-3">
+              {result.routeMessage}
+            </div>
+          )}
+          {result && !routeUnavailable && (
             <div className="space-y-3 pt-2 border-t border-border">
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
                 <span><MapPin className="inline size-3.5 mr-1" />{Math.round(result.distanceKm * 0.621371)} mi</span>
@@ -603,7 +618,7 @@ function Dashboard() {
             {analysis.isPending ? <Loader2 className="size-12 animate-spin mx-auto" /> : (score ?? "—")}
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            {score == null ? "Analyze a route to see your score." : result?.recommendedAction}
+            {routeUnavailable ? result?.routeMessage : score == null ? "Analyze a route to see your score." : result?.recommendedAction}
           </p>
           {score != null && result?.riskLevel && (
             <div className="mt-3 rounded-md border border-border bg-background p-3 text-left">
