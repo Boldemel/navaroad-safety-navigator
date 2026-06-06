@@ -280,7 +280,7 @@ function Dashboard() {
       </div>
 
       <div>
-        <h2 className="font-semibold mb-3">Recent live alerts</h2>
+        <h2 className="font-semibold mb-3">Recent live alerts (grouped by type & region)</h2>
         <div className="rounded-xl border border-border bg-card divide-y divide-border">
           {feedLoading && <div className="p-6 text-sm text-muted-foreground">Loading live alerts…</div>}
           {!feedLoading && feedWeatherAlerts.length === 0 && feedRoadAlerts.length === 0 && (
@@ -288,14 +288,17 @@ function Dashboard() {
               <AlertTriangle className="size-4" /> No active weather or road alerts from connected sources.
             </div>
           )}
-          {feedWeatherAlerts.slice(0, 5).map((a) => (
-            <div key={a.id} className="p-4 flex items-start gap-3">
-              <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(a.severity)}`}>{a.severity}</span>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm">{a.event} — {a.areaDesc}</div>
-                <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{a.headline}</div>
+          {groupAlerts(feedWeatherAlerts).slice(0, 6).map((g) => (
+            <div key={g.key} className="p-4 flex items-start gap-3">
+              <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(g.severity)}`}>{g.severity}</span>
+              <div className="flex-1 min-w-0 space-y-0.5">
+                <div className="font-semibold text-sm">{g.event}</div>
+                <div className="text-[12px] text-muted-foreground">
+                  <span className="text-foreground/70 font-medium">Region:</span> {g.region} · <span className="text-foreground/70 font-medium">Effective:</span> {new Date(g.effective).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · {g.count} {g.count === 1 ? "area" : "areas"}
+                </div>
+                <div className="text-[12px]"><span className="text-foreground/70 font-medium">Action:</span> {g.recommendedAction}</div>
               </div>
-              <span className="text-[10px] text-muted-foreground whitespace-nowrap px-2 py-0.5 rounded border border-border">Weather · {a.provider}</span>
+              <span className="text-[10px] text-muted-foreground whitespace-nowrap px-2 py-0.5 rounded border border-border self-start">Weather · {g.provider}</span>
             </div>
           ))}
         </div>
