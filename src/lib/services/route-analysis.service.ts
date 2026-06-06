@@ -58,8 +58,8 @@ function extractTomTomError(body: string) {
     };
     if (j.detailedError?.message) return `${j.detailedError.code ?? "TomTom"}: ${j.detailedError.message}`;
     if (typeof j.error === "string") return j.error;
-    if (j.error?.message) return j.error.message;
-    if (j.error?.description) return j.error.description;
+    if (j.error && typeof j.error === "object" && j.error.message) return j.error.message;
+    if (j.error && typeof j.error === "object" && j.error.description) return j.error.description;
     return j.errorText ?? j.message ?? body.slice(0, 240);
   } catch {
     return body.slice(0, 240) || "TomTom route request failed";
