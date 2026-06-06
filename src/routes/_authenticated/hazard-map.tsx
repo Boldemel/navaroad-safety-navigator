@@ -190,16 +190,29 @@ function HazardMap() {
         </div>
       )}
 
-      <div className="relative aspect-[16/6] rounded-xl border border-dashed border-border bg-sidebar/40 overflow-hidden flex items-center justify-center px-6 text-center">
-        <div className="max-w-md text-sm text-muted-foreground space-y-2">
-          <MapPin className="size-5 mx-auto text-muted-foreground" />
-          <div className="font-medium text-foreground">Interactive map placeholder</div>
-          <p>
-            Geospatial map view will be added later. All live hazards from connected sources
-            are listed below with real coordinates when provided — no sample markers.
-          </p>
-        </div>
+      <div className="relative aspect-[16/8] overflow-hidden">
+        <TomTomMap
+          tomtomKey={tomtom?.key ?? null}
+          showTraffic
+          height="100%"
+          markers={allVisible
+            .filter((m): m is Marker & { lat: number; lon: number } => m.lat != null && m.lon != null)
+            .map<MapMarker>((m) => ({
+              id: m.layer + m.id,
+              lat: m.lat,
+              lon: m.lon,
+              title: m.title,
+              description: `${m.source} · ${m.location}`,
+              color:
+                m.layer === "driver"
+                  ? "#f59e0b"
+                  : m.severity === "critical" || m.severity === "high"
+                    ? "#ef4444"
+                    : "#3b82f6",
+            }))}
+        />
       </div>
+
 
       <div className="space-y-2">
         {loading && (
