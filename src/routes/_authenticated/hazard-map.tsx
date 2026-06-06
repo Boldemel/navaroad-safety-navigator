@@ -2,10 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Wind, AlertTriangle, Construction, Trash2, Car, ParkingCircleOff, CloudRain, CloudLightning } from "lucide-react";
+import { Wind, AlertTriangle, Construction, Trash2, Car, ParkingCircleOff, CloudRain, CloudLightning, Clock, User } from "lucide-react";
 import { HAZARD_TYPES, hazardLabel, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
+import { useDriverNames } from "@/hooks/use-driver-names";
+import { formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
   component: HazardMap,
@@ -31,11 +33,11 @@ function pos(id: string) {
 
 function HazardMap() {
   const [filters, setFilters] = useState<Set<string>>(new Set(HAZARD_TYPES.map((h) => h.value)));
-  useRealtimeInvalidate(["hazard_reports"], [["map-hazards"]]);
+  useRealtimeInvalidate(["hazard_reports"], [["map-hazards"], ["driver-names"]]);
 
+  const { data: drivers = {} } = useDriverNames();
 
-
-  const { data: hazards = [] } = useQuery({
+  const { data: hazards = [], isLoading } = useQuery({
     queryKey: ["map-hazards"],
     queryFn: async () => {
       const { data, error } = await supabase.from("hazard_reports").select("*").order("created_at", { ascending: false });
@@ -93,15 +95,16 @@ function HazardMap() {
           <path d="M600,0 Q540,250 700,500" stroke="oklch(0.4 0.02 250)" strokeWidth="3" fill="none" />
         </svg>
 
-        {visible.length === 0 && (
+        {!isLoading && visible.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-            No hazards match the selected filters.
+            {hazards.length === 0 ? "No hazards reported yet. Be the first to report one." : "No hazards match the selected filters."}
           </div>
         )}
 
         {visible.map((h) => {
           const Icon = ICONS[h.hazard_type] ?? AlertTriangle;
           const p = pos(h.id);
+          const driver = h.reporter_id ? drivers[h.reporter_id] : null;
           return (
             <div
               key={h.id}
@@ -116,11 +119,19 @@ function HazardMap() {
               )}>
                 <Icon className="size-4" />
               </div>
-              <div className="invisible group-hover:visible absolute left-1/2 -translate-x-1/2 mt-2 w-56 rounded-md border border-border bg-popover p-3 text-xs shadow-xl z-10">
+              <div className="invisible group-hover:visible absolute left-1/2 -translate-x-1/2 mt-2 w-60 rounded-md border border-border bg-popover p-3 text-xs shadow-xl z-10">
                 <div className="font-medium text-popover-foreground">{hazardLabel(h.hazard_type)}</div>
                 <div className="text-muted-foreground mt-0.5">{h.location}</div>
                 {h.description && <div className="text-muted-foreground mt-1">{h.description}</div>}
-                <span className={`inline-block mt-2 px-1.5 py-0.5 rounded border text-[10px] uppercase ${severityClasses(h.severity)}`}>{h.severity}</span>
+                <div className="flex items-center justify-between mt-2 gap-2">
+                  <span className={`px-1.5 py-0.5 rounded border text-[10px] uppercase ${severityClasses(h.severity)}`}>{h.severity}</span>
+                  <span className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
+                    <Clock className="size-3" />{formatDistanceToNow(new Date(h.created_at), { addSuffix: true })}
+                  </span>
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-1 inline-flex items-center gap-1">
+                  <User className="size-3" />Reported by {driver ?? "a driver"}
+                </div>
               </div>
             </div>
           );
@@ -128,6 +139,7 @@ function HazardMap() {
       </div>
 
       <div className="text-xs text-muted-foreground">{visible.length} of {hazards.length} hazards shown</div>
+
     </div>
   );
 }
