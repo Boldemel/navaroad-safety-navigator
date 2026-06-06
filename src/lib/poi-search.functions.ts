@@ -27,11 +27,12 @@ const RouteGeometry = z.preprocess((value) => {
 
 const Input = z.object({
   geometry: RouteGeometry,
-  kind: z.enum(["fuel", "parking"]),
+  kind: z.enum(["fuel", "parking", "truck_stop", "weigh_station"]),
   limit: z.number().int().min(1).max(100).optional(),
 });
 
-export type TruckPoiType = "fuel" | "truck_stop" | "rest_area" | "parking";
+export type TruckPoiType = "fuel" | "truck_stop" | "rest_area" | "parking" | "weigh_station";
+
 export type TruckPoiSource = "TomTom" | "OpenStreetMap";
 
 export type TruckPoi = {
