@@ -530,9 +530,14 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       firstTomTomError: firstError,
     });
 
-    let pois = Array.from(seen.values()).sort(
-      (a, b) => (a.distanceMi ?? Infinity) - (b.distanceMi ?? Infinity),
-    );
+    // Sort by route progression (driving order) — closest upcoming stop first.
+    // Tiebreak by perpendicular distance from the route.
+    let pois = Array.from(seen.values()).sort((a, b) => {
+      const pa = a.routeProgressMi ?? Infinity;
+      const pb = b.routeProgressMi ?? Infinity;
+      if (pa !== pb) return pa - pb;
+      return (a.distanceMi ?? Infinity) - (b.distanceMi ?? Infinity);
+    });
     let provider = "TomTom";
     let message =
       data.kind === "parking" && pois.length > 0
