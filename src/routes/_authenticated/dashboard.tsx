@@ -34,6 +34,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function Dashboard() {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
+  const [originPlace, setOriginPlace] = useState<SelectedPlace | null>(null);
+  const [destPlace, setDestPlace] = useState<SelectedPlace | null>(null);
   const [truck, setTruck] = useState("Sleeper");
   const [trailer, setTrailer] = useState("Dry Van");
   useRealtimeInvalidate(["hazard_reports"], [["dash-hazards"]]);
