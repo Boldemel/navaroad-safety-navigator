@@ -75,6 +75,54 @@ function Dashboard() {
     },
   });
 
+  const startNav = useMutation({
+    mutationFn: async () => {
+      const result = analysis.data;
+      if (!result) throw new Error("Analyze a route first.");
+      // Prefer live GPS as origin; fall back to analyzed origin coords.
+      let originLat = result.origin.lat;
+      let originLon = result.origin.lon;
+      let originLabel = result.origin.name;
+      if (geo.status === "granted" && geo.coords) {
+        originLat = geo.coords.lat;
+        originLon = geo.coords.lon;
+        originLabel = "Current location";
+      } else if (geo.status === "idle" || geo.status === "denied") {
+        // Try once — non-blocking if denied.
+        geo.request();
+      }
+      const route = await truckRouteFn({
+        data: {
+          originLat,
+          originLon,
+          destLat: result.destination.lat,
+          destLon: result.destination.lon,
+          truck: true,
+        },
+      });
+      startNavigation({
+        origin: { lat: originLat, lon: originLon, label: originLabel },
+        destination: { lat: result.destination.lat, lon: result.destination.lon, label: result.destination.name },
+        geometry: route.geometry,
+        instructions: route.instructions,
+        totalKm: route.distanceKm,
+        baseDurationMin: route.durationMin,
+        trafficDurationMin: route.durationTrafficMin,
+        truck: true,
+      });
+      saveActiveRoute({
+        origin: originLabel,
+        destination: result.destination.name,
+        geometry: route.geometry,
+      });
+      return route;
+    },
+    onSuccess: () => {
+      router.navigate({ to: "/hazard-map" });
+    },
+  });
+
+
   // Live safety feed scoped to the active route corridor (NWS + DOT).
   const geometry = activeRoute?.geometry ?? [];
   const { data: feed, isLoading: feedLoading } = useQuery({
