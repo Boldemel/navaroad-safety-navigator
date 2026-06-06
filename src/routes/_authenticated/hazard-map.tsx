@@ -204,6 +204,7 @@ function HazardMap() {
           tomtomKey={tomtom?.key ?? null}
           showTraffic
           height="100%"
+          routeGeometry={geometry}
           markers={allVisible
             .filter((m): m is Marker & { lat: number; lon: number } => m.lat != null && m.lon != null)
             .map<MapMarker>((m) => ({
@@ -221,6 +222,17 @@ function HazardMap() {
             }))}
         />
       </div>
+
+      {activeRoute && !loading && apiMarkers.length === 0 && (
+        <div className="rounded-xl border border-border bg-card p-4 text-center text-sm text-muted-foreground">
+          No hazards detected on this route.
+        </div>
+      )}
+      {activeRoute && !loading && apiMarkers.length > 0 && allVisible.length < apiMarkers.length + driverMarkers.length && (
+        <div className="rounded-xl border border-border bg-card p-3 text-xs text-muted-foreground">
+          {(apiMarkers.length + driverMarkers.length) - allVisible.length} hazard(s) hidden by active filters — toggle layers or hazard types above to show them.
+        </div>
+      )}
 
 
       <div className="space-y-2">

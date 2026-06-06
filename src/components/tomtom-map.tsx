@@ -14,6 +14,7 @@ const InnerMap = lazy(() => import("./tomtom-map.client"));
 export function TomTomMap(props: {
   tomtomKey: string | null;
   markers: MapMarker[];
+  routeGeometry?: Array<[number, number]>;
   showTraffic?: boolean;
   height?: string;
 }) {
