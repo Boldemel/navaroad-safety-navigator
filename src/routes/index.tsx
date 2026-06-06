@@ -24,7 +24,7 @@ function Landing() {
           </div>
           Navaroad
         </div>
-        <Button asChild><Link to="/auth">Sign in</Link></Button>
+        <Button asChild><Link to="/auth" search={{ mode: "signin" }}>Sign in</Link></Button>
       </header>
 
       <section className="relative road-grid">
@@ -39,8 +39,9 @@ function Landing() {
             Navaroad surfaces wind risk, road closures, and driver hazard reports so you can re-route before you're stuck.
           </p>
           <div className="mt-8 flex gap-3 justify-center">
-            <Button size="lg" asChild><Link to="/auth">Get started free</Link></Button>
-            <Button size="lg" variant="outline" asChild><Link to="/auth">Sign in</Link></Button>
+            <Button size="lg" asChild><Link to="/auth" search={{ mode: "signup" }}>Get started free</Link></Button>
+            <Button size="lg" variant="outline" asChild><Link to="/auth" search={{ mode: "signin" }}>Sign in</Link></Button>
+
           </div>
         </div>
       </section>
