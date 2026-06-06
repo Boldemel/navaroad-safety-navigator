@@ -117,7 +117,7 @@ function AuthPage() {
               </button>
             </form>
           ) : (
-            <Tabs defaultValue="signin">
+            <Tabs defaultValue={mode === "signup" ? "signup" : "signin"}>
               <TabsList className="grid grid-cols-2 w-full">
                 <TabsTrigger value="signin">Sign in</TabsTrigger>
                 <TabsTrigger value="signup">Sign up</TabsTrigger>
