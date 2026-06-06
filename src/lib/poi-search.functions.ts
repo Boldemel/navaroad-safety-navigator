@@ -32,6 +32,7 @@ const Input = z.object({
 });
 
 export type TruckPoiType = "fuel" | "truck_stop" | "rest_area" | "parking";
+export type TruckPoiSource = "TomTom" | "OpenStreetMap";
 
 export type TruckPoi = {
   id: string;
@@ -46,7 +47,7 @@ export type TruckPoi = {
   lon: number;
   distanceMi?: number | null;
   phone?: string | null;
-  source: "TomTom";
+  source: TruckPoiSource;
 };
 
 export type TruckPoiResult = {
@@ -105,14 +106,46 @@ function sampleEveryMiles(
   return samples.slice(0, maxSamples);
 }
 
-function classify(name: string, brand: string | null, categories: string[]): TruckPoiType {
+function classify(
+  name: string,
+  brand: string | null,
+  categories: string[],
+  fallback: TruckPoiType = "fuel",
+): TruckPoiType {
   const hay = `${name} ${brand ?? ""} ${categories.join(" ")}`.toLowerCase();
   if (/rest area|rest stop/.test(hay)) return "rest_area";
   if (/truck stop|travel center|travel centre|truckstop/.test(hay)) return "truck_stop";
   if (TRUCK_FUEL_BRANDS.some((b) => hay.includes(b.toLowerCase()))) return "truck_stop";
   if (/diesel|fuel|gas station|petrol|gasoline/.test(hay)) return "fuel";
   if (/parking/.test(hay)) return "parking";
-  return "fuel";
+  return fallback;
+}
+
+function distanceToRouteMi(geom: Array<[number, number]>, lat: number, lon: number) {
+  let best = Infinity;
+  for (const [routeLon, routeLat] of geom) {
+    best = Math.min(best, distMi(lat, lon, routeLat, routeLon));
+  }
+  return Number.isFinite(best) ? best : null;
+}
+
+function tomtomError(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const j = payload as {
+    errorText?: string;
+    message?: string;
+    error?: { description?: string; message?: string } | string;
+    detailedError?: { message?: string; code?: string };
+  };
+  if (j.detailedError?.message) return j.detailedError.message;
+  if (typeof j.error === "string") return j.error;
+  if (j.error?.description) return j.error.description;
+  if (j.error?.message) return j.error.message;
+  return j.errorText ?? j.message ?? null;
+}
+
+function redactTomTomKey(url: string, key: string) {
+  return url.replace(key, "REDACTED_TOMTOM_API_KEY");
 }
 
 type RawResult = {
@@ -128,13 +161,20 @@ type RawResult = {
   dist?: number;
 };
 
+type TomTomCall = {
+  url: string;
+  status: number;
+  error: string | null;
+  results: RawResult[];
+};
+
 async function tomtomNearby(
   key: string,
   lat: number,
   lon: number,
   categorySet: string,
   radiusM: number,
-): Promise<RawResult[]> {
+): Promise<TomTomCall> {
   const p = new URLSearchParams({
     key,
     lat: String(lat),
@@ -143,13 +183,13 @@ async function tomtomNearby(
     limit: "50",
     categorySet,
   });
+  const url = `https://api.tomtom.com/search/2/nearbySearch/.json?${p}`;
   try {
-    const r = await fetch(`https://api.tomtom.com/search/2/nearbySearch/.json?${p}`);
-    if (!r.ok) return [];
-    const j = (await r.json()) as { results?: RawResult[] };
-    return j.results ?? [];
+    const r = await fetch(url);
+    const j = (await r.json().catch(() => null)) as { results?: RawResult[] } | null;
+    return { url, status: r.status, error: r.ok ? null : tomtomError(j), results: r.ok ? j?.results ?? [] : [] };
   } catch {
-    return [];
+    return { url, status: 0, error: "TomTom request failed", results: [] };
   }
 }
 
@@ -159,7 +199,7 @@ async function tomtomKeyword(
   lat: number,
   lon: number,
   radiusM: number,
-): Promise<RawResult[]> {
+): Promise<TomTomCall> {
   const p = new URLSearchParams({
     key,
     lat: String(lat),
@@ -168,15 +208,13 @@ async function tomtomKeyword(
     limit: "50",
     idxSet: "POI",
   });
+  const url = `https://api.tomtom.com/search/2/poiSearch/${encodeURIComponent(query)}.json?${p}`;
   try {
-    const r = await fetch(
-      `https://api.tomtom.com/search/2/poiSearch/${encodeURIComponent(query)}.json?${p}`,
-    );
-    if (!r.ok) return [];
-    const j = (await r.json()) as { results?: RawResult[] };
-    return j.results ?? [];
+    const r = await fetch(url);
+    const j = (await r.json().catch(() => null)) as { results?: RawResult[] } | null;
+    return { url, status: r.status, error: r.ok ? null : tomtomError(j), results: r.ok ? j?.results ?? [] : [] };
   } catch {
-    return [];
+    return { url, status: 0, error: "TomTom request failed", results: [] };
   }
 }
 
