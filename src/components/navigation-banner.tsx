@@ -1,11 +1,14 @@
 import { useEffect, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Navigation2, X, Clock, MapPin, ArrowUpRight } from "lucide-react";
+import { Navigation2, X, Clock, MapPin, ArrowUpRight, Volume2, VolumeX } from "lucide-react";
 import { useNavigationSession, updateNavigationRoute, stopNavigation } from "@/hooks/use-navigation-session";
 import { useGeolocation, distanceMiles } from "@/hooks/use-geolocation";
 import { getTruckRoute } from "@/lib/navigation.functions";
 import { saveActiveRoute, clearActiveRoute } from "@/hooks/use-active-route";
+import { useVoiceGuidance } from "@/hooks/use-voice-guidance";
+import { useVoiceSettings } from "@/lib/voice/voice-settings";
+import { cancelSpeech } from "@/lib/voice/voice-engine";
 
 function nearestIndex(here: { lat: number; lon: number }, geometry: Array<[number, number]>): number {
   let best = 0, bestD = Infinity;
@@ -31,6 +34,10 @@ export function NavigationBanner() {
   const session = useNavigationSession();
   const geo = useGeolocation({ watch: true });
   const refetchFn = useServerFn(getTruckRoute);
+  const [voice, setVoice] = useVoiceSettings();
+  useVoiceGuidance();
+
+
 
   const here = geo.coords ? { lat: geo.coords.lat, lon: geo.coords.lon } : null;
 
@@ -146,8 +153,23 @@ export function NavigationBanner() {
         <button
           type="button"
           onClick={() => {
+            const nextMuted = !voice.muted;
+            setVoice({ muted: nextMuted });
+            if (nextMuted) cancelSpeech();
+          }}
+          className="inline-flex items-center gap-1 rounded-md border border-border bg-card hover:bg-accent px-2 py-1 text-xs"
+          aria-label={voice.muted ? "Unmute voice guidance" : "Mute voice guidance"}
+          aria-pressed={!voice.muted}
+          title={voice.muted ? "Voice muted" : "Voice on"}
+        >
+          {voice.muted ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
             stopNavigation();
             clearActiveRoute();
+            cancelSpeech();
           }}
           className="inline-flex items-center gap-1 rounded-md border border-border bg-card hover:bg-accent px-2 py-1 text-xs"
           aria-label="End navigation"

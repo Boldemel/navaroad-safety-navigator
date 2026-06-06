@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { announceHazard } from "@/hooks/use-voice-guidance";
+import { useVoiceSettings } from "@/lib/voice/voice-settings";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -153,6 +155,18 @@ function HazardMap() {
     () => nearestHazardAlert(here, onRoute.length ? onRoute : allHazardsForProximity),
     [here, onRoute, allHazardsForProximity],
   );
+
+  // Speak the highest-priority hazard whenever it changes (deduped by id in the
+  // voice engine so the same alert is not announced twice).
+  const [voiceSettings] = useVoiceSettings();
+  const lastSpokenAlertRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!voiceAlert || voiceSettings.muted || !voiceSettings.hazardAlerts) return;
+    if (lastSpokenAlertRef.current === voiceAlert.hazard.id) return;
+    lastSpokenAlertRef.current = voiceAlert.hazard.id;
+    announceHazard({ id: voiceAlert.hazard.id, title: voiceAlert.speakable, severity: voiceAlert.severity });
+  }, [voiceAlert, voiceSettings.muted, voiceSettings.hazardAlerts]);
+
 
   function toggleType(v: string) {
     setTypeFilters((s) => {
