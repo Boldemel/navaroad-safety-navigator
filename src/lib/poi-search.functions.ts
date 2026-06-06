@@ -156,9 +156,18 @@ function isEvCharging(hay: string) {
   return /\bev\b|electric vehicle|charging station|supercharger|tesla|chargepoint|charge\s*point|electrify america|blink charging|\bblink\b(?!\s*charging)?|evgo|ev-go|wattstation|wattzilla|greenlots|semaconnect|flo charging|volta charging/.test(hay);
 }
 
+// Hard exclusions — banks, ATMs, financial services, EV-only chargers, and
+// other non-truck-related POIs that TomTom sometimes returns inside the
+// rest-area / weigh-station / truck-stop category searches.
+function isExcludedJunk(hay: string) {
+  if (isEvCharging(hay)) return true;
+  return /\batm\b|\bbank\b|credit\s*union|financial|cardtronics|\belan\b|western\s*union|moneygram|insurance|mortgage|\bloan\b|pharmacy|hospital|clinic|dental|hotel|motel|\binn\b|\bresort\b|restaurant|cafe|coffee|mcdonald|starbucks|subway|burger|\bpizza\b|grocery|\bmall\b|car\s*wash|auto\s*parts|dealership/.test(hay);
+}
+
 function isWeighStationStrict(hay: string) {
   if (truckStopAllowed(hay)) return false;
   if (isCatScale(hay)) return false;
+  if (isExcludedJunk(hay)) return false;
   return /weigh\s*station|weigh-in-motion|truck\s*inspection|inspection\s*station|port\s*of\s*entry|dot\s*scale|scale\s*house|agricultural\s*inspection/.test(hay);
 }
 
@@ -543,14 +552,15 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
 
       if (data.kind === "rest_area") {
-        // Strict rest-area: must look like a rest area / welcome center AND
-        // must NOT be a truck stop, fuel station, or CAT scale.
+        // Strict rest-area: must be an explicit rest area, welcome center,
+        // service plaza, or travel plaza. Reject truck stops, fuel stations,
+        // CAT scales, banks, ATMs, EV chargers, and other unrelated POIs.
         const looksLikeRestArea =
-          type === "rest_area" ||
-          /rest\s*area|rest\s*stop|welcome\s*cent(er|re)|safety\s*rest/.test(hay);
+          /\brest\s*area\b|\brest\s*stop\b|welcome\s*cent(er|re)|safety\s*rest|service\s*plaza|travel\s*plaza|service\s*area/.test(hay);
         const isOtherCategory =
           truckStopAllowed(hay) ||
           isCatScale(hay) ||
+          isExcludedJunk(hay) ||
           /gas\s*station|petrol|gasoline|fuel\s*station/.test(hay);
         if (!looksLikeRestArea || isOtherCategory) {
           tomtomFilteredCount += 1;
@@ -558,7 +568,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         }
       }
       if (data.kind === "truck_stop") {
-        if (isNotTruckStop(hay) || !truckStopAllowed(hay)) {
+        if (isNotTruckStop(hay) || isExcludedJunk(hay) || !truckStopAllowed(hay)) {
           tomtomFilteredCount += 1;
           return;
         }
