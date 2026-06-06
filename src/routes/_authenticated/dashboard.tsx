@@ -142,7 +142,7 @@ function Dashboard() {
     if (origin.trim().length < 2 || destination.trim().length < 2) return;
     setPendingAutoAnalyze(false);
     analysis.mutate({
-      origin, destination, truck, trailer,
+      origin, destination, truck, trailer, truckProfile,
       ...(originPlace ? { originCoords: { lat: originPlace.lat, lon: originPlace.lon } } : {}),
       ...(destPlace ? { destinationCoords: { lat: destPlace.lat, lon: destPlace.lon } } : {}),
     });
@@ -157,6 +157,7 @@ function Dashboard() {
       origin: string; destination: string; truck: string; trailer: string;
       originCoords?: { lat: number; lon: number };
       destinationCoords?: { lat: number; lon: number };
+      truckProfile?: typeof truckProfile;
     }) => analyzeFn({ data: vars }),
     onSuccess: (data, vars) => {
       saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
