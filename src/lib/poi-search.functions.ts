@@ -540,25 +540,21 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         data.kind === "weigh_station" ? "weigh_station"
         : data.kind === "cat_scale" ? "cat_scale"
         : data.kind === "rest_area" ? "rest_area"
-        : data.kind === "truck_stop" ? "truck_stop"
-        : "fuel";
+        : "truck_stop";
       const type = classify(name, brand, cats, fallbackType);
       const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
 
-      if (data.kind === "fuel") {
-        // Exclude EV charging. Accept any station returned by the fuel
-        // category search (TomTom rarely embeds "diesel" in station names,
-        // and virtually every interstate gas station sells diesel).
-        if (isEvCharging(hay)) {
-          tomtomFilteredCount += 1;
-          return;
-        }
-      }
       if (data.kind === "rest_area") {
-        const isRestArea =
+        // Strict rest-area: must look like a rest area / welcome center AND
+        // must NOT be a truck stop, fuel station, or CAT scale.
+        const looksLikeRestArea =
           type === "rest_area" ||
           /rest\s*area|rest\s*stop|welcome\s*cent(er|re)|safety\s*rest/.test(hay);
-        if (!isRestArea) {
+        const isOtherCategory =
+          truckStopAllowed(hay) ||
+          isCatScale(hay) ||
+          /gas\s*station|petrol|gasoline|fuel\s*station/.test(hay);
+        if (!looksLikeRestArea || isOtherCategory) {
           tomtomFilteredCount += 1;
           return;
         }
