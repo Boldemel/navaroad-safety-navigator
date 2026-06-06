@@ -89,7 +89,7 @@ function Dashboard() {
   // driver gets a fresh Safety Score without a second click.
   useEffect(() => {
     if (!pendingAutoAnalyze) return;
-    if (!origin || !destination) return;
+    if (origin.trim().length < 2 || destination.trim().length < 2) return;
     setPendingAutoAnalyze(false);
     analysis.mutate({ origin, destination, truck, trailer });
     // eslint-disable-next-line react-hooks/exhaustive-deps
