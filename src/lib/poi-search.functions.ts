@@ -332,15 +332,13 @@ function overpassQueryFor(kind: "rest_area" | "weigh_station", samples: Array<{ 
   for (const s of samples) {
     const around = `around:${radius},${s.lat.toFixed(5)},${s.lon.toFixed(5)}`;
     if (kind === "rest_area") {
-      // Rest areas, service areas, and truck-friendly parking (hgv=yes).
+      // Strictly rest areas + service areas. Truck parking lots are
+      // intentionally excluded because they often sit at truck-stop brands
+      // (Pilot/Love's) and would leak into the Rest Areas list.
       clauses.push(`node["highway"="rest_area"](${around});`);
       clauses.push(`way["highway"="rest_area"](${around});`);
       clauses.push(`node["highway"="services"](${around});`);
       clauses.push(`way["highway"="services"](${around});`);
-      clauses.push(`node["amenity"="parking"]["hgv"="yes"](${around});`);
-      clauses.push(`way["amenity"="parking"]["hgv"="yes"](${around});`);
-      clauses.push(`node["amenity"="parking"]["access"="hgv"](${around});`);
-      clauses.push(`way["amenity"="parking"]["access"="hgv"](${around});`);
     } else {
       clauses.push(`node["highway"="weigh_station"](${around});`);
       clauses.push(`way["highway"="weigh_station"](${around});`);
