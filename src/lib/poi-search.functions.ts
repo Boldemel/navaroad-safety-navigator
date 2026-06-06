@@ -386,30 +386,11 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         : undefined;
 
     if (pois.length === 0) {
-      const fallback = await searchOpenStreetMapPois(data.kind, data.geometry, samples);
-      const routeFilteredFallback = fallback.filter((p) => (p.distanceMi ?? Infinity) <= corridorRadiusMi);
-      tomtomRawCount += fallback.length;
-      tomtomFilteredCount += fallback.length - routeFilteredFallback.length;
-      console.info("Navaroad OSM POI fallback diagnostics", {
-        kind: data.kind,
-        routePointCount: data.geometry.length,
-        sampleCount: samples.length,
-        rawFallbackCount: fallback.length,
-        routeFilteredFallbackCount: routeFilteredFallback.length,
-        corridorRadiusMi,
-      });
-      if (routeFilteredFallback.length > 0) {
-        pois = routeFilteredFallback;
-        provider = "OpenStreetMap";
-        message = firstError
-          ? `OpenStreetMap fallback — route filtered. TomTom Search returned: ${firstError}.`
-          : "OpenStreetMap fallback — route filtered.";
-      } else {
-        message = firstError
-          ? `TomTom Search returned: ${firstError}. No fallback locations were returned along the route.`
-          : "No route-filtered fallback locations were returned along the route.";
-      }
+      message = firstError
+        ? `TomTom Search returned: ${firstError}. No locations found along the route.`
+        : "No TomTom locations found along the route corridor.";
     }
+
 
     const totalFound = pois.length;
     const routeStart = data.geometry[0];
