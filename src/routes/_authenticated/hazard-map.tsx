@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Wind, AlertTriangle, Construction, Trash2, Car, ParkingCircleOff, CloudRain,
-  CloudLightning, Clock, User, Cloud, Radio, MapPin,
+  CloudLightning, Clock, User, Cloud, Radio, MapPin, LocateFixed, Megaphone,
 } from "lucide-react";
 import { HAZARD_TYPES, hazardLabel, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,9 @@ import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { getTomTomKey } from "@/lib/tomtom.functions";
 import { TomTomMap, type MapMarker } from "@/components/tomtom-map";
 import { useActiveRoute } from "@/hooks/use-active-route";
+import { useGeolocation } from "@/hooks/use-geolocation";
+import { hazardsWithin, nearestHazardAlert, type HazardLike } from "@/lib/hazard-proximity";
+
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
   component: HazardMap,
