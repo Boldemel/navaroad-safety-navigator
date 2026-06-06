@@ -65,6 +65,16 @@ function Dashboard() {
     return sampled;
   }
 
+  function routeSignature(geom: Array<[number, number]>) {
+    if (geom.length < 2) return "none";
+    let hash = 0;
+    for (const [lon, lat] of sampleRouteGeometry(geom, 40)) {
+      const part = `${lon.toFixed(4)},${lat.toFixed(4)}`;
+      for (let i = 0; i < part.length; i++) hash = (hash * 31 + part.charCodeAt(i)) >>> 0;
+    }
+    return `${geom.length}:${hash.toString(16)}`;
+  }
+
   const [pendingAutoAnalyze, setPendingAutoAnalyze] = useState(false);
 
   // Load truck profile from Supabase so analysis uses driver-saved dimensions.
@@ -229,15 +239,14 @@ function Dashboard() {
 
   // Live safety feed scoped to the active route corridor (NWS + DOT).
   const result = analysis.isPending ? undefined : analysis.data;
-  const geometry = result?.geometry ?? activeRoute?.geometry ?? [];
+  const activeRouteForQueries = analysis.isPending ? null : activeRoute;
+  const geometry = result?.geometry ?? activeRouteForQueries?.geometry ?? [];
   const routeLabel = result
     ? `${origin || result.origin.name} → ${destination || result.destination.name}`
-    : activeRoute
-      ? `${activeRoute.origin} → ${activeRoute.destination}`
+    : activeRouteForQueries
+      ? `${activeRouteForQueries.origin} → ${activeRouteForQueries.destination}`
       : "No active route";
-  const routeKey = geometry.length >= 2
-    ? `${geometry.length}:${geometry[0][0].toFixed(5)},${geometry[0][1].toFixed(5)}:${geometry[geometry.length - 1][0].toFixed(5)},${geometry[geometry.length - 1][1].toFixed(5)}`
-    : "none";
+  const routeKey = routeSignature(geometry);
   const { data: feed, isLoading: feedLoading } = useQuery({
     queryKey: ["safety-feed", routeKey],
     queryFn: () => feedFn({ data: { geometry } }),
