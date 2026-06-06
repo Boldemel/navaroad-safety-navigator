@@ -97,24 +97,16 @@ function sampleEveryMiles(
     pts.push({ lon: lon2, lat: lat2, cum });
   }
   const total = cum;
+  const targetCount = Math.min(maxSamples, Math.max(2, Math.ceil(total / stepMi) + 1));
   const samples: Array<{ lat: number; lon: number }> = [];
-  let target = 0;
   let idx = 0;
-  while (target <= total && samples.length < maxSamples) {
+  for (let i = 0; i < targetCount; i++) {
+    const target = targetCount === 1 ? 0 : (i / (targetCount - 1)) * total;
     while (idx < pts.length - 1 && pts[idx + 1].cum < target) idx++;
     const p = pts[idx];
     samples.push({ lat: p.lat, lon: p.lon });
-    target += stepMi;
   }
-  // Always include destination
-  const last = pts[pts.length - 1];
-  if (
-    samples.length === 0 ||
-    distMi(samples[samples.length - 1].lat, samples[samples.length - 1].lon, last.lat, last.lon) > 5
-  ) {
-    samples.push({ lat: last.lat, lon: last.lon });
-  }
-  return samples.slice(0, maxSamples);
+  return samples;
 }
 
 function classify(
