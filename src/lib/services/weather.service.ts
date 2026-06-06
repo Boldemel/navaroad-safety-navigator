@@ -186,7 +186,7 @@ export async function fetchAlertsForPoint(lat: number, lon: number): Promise<Wea
   });
   if (!res.ok) return [];
   const j = (await res.json()) as {
-    features?: Array<{ id: string; properties: Record<string, string> }>;
+    features?: Array<{ id: string; geometry?: unknown; properties: Record<string, string> }>;
   };
   return mapFeatures(j.features ?? []);
 }
