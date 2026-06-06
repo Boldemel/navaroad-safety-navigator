@@ -45,6 +45,69 @@ export function hazardsWithin(
 }
 
 /**
+ * Bounding box of a polyline expanded by `padMi` miles. Useful for
+ * "is this hazard inside the active route's bounds?" checks.
+ */
+export function routeBounds(
+  geometry: Array<[number, number]>,
+  padMi = 0,
+): { minLat: number; maxLat: number; minLon: number; maxLon: number } | null {
+  if (!geometry || geometry.length < 2) return null;
+  let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+  for (const [lat, lon] of geometry) {
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+    if (lon < minLon) minLon = lon;
+    if (lon > maxLon) maxLon = lon;
+  }
+  const latPad = padMi / 69; // ~69 mi / deg lat
+  const midLat = (minLat + maxLat) / 2;
+  const lonPad = padMi / (69 * Math.max(0.2, Math.cos((midLat * Math.PI) / 180)));
+  return {
+    minLat: minLat - latPad,
+    maxLat: maxLat + latPad,
+    minLon: minLon - lonPad,
+    maxLon: maxLon + lonPad,
+  };
+}
+
+/** Min distance (miles) from a point to any vertex of a polyline. */
+function minDistToPolyline(
+  pt: { lat: number; lon: number },
+  geometry: Array<[number, number]>,
+): number {
+  let best = Infinity;
+  for (let i = 0; i < geometry.length; i++) {
+    const [lat, lon] = geometry[i];
+    const d = distanceMiles(pt, { lat, lon });
+    if (d < best) best = d;
+  }
+  return best;
+}
+
+/**
+ * Filter hazards to those within `corridorMi` of the active route polyline.
+ * Uses a bounding-box prefilter, then per-vertex distance. Sorted by
+ * distance-to-route ascending.
+ */
+export function hazardsAlongRoute(
+  geometry: Array<[number, number]>,
+  hazards: HazardLike[],
+  corridorMi = 10,
+): Array<NearbyHazard> {
+  const bounds = routeBounds(geometry, corridorMi);
+  if (!bounds) return [];
+  const out: NearbyHazard[] = [];
+  for (const h of hazards) {
+    if (h.lat == null || h.lon == null || !Number.isFinite(h.lat) || !Number.isFinite(h.lon)) continue;
+    if (h.lat < bounds.minLat || h.lat > bounds.maxLat || h.lon < bounds.minLon || h.lon > bounds.maxLon) continue;
+    const d = minDistToPolyline({ lat: h.lat, lon: h.lon }, geometry);
+    if (d <= corridorMi) out.push({ ...h, lat: h.lat, lon: h.lon, distanceMi: d });
+  }
+  return out.sort((a, b) => a.distanceMi - b.distanceMi);
+}
+
+/**
  * Compute the alert payload a voice-alert layer would speak: the nearest
  * hazard, its distance, severity, and a recommended action.
  */
