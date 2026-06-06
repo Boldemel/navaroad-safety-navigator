@@ -196,7 +196,7 @@ function Dashboard() {
     onMutate: () => {
       setAnalyzedRouteKey(null);
       clearActiveRoute();
-      queryClient.removeQueries({ queryKey: ["fuel-stops"] });
+      queryClient.removeQueries({ queryKey: ["cat-scales"] });
       queryClient.removeQueries({ queryKey: ["rest-areas"] });
       queryClient.removeQueries({ queryKey: ["truck-stops"] });
       queryClient.removeQueries({ queryKey: ["weigh-stations"] });
