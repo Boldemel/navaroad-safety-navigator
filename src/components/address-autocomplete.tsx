@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, MapPin, Search } from "lucide-react";
+import { Loader2, MapPin, Search, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { searchAddresses, type AddressSuggestion } from "@/lib/geo-search.functions";
@@ -14,6 +14,12 @@ export type SelectedPlace = {
   country: string | null;
 };
 
+export type FavoriteSuggestion = SelectedPlace & {
+  id: string;
+  categoryLabel: string;
+  customLabel: string;
+};
+
 type Props = {
   value: string;
   onChange: (text: string) => void;
@@ -22,7 +28,9 @@ type Props = {
   required?: boolean;
   proximity?: { lat: number; lon: number } | null;
   inputId?: string;
+  favorites?: FavoriteSuggestion[];
 };
+
 
 export function AddressAutocomplete({
   value,
