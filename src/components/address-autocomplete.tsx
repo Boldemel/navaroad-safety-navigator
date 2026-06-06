@@ -40,6 +40,7 @@ export function AddressAutocomplete({
   required,
   proximity,
   inputId,
+  favorites,
 }: Props) {
   const searchFn = useServerFn(searchAddresses);
   const [open, setOpen] = useState(false);
