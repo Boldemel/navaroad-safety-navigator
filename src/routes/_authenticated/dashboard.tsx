@@ -306,3 +306,15 @@ function StatCard({ icon, label, count, sub, accent, loading }: { icon: React.Re
     </div>
   );
 }
+
+function BreakdownRow({ label, value, source }: { label: string; value: number; source: string }) {
+  return (
+    <div className="flex items-center justify-between text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="flex items-center gap-2">
+        <span className="text-[10px] text-muted-foreground/70">{source}</span>
+        <span className={`font-mono tabular-nums ${value > 0 ? "text-destructive" : "text-muted-foreground"}`}>−{value}</span>
+      </span>
+    </div>
+  );
+}
