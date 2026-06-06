@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Wind, Construction, AlertTriangle, Route as RouteIcon, ShieldCheck, Loader2,
-  CloudRain, Thermometer, MapPin, Radio, Users, Cloud, Lightbulb,
+  CloudRain, Thermometer, MapPin, Radio, Users, Cloud, Lightbulb, Info,
 } from "lucide-react";
 import { TRUCK_TYPES, TRAILER_TYPES, severityClasses } from "@/lib/navaroad";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { analyzeRoute } from "@/lib/route-analysis.functions";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
@@ -56,15 +57,29 @@ function Dashboard() {
     },
   });
 
-  const weatherAlerts = feed?.weatherAlerts ?? [];
-  const roadAlerts = feed?.roadAlerts ?? [];
-  const windCount = weatherAlerts.filter((a) => a.category === "high_wind" || a.category === "tornado").length;
-  const weatherCount = weatherAlerts.length;
-  const closureCount = roadAlerts.filter((a) => a.category === "road_closure" || a.category === "detour").length;
+  const result = analysis.data;
+
+  // Stat cards: prefer the analyzed route when present, else fall back to the
+  // live national feed. This keeps Wind/Weather Risk specific to the path.
+  const routeRisks = result?.risks ?? [];
+  const feedWeatherAlerts = feed?.weatherAlerts ?? [];
+  const feedRoadAlerts = feed?.roadAlerts ?? [];
+  const usingRoute = !!result;
+  const weatherCount = usingRoute
+    ? routeRisks.filter((r) => r.type === "precip" || r.type === "visibility" || r.type === "temp" || r.type === "weather_alert").length
+    : feedWeatherAlerts.length;
+  const windCount = usingRoute
+    ? routeRisks.filter((r) => r.type === "wind").length + feedWeatherAlerts.filter((a) => result && result.weatherAlerts.some((x) => x.id === a.id) && (a.category === "high_wind" || a.category === "tornado")).length
+    : feedWeatherAlerts.filter((a) => a.category === "high_wind" || a.category === "tornado").length;
+  const closureCount = usingRoute
+    ? routeRisks.filter((r) => r.type === "closure").length
+    : feedRoadAlerts.filter((a) => a.category === "road_closure" || a.category === "detour").length;
   const driverCount = hazards.length;
 
-  const result = analysis.data;
   const score = result?.score ?? null;
+  const breakdown = result?.breakdown;
+  const trailerBump = ["Dry Van", "Reefer", "Curtain Side"].includes(trailer) ? 6 : 2;
+  const totalPenalty = breakdown ? breakdown.weather + breakdown.wind + breakdown.closure + breakdown.hazard + trailerBump : 0;
 
   function onAnalyze(e: React.FormEvent) {
     e.preventDefault();
@@ -192,9 +207,29 @@ function Dashboard() {
           )}
         </form>
 
-        <div className="rounded-xl border border-border bg-card p-5 flex flex-col items-center justify-center text-center">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="rounded-xl border border-border bg-card p-5 flex flex-col text-center">
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <ShieldCheck className="size-4" /> Route Safety Score
+            <Popover>
+              <PopoverTrigger asChild>
+                <button type="button" aria-label="How is this calculated?" className="text-muted-foreground hover:text-foreground">
+                  <Info className="size-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 text-xs text-left space-y-2">
+                <div className="font-semibold text-sm">How the score is calculated</div>
+                <p>Start at <strong>98</strong>. Subtract penalties from four live sources, then subtract a small trailer-profile bump.</p>
+                <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                  <li><strong>Weather</strong> (Open-Meteo per route sample): precip ≥5 mm = 10, ≥1 mm = 4, snow = 14, thunderstorm = 20, fog / vis &lt; 1 km = 8, temp ≤ −5 °C = 6.</li>
+                  <li><strong>Wind</strong> (Open-Meteo): gusts ≥75 km/h = 28, ≥55 km/h or wind ≥45 km/h = 14, wind ≥30 km/h = 5.</li>
+                  <li><strong>NWS alerts</strong> intersecting route: critical 35 · high 18 · medium 8 · low 3 (wind/tornado count toward wind).</li>
+                  <li><strong>Road closures</strong> (DOT, when connected): same severity weights.</li>
+                  <li><strong>Driver reports</strong> nearby: up to 20.</li>
+                  <li><strong>Trailer profile</strong>: high-wind-sensitive trailers add 6, others 2.</li>
+                </ul>
+                <p>Final score is clamped 20–99. Score = 98 − (weather + wind + closure + hazard + trailer).</p>
+              </PopoverContent>
+            </Popover>
           </div>
           <div className={`mt-3 text-6xl font-bold ${score == null ? "text-muted-foreground" : score >= 80 ? "text-success" : score >= 60 ? "text-warning" : "text-destructive"}`}>
             {analysis.isPending ? <Loader2 className="size-12 animate-spin mx-auto" /> : (score ?? "—")}
@@ -202,16 +237,32 @@ function Dashboard() {
           <p className="text-xs text-muted-foreground mt-2">
             {score == null ? "Analyze a route to see your score." : result?.recommendedAction}
           </p>
+          {breakdown && score != null && (
+            <div className="mt-4 pt-4 border-t border-border text-left space-y-1.5">
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Breakdown (penalties)</div>
+              <BreakdownRow label="Weather" value={breakdown.weather} source="Open-Meteo" />
+              <BreakdownRow label="Wind" value={breakdown.wind} source="Open-Meteo" />
+              <BreakdownRow label="Road closures" value={breakdown.closure} source={result?.providers.road ?? "not connected"} />
+              <BreakdownRow label="Driver reports" value={breakdown.hazard} source="Community" />
+              <BreakdownRow label={`Trailer (${trailer})`} value={trailerBump} source="Profile" />
+              <div className="flex justify-between text-xs pt-1.5 mt-1.5 border-t border-border">
+                <span className="font-medium">98 − {totalPenalty} =</span>
+                <span className="font-semibold">{score}</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       <div>
-        <h2 className="font-semibold mb-3">Live safety signals</h2>
+        <h2 className="font-semibold mb-3">
+          Live safety signals {usingRoute && <span className="text-xs text-muted-foreground font-normal">· filtered to your route</span>}
+        </h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={<Cloud className="size-5" />} label="Weather Risk" count={weatherCount} sub="NWS alerts" accent="primary" loading={feedLoading} />
-          <StatCard icon={<Wind className="size-5" />} label="Wind Risk" count={windCount} sub="High wind / tornado" accent="primary" loading={feedLoading} />
-          <StatCard icon={<Construction className="size-5" />} label="DOT / Road Closure Risk" count={closureCount} sub={feed?.providers.road === "not_connected" ? "Connect DOT API" : "Active closures"} accent="destructive" loading={feedLoading} />
-          <StatCard icon={<Users className="size-5" />} label="Driver Reports" count={driverCount} sub="Community layer" accent="warning" />
+          <StatCard icon={<Cloud className="size-5" />} label="Weather Risk" count={weatherCount} sub={usingRoute ? "On this route (Open-Meteo + NWS)" : "Active NWS alerts (national)"} accent="primary" loading={feedLoading} />
+          <StatCard icon={<Wind className="size-5" />} label="Wind Risk" count={windCount} sub={usingRoute ? "Wind/gust risks on this route" : "Active high-wind / tornado (NWS)"} accent="primary" loading={feedLoading} />
+          <StatCard icon={<Construction className="size-5" />} label="DOT / Road Closure Risk" count={closureCount} sub={feed?.providers.road === "not_connected" ? "Connect DOT API" : usingRoute ? "Closures on this route" : "Active closures"} accent="destructive" loading={feedLoading} />
+          <StatCard icon={<Users className="size-5" />} label="Driver Reports" count={driverCount} sub="Community layer · live" accent="warning" />
         </div>
       </div>
 
@@ -219,12 +270,12 @@ function Dashboard() {
         <h2 className="font-semibold mb-3">Recent live alerts</h2>
         <div className="rounded-xl border border-border bg-card divide-y divide-border">
           {feedLoading && <div className="p-6 text-sm text-muted-foreground">Loading live alerts…</div>}
-          {!feedLoading && weatherAlerts.length === 0 && roadAlerts.length === 0 && (
+          {!feedLoading && feedWeatherAlerts.length === 0 && feedRoadAlerts.length === 0 && (
             <div className="p-6 text-sm text-muted-foreground inline-flex items-center gap-2">
               <AlertTriangle className="size-4" /> No active weather or road alerts from connected sources.
             </div>
           )}
-          {weatherAlerts.slice(0, 5).map((a) => (
+          {feedWeatherAlerts.slice(0, 5).map((a) => (
             <div key={a.id} className="p-4 flex items-start gap-3">
               <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(a.severity)}`}>{a.severity}</span>
               <div className="flex-1 min-w-0">
@@ -252,6 +303,18 @@ function StatCard({ icon, label, count, sub, accent, loading }: { icon: React.Re
       <div className="mt-4 text-3xl font-semibold">{loading ? <Loader2 className="size-7 animate-spin" /> : count}</div>
       <div className="text-sm text-muted-foreground">{label}</div>
       {sub && <div className="text-[11px] text-muted-foreground/80 mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+function BreakdownRow({ label, value, source }: { label: string; value: number; source: string }) {
+  return (
+    <div className="flex items-center justify-between text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="flex items-center gap-2">
+        <span className="text-[10px] text-muted-foreground/70">{source}</span>
+        <span className={`font-mono tabular-nums ${value > 0 ? "text-destructive" : "text-muted-foreground"}`}>−{value}</span>
+      </span>
     </div>
   );
 }
