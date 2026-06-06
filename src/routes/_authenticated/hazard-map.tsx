@@ -24,6 +24,13 @@ import { hazardsWithin, hazardsAlongRoute, nearestHazardAlert, type HazardLike }
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
   component: HazardMap,
+  validateSearch: (search: Record<string, unknown>) => ({
+    focusLat: typeof search.focusLat === "number" ? search.focusLat
+      : typeof search.focusLat === "string" ? Number(search.focusLat) : undefined,
+    focusLon: typeof search.focusLon === "number" ? search.focusLon
+      : typeof search.focusLon === "string" ? Number(search.focusLon) : undefined,
+    focusLabel: typeof search.focusLabel === "string" ? search.focusLabel : undefined,
+  }),
 });
 
 const HAZARD_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
