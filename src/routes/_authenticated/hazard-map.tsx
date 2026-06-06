@@ -79,6 +79,11 @@ function HazardMap() {
   const activeRoute = useActiveRoute();
   const geometry = activeRoute?.geometry ?? [];
   const geo = useGeolocation({ watch: true });
+  const { focusLat, focusLon, focusLabel } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const hasFocus = Number.isFinite(focusLat) && Number.isFinite(focusLon);
+  const focusPoint = hasFocus ? { lat: focusLat as number, lon: focusLon as number } : null;
+  const clearFocus = () => navigate({ search: { focusLat: undefined, focusLon: undefined, focusLabel: undefined }, replace: true } as never);
 
 
   const { data: tomtom } = useQuery({
