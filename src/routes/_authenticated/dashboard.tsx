@@ -78,7 +78,7 @@ function Dashboard() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        <form onSubmit={analyze} className="lg:col-span-2 rounded-xl border border-border bg-card p-5 space-y-4">
+        <form onSubmit={onAnalyze} className="lg:col-span-2 rounded-xl border border-border bg-card p-5 space-y-4">
           <div className="flex items-center gap-2">
             <RouteIcon className="size-4 text-primary" />
             <h2 className="font-semibold">Route Analysis</h2>
@@ -107,7 +107,45 @@ function Dashboard() {
               </Select>
             </div>
           </div>
-          <Button type="submit" className="w-full sm:w-auto">Analyze Route</Button>
+          <Button type="submit" disabled={analysis.isPending} className="w-full sm:w-auto">
+            {analysis.isPending ? (<><Loader2 className="size-4 mr-2 animate-spin" />Analyzing…</>) : "Analyze Route"}
+          </Button>
+          {analysis.isError && (
+            <div className="text-sm text-destructive border border-destructive/30 bg-destructive/10 rounded-md p-3">
+              {(analysis.error as Error).message || "Failed to analyze route."}
+            </div>
+          )}
+          {result && (
+            <div className="space-y-3 pt-2 border-t border-border">
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
+                <span><MapPin className="inline size-3.5 mr-1" />{Math.round(result.distanceKm)} km</span>
+                <span>~{Math.round(result.durationMin)} min drive</span>
+              </div>
+              <div className="grid sm:grid-cols-3 gap-2">
+                {result.weather.map((w) => (
+                  <div key={w.label} className="rounded-md border border-border bg-background p-3 text-xs space-y-1">
+                    <div className="font-medium text-sm text-foreground">{w.label}</div>
+                    <div className="text-muted-foreground">{w.condition}</div>
+                    <div className="flex items-center gap-2"><Thermometer className="size-3" />{w.tempC != null ? `${Math.round(w.tempC)}°C` : "—"}</div>
+                    <div className="flex items-center gap-2"><Wind className="size-3" />{w.windKph != null ? `${Math.round(w.windKph)} km/h` : "—"}{w.gustKph != null && ` (gust ${Math.round(w.gustKph)})`}</div>
+                    <div className="flex items-center gap-2"><CloudRain className="size-3" />{w.precipMm != null ? `${w.precipMm} mm` : "—"}</div>
+                  </div>
+                ))}
+              </div>
+              {result.risks.length > 0 ? (
+                <ul className="space-y-1.5">
+                  {result.risks.map((r, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(r.severity)}`}>{r.severity}</span>
+                      <span>{r.message}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-success">No major weather or road risks detected.</p>
+              )}
+            </div>
+          )}
         </form>
 
         <div className="rounded-xl border border-border bg-card p-5 flex flex-col items-center justify-center text-center">
@@ -115,13 +153,14 @@ function Dashboard() {
             <ShieldCheck className="size-4" /> Route Safety Score
           </div>
           <div className={`mt-3 text-6xl font-bold ${score == null ? "text-muted-foreground" : score >= 80 ? "text-success" : score >= 60 ? "text-warning" : "text-destructive"}`}>
-            {score ?? "—"}
+            {analysis.isPending ? <Loader2 className="size-12 animate-spin mx-auto" /> : (score ?? "—")}
           </div>
           <p className="text-xs text-muted-foreground mt-2">
             {score == null ? "Analyze a route to see your score." : score >= 80 ? "Low risk — clear to roll." : score >= 60 ? "Caution — review alerts." : "High risk — consider delay or alt route."}
           </p>
         </div>
       </div>
+
 
       <div>
         <h2 className="font-semibold mb-3">Active Alerts</h2>
