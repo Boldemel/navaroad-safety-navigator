@@ -60,13 +60,7 @@ function HazardMap() {
 
   const { data: drivers = {} } = useDriverNames();
   const feedFn = useServerFn(getSafetyFeed);
-  const mapConfigFn = useServerFn(getMapConfig);
 
-  const { data: mapConfig } = useQuery({
-    queryKey: ["map-config"],
-    queryFn: () => mapConfigFn(),
-    staleTime: Infinity,
-  });
 
   const { data: feed, isLoading: feedLoading } = useQuery({
     queryKey: ["safety-feed"],
