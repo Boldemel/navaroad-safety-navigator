@@ -143,9 +143,15 @@ function HazardMap() {
     () => (here ? hazardsWithin(here, allHazardsForProximity, 25) : []),
     [here, allHazardsForProximity],
   );
+  const onRoute = useMemo(
+    () => (geometry.length >= 2 ? hazardsAlongRoute(geometry, allHazardsForProximity, 10) : []),
+    [geometry, allHazardsForProximity],
+  );
+  // Voice alert prioritises on-route hazards (within 10 mi corridor of the
+  // active route) over generic 25mi-from-driver proximity.
   const voiceAlert = useMemo(
-    () => nearestHazardAlert(here, allHazardsForProximity),
-    [here, allHazardsForProximity],
+    () => nearestHazardAlert(here, onRoute.length ? onRoute : allHazardsForProximity),
+    [here, onRoute, allHazardsForProximity],
   );
 
   function toggleType(v: string) {
