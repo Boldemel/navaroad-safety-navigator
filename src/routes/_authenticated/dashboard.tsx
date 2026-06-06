@@ -739,6 +739,9 @@ function PoiList({
       <div className="flex items-center gap-2">{icon}<h3 className="font-semibold">{title}</h3></div>
       <div className="rounded-md border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground space-y-1">
         <div><span className="font-medium text-foreground/70">Route used:</span> {routeLabel}</div>
+        {result?.debug?.routeUsed && (
+          <div><span className="font-medium text-foreground/70">Polyline:</span> {result.debug.routeUsed}</div>
+        )}
         <div>
           <span className="font-medium text-foreground/70">Search points:</span> {result?.debug?.searchPointCount ?? 0}
           {" · "}<span className="font-medium text-foreground/70">Raw:</span> {result?.debug?.rawResultsCount ?? 0}
