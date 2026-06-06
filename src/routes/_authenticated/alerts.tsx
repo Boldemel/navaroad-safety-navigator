@@ -10,6 +10,7 @@ import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { useDriverNames } from "@/hooks/use-driver-names";
 import { cn } from "@/lib/utils";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
+import { useActiveRoute } from "@/hooks/use-active-route";
 
 export const Route = createFileRoute("/_authenticated/alerts")({
   component: AlertsCenter,
