@@ -383,21 +383,21 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     // TomTom POI categories:
     // 7311 = Truck Stop / Travel Center, 7311003 = Truck-friendly fuel,
     // 7395 = Rest Area, 7369 = Open Parking Area, 7309 = Petrol/Gasoline Station,
-    // 7314 = Weigh Station / Truck inspection.
+    // 7314 = Weigh Station / Truck inspection, 7397 = Tourist Information / Welcome Center.
     const categorySet =
       data.kind === "fuel" ? "7311003,7309"
       : data.kind === "truck_stop" ? "7311,7311003"
       : data.kind === "weigh_station" ? "7314"
-      : "7311,7395,7369";
+      : "7311,7395,7369,7397";
 
     const keywords =
       data.kind === "fuel"
         ? ["diesel", "fuel station", "gas station"]
       : data.kind === "truck_stop"
-        ? ["truck stop", "travel center", "Pilot", "Flying J", "Loves", "TA", "Petro"]
+        ? ["truck stop", "travel center", "Pilot", "Flying J", "Loves", "TA", "Petro", "Sapp Bros", "Road Ranger"]
       : data.kind === "weigh_station"
-        ? ["weigh station", "truck inspection", "port of entry"]
-        : ["truck stop", "rest area", "travel center", "truck parking"];
+        ? ["weigh station", "truck inspection", "port of entry", "CAT scale", "inspection station", "scale house", "DOT scale"]
+        : ["truck parking", "rest area", "welcome center", "travel center", "truck stop"];
 
     const radiusM = 50000; // initial provider search around each sample
     const corridorRadiusMi = 35; // final route-corridor filter for simplified route geometry
