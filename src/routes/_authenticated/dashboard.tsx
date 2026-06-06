@@ -58,6 +58,17 @@ function Dashboard() {
   const [locating, setLocating] = useState(false);
   const [awaitingCoords, setAwaitingCoords] = useState(false);
   const [poiDialog, setPoiDialog] = useState<{ title: string; result: PoiDialogResult | null } | null>(null);
+  const [analyzedRouteKey, setAnalyzedRouteKey] = useState<string | null>(null);
+
+  function routeInputKey(
+    originText: string,
+    destinationText: string,
+    originCoords?: { lat: number; lon: number } | null,
+    destinationCoords?: { lat: number; lon: number } | null,
+  ) {
+    const coords = (p?: { lat: number; lon: number } | null) => p ? `${p.lat.toFixed(5)},${p.lon.toFixed(5)}` : "none";
+    return `${originText.trim()}|${destinationText.trim()}|${coords(originCoords)}|${coords(destinationCoords)}`;
+  }
 
   function sampleRouteGeometry(geom: Array<[number, number]>, maxPoints: number) {
     if (geom.length <= maxPoints) return geom;
@@ -183,6 +194,7 @@ function Dashboard() {
       truckProfile?: typeof truckProfile;
     }) => analyzeFn({ data: vars }),
     onMutate: () => {
+      setAnalyzedRouteKey(null);
       clearActiveRoute();
       queryClient.removeQueries({ queryKey: ["fuel-stops"] });
       queryClient.removeQueries({ queryKey: ["parking-stops"] });
@@ -193,8 +205,10 @@ function Dashboard() {
     onSuccess: (data, vars) => {
       if (data.geometry.length >= 2) {
         saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
+        setAnalyzedRouteKey(routeInputKey(vars.origin, vars.destination, vars.originCoords ?? null, vars.destinationCoords ?? null));
       } else {
         clearActiveRoute();
+        setAnalyzedRouteKey(null);
       }
     },
   });
@@ -249,7 +263,7 @@ function Dashboard() {
 
 
   const navToPoi = useMutation({
-    mutationFn: async (p: { lat: number; lon: number; name: string }) => {
+    mutationFn: async (p: PoiItem) => {
       let originLat: number | undefined;
       let originLon: number | undefined;
       let originLabel = "Current location";
@@ -268,12 +282,28 @@ function Dashboard() {
         geo.request();
         throw new Error("Enable GPS or set an Origin to navigate.");
       }
+      const destinationLabel = [p.name, [p.city, p.state].filter(Boolean).join(", ")].filter(Boolean).join(" — ");
+      const routeAnalysis = await analyzeFn({
+        data: {
+          origin: originLabel,
+          destination: destinationLabel,
+          truck,
+          trailer,
+          truckProfile,
+          originCoords: { lat: originLat, lon: originLon },
+          destinationCoords: { lat: p.lat, lon: p.lon },
+        },
+      });
+      if (routeAnalysis.geometry.length < 2) {
+        throw new Error(routeAnalysis.routeMessage ?? "Route could not be calculated. Please check the address or try another destination.");
+      }
+      saveActiveRoute({ origin: originLabel, destination: destinationLabel, geometry: routeAnalysis.geometry });
       const route = await truckRouteFn({
         data: { originLat, originLon, destLat: p.lat, destLon: p.lon, truck: true },
       });
       startNavigation({
         origin: { lat: originLat, lon: originLon, label: originLabel },
-        destination: { lat: p.lat, lon: p.lon, label: p.name },
+        destination: { lat: p.lat, lon: p.lon, label: destinationLabel },
         geometry: route.geometry,
         instructions: route.instructions,
         totalKm: route.distanceKm,
@@ -281,8 +311,18 @@ function Dashboard() {
         trafficDurationMin: route.durationTrafficMin,
         truck: true,
       });
-      saveActiveRoute({ origin: originLabel, destination: p.name, geometry: route.geometry });
+      saveActiveRoute({ origin: originLabel, destination: destinationLabel, geometry: route.geometry });
       return route;
+    },
+    onMutate: (p) => {
+      const destinationLabel = [p.name, [p.city, p.state].filter(Boolean).join(", ")].filter(Boolean).join(" — ");
+      setDestination(destinationLabel);
+      setDestPlace({ label: destinationLabel, lat: p.lat, lon: p.lon, city: p.city ?? null, state: p.state ?? null, country: null });
+      clearActiveRoute();
+      queryClient.removeQueries({ queryKey: ["fuel-stops"] });
+      queryClient.removeQueries({ queryKey: ["parking-stops"] });
+      queryClient.removeQueries({ queryKey: ["truck-stops"] });
+      queryClient.removeQueries({ queryKey: ["weigh-stations"] });
     },
     onSuccess: () => router.navigate({ to: "/hazard-map" }),
   });
@@ -292,8 +332,15 @@ function Dashboard() {
   // Live safety feed scoped to the active route corridor (NWS + DOT).
   const result = analysis.isPending ? undefined : analysis.data;
   const routeUnavailable = result?.routeStatus === "unavailable";
-  const activeRouteForQueries = analysis.isPending || routeUnavailable ? null : activeRoute;
-  const geometry = routeUnavailable ? [] : (result?.geometry ?? activeRouteForQueries?.geometry ?? []);
+  const currentRouteKey = routeInputKey(
+    origin,
+    destination,
+    originPlace ? { lat: originPlace.lat, lon: originPlace.lon } : null,
+    destPlace ? { lat: destPlace.lat, lon: destPlace.lon } : null,
+  );
+  const routeMatchesCurrentInputs = !!result && analyzedRouteKey === currentRouteKey;
+  const activeRouteForQueries = analysis.isPending || routeUnavailable || !routeMatchesCurrentInputs ? null : activeRoute;
+  const geometry = routeUnavailable || !routeMatchesCurrentInputs ? [] : (result?.geometry ?? activeRouteForQueries?.geometry ?? []);
   const routeLabel = result
     ? `${origin || result.origin.name} → ${destination || result.destination.name}`
     : activeRouteForQueries
@@ -354,7 +401,7 @@ function Dashboard() {
   const routeRisks = result?.risks ?? [];
   const feedWeatherAlerts = feed?.weatherAlerts ?? [];
   const feedRoadAlerts = feed?.roadAlerts ?? [];
-  const usingRoute = !!result && !routeUnavailable;
+  const usingRoute = !!result && !routeUnavailable && routeMatchesCurrentInputs;
   const weatherCount = usingRoute
     ? routeRisks.filter((r) => r.type === "precip" || r.type === "visibility" || r.type === "temp" || r.type === "weather_alert").length
     : feedWeatherAlerts.length;
@@ -695,10 +742,10 @@ function Dashboard() {
           <StatCard icon={<Wind className="size-5" />} label="Wind Risk" count={windCount} sub={usingRoute ? "Wind/gust risks on this route" : "Active high-wind / tornado (NWS)"} accent="primary" loading={feedLoading} />
           <StatCard icon={<Construction className="size-5" />} label="Road Closure Risk" count={closureCount} sub={feed?.providers.road === "not_connected" ? "Connect DOT API" : usingRoute ? "Closures on this route" : "Active closures"} accent="destructive" loading={feedLoading} />
           <StatCard icon={<ShieldAlert className="size-5" />} label="Truck Restriction Risk" count={0} sub="Bridge / weight / hazmat data not connected yet" accent="warning" />
-          <StatCard icon={<Fuel className="size-5" />} label="Fuel Stations (optional)" count={fuelStops?.totalFound ?? 0} sub={fuelStops && !fuelStops.connected ? "Not connected yet" : usingRoute ? `Truck-friendly diesel · ${fuelStops?.provider ?? "TomTom"}` : "Analyze a route to find stops"} accent="primary" loading={fuelLoading} onClick={usingRoute && (fuelStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Fuel Stations on this Route", result: fuelStops ?? null }) : undefined} />
-          <StatCard icon={<ParkingCircle className="size-5" />} label="Parking Options" count={parkingStops?.totalFound ?? 0} sub={parkingStops && !parkingStops.connected ? "Not connected yet" : usingRoute ? `Truck stops & rest areas · ${parkingStops?.provider ?? "TomTom"}` : "Analyze a route to find parking"} accent="primary" loading={parkingLoading} onClick={usingRoute && (parkingStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Truck Parking on this Route", result: parkingStops ?? null }) : undefined} />
-          <StatCard icon={<Truck className="size-5" />} label="Truck Stops" count={truckStops?.totalFound ?? 0} sub={truckStops && !truckStops.connected ? "Not connected yet" : usingRoute ? `Pilot · Flying J · Love's · TA · Petro` : "Analyze a route to find truck stops"} accent="primary" loading={truckStopsLoading} onClick={usingRoute && (truckStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Truck Stops on this Route", result: truckStops ?? null }) : undefined} />
-          <StatCard icon={<Scale className="size-5" />} label="Weigh Stations" count={weighStations?.totalFound ?? 0} sub={weighStations && !weighStations.connected ? "Not connected yet" : usingRoute ? `On route · ${weighStations?.provider ?? "TomTom"}` : "Analyze a route to find weigh stations"} accent="warning" loading={weighLoading} onClick={usingRoute && (weighStations?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Weigh Stations on this Route", result: weighStations ?? null }) : undefined} />
+          <StatCard icon={<Fuel className="size-5" />} label="Fuel Stations (optional)" count={usingRoute ? fuelStops?.totalFound ?? 0 : 0} sub={fuelStops && !fuelStops.connected ? "Not connected yet" : usingRoute ? `Route-filtered, deduplicated · ${fuelStops?.provider ?? "TomTom"}` : "Analyze a route to find stops"} accent="primary" loading={fuelLoading} onClick={usingRoute && (fuelStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Fuel Stations on this Route", result: fuelStops ?? null }) : undefined} />
+          <StatCard icon={<ParkingCircle className="size-5" />} label="Parking Options" count={usingRoute ? parkingStops?.totalFound ?? 0 : 0} sub={parkingStops && !parkingStops.connected ? "Not connected yet" : usingRoute ? "Truck stops, rest areas, travel centers · route-filtered" : "Analyze a route to find parking"} accent="primary" loading={parkingLoading} onClick={usingRoute && (parkingStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Truck Parking on this Route", result: parkingStops ?? null }) : undefined} />
+          <StatCard icon={<Truck className="size-5" />} label="Truck Stops" count={usingRoute ? truckStops?.totalFound ?? 0 : 0} sub={truckStops && !truckStops.connected ? "Not connected yet" : usingRoute ? "Pilot · Flying J · Love's · TA · Petro · verified plazas" : "Analyze a route to find truck stops"} accent="primary" loading={truckStopsLoading} onClick={usingRoute && (truckStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Truck Stops on this Route", result: truckStops ?? null }) : undefined} />
+          <StatCard icon={<Scale className="size-5" />} label="Weigh Stations" count={usingRoute ? weighStations?.totalFound ?? 0 : 0} sub={weighStations && !weighStations.connected ? "Not connected yet" : usingRoute ? `Route-filtered, deduplicated · ${weighStations?.provider ?? "TomTom"}` : "Analyze a route to find weigh stations"} accent="warning" loading={weighLoading} onClick={usingRoute && (weighStations?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Weigh Stations on this Route", result: weighStations ?? null }) : undefined} />
           <StatCard icon={<Users className="size-5" />} label="Driver Reports" count={driverCount} sub="Community layer · live" accent="warning" />
         </div>
       </div>
@@ -772,9 +819,11 @@ function Dashboard() {
         title={poiDialog?.title ?? ""}
         result={poiDialog?.result ?? null}
         onShowOnMap={(p) => {
+          const region = [p.city, p.state].filter(Boolean).join(", ");
+          const details = [region || p.address, typeLabelShort(p.type), p.distanceMi != null ? `${p.distanceMi < 1 ? "<1" : Math.round(p.distanceMi)} mi from route` : null].filter(Boolean).join(" · ");
           router.navigate({
             to: "/hazard-map",
-            search: { focusLat: p.lat, focusLon: p.lon, focusLabel: p.name },
+            search: { focusLat: p.lat, focusLon: p.lon, focusLabel: p.name, focusDetails: details },
           } as never);
           setPoiDialog(null);
         }}
@@ -784,6 +833,12 @@ function Dashboard() {
         }}
         navigating={navToPoi.isPending}
       />
+
+      {navToPoi.isError && (
+        <div className="text-sm text-destructive border border-destructive/30 bg-destructive/10 rounded-md p-3">
+          {(navToPoi.error as Error).message || "Route could not be calculated. Please check the address or try another destination."}
+        </div>
+      )}
 
     </div>
   );
@@ -827,9 +882,12 @@ function PoiDialog({
           <div className="rounded-md border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground space-y-0.5">
             <div className="font-medium text-foreground/70">Debug · count source</div>
             <div>Raw TomTom results: <span className="font-mono">{debug.rawResultsCount}</span></div>
-            <div>After route-corridor + category filter: <span className="font-mono">{debug.filteredResultsCount}</span> (excluded {debug.filteredOutCount})</div>
-            <div>Deduplicated: <span className="font-mono">{result?.totalFound ?? 0}</span></div>
-            <div>Displayed: <span className="font-mono">{pois.length}</span> · Corridor: {debug.corridorRadiusMi} mi · Search points: {debug.searchPointCount}</div>
+            <div>Route-filtered results: <span className="font-mono">{debug.routeFilteredResultsCount ?? debug.filteredResultsCount}</span> (excluded {debug.filteredOutCount})</div>
+            <div>Deduplicated results: <span className="font-mono">{debug.deduplicatedResultsCount ?? result?.totalFound ?? 0}</span></div>
+            <div>Final displayed count: <span className="font-mono">{debug.finalDisplayedCount ?? pois.length}</span> · Corridor: {debug.corridorRadiusMi} mi · Search points: {debug.searchPointCount}</div>
+            {debug.rawTomTomResults?.length > 0 && <div>Raw sample: <span className="font-mono">{debug.rawTomTomResults.join(" | ")}</span></div>}
+            {debug.routeFilteredResults?.length > 0 && <div>Filtered sample: <span className="font-mono">{debug.routeFilteredResults.join(" | ")}</span></div>}
+            {debug.finalDisplayedResults?.length > 0 && <div>Displayed sample: <span className="font-mono">{debug.finalDisplayedResults.join(" | ")}</span></div>}
           </div>
         )}
         {pois.length === 0 ? (
@@ -917,9 +975,15 @@ function PoiList({
           searchPointCount: number;
           corridorRadiusMi: number;
           rawResultsCount: number;
+          routeFilteredResultsCount?: number;
+          deduplicatedResultsCount?: number;
+          finalDisplayedCount?: number;
           filteredResultsCount: number;
           filteredOutCount: number;
           searchingFullRoute: boolean;
+          rawTomTomResults?: string[];
+          routeFilteredResults?: string[];
+          finalDisplayedResults?: string[];
         };
         pois: Array<{
           id: string;
@@ -955,7 +1019,9 @@ function PoiList({
         <div>
           <span className="font-medium text-foreground/70">Search points:</span> {result?.debug?.searchPointCount ?? 0}
           {" · "}<span className="font-medium text-foreground/70">Raw:</span> {result?.debug?.rawResultsCount ?? 0}
-          {" · "}<span className="font-medium text-foreground/70">Filtered:</span> {result?.debug?.filteredResultsCount ?? result?.totalFound ?? 0}
+          {" · "}<span className="font-medium text-foreground/70">Route-filtered:</span> {result?.debug?.routeFilteredResultsCount ?? result?.debug?.filteredResultsCount ?? 0}
+          {" · "}<span className="font-medium text-foreground/70">Deduped:</span> {result?.debug?.deduplicatedResultsCount ?? result?.totalFound ?? 0}
+          {" · "}<span className="font-medium text-foreground/70">Displayed:</span> {result?.debug?.finalDisplayedCount ?? result?.pois.length ?? 0}
           {" · "}<span className="font-medium text-foreground/70">Corridor:</span> {result?.debug?.corridorRadiusMi ?? 20} mi
         </div>
       </div>

@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-// Truck-friendly brands we boost / surface explicitly.
-const TRUCK_FUEL_BRANDS = [
+// Strict truck-stop brands. Fuel stations are kept separate from truck stops.
+const TRUCK_STOP_BRANDS = [
   "Pilot",
   "Flying J",
   "Loves",
@@ -10,9 +10,6 @@ const TRUCK_FUEL_BRANDS = [
   "TA",
   "TravelCenters",
   "Petro",
-  "Sapp Bros",
-  "AmBest",
-  "Speedway",
 ];
 
 const RouteGeometry = z.preprocess((value) => {
@@ -62,9 +59,15 @@ export type TruckPoiResult = {
     searchPointCount: number;
     corridorRadiusMi: number;
     rawResultsCount: number;
+    routeFilteredResultsCount: number;
+    deduplicatedResultsCount: number;
+    finalDisplayedCount: number;
     filteredResultsCount: number;
     filteredOutCount: number;
     searchingFullRoute: boolean;
+    rawTomTomResults: string[];
+    routeFilteredResults: string[];
+    finalDisplayedResults: string[];
   };
   pois: TruckPoi[];
 };
@@ -119,8 +122,8 @@ function classify(
   const hay = `${name} ${brand ?? ""} ${categories.join(" ")}`.toLowerCase();
   if (/weigh station|weigh-in-motion|inspection station|port of entry/.test(hay)) return "weigh_station";
   if (/rest area|rest stop/.test(hay)) return "rest_area";
-  if (/truck stop|travel center|travel centre|truckstop/.test(hay)) return "truck_stop";
-  if (TRUCK_FUEL_BRANDS.some((b) => hay.includes(b.toLowerCase()))) return "truck_stop";
+  if (/truck stop|travel center|travel centre|truckstop|truck plaza/.test(hay)) return "truck_stop";
+  if (TRUCK_STOP_BRANDS.some((b) => hay.includes(b.toLowerCase()))) return "truck_stop";
   if (/diesel|fuel|gas station|petrol|gasoline/.test(hay)) return "fuel";
   if (/parking/.test(hay)) return "parking";
   return fallback;
@@ -202,6 +205,19 @@ type TomTomCall = {
   results: RawResult[];
 };
 
+function truckStopAllowed(hay: string) {
+  return (
+    /\bpilot\b/.test(hay) ||
+    /flying\s*j/.test(hay) ||
+    /love'?s/.test(hay) ||
+    /\bta\b/.test(hay) ||
+    /\bpetro\b/.test(hay) ||
+    /travel\s*cent(er|re)s?/.test(hay) ||
+    /truck\s*plaza/.test(hay) ||
+    /truck\s*stop|truckstop/.test(hay)
+  );
+}
+
 async function tomtomNearby(
   key: string,
   lat: number,
@@ -278,14 +294,14 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     // 7395 = Rest Area, 7369 = Open Parking Area, 7309 = Petrol/Gasoline Station,
     // 7314 = Weigh Station / Truck inspection.
     const categorySet =
-      data.kind === "fuel" ? "7311,7311003,7309"
+      data.kind === "fuel" ? "7311003,7309"
       : data.kind === "truck_stop" ? "7311,7311003"
       : data.kind === "weigh_station" ? "7314"
       : "7311,7395,7369";
 
     const keywords =
       data.kind === "fuel"
-        ? ["truck stop", "travel center", "diesel", "Pilot", "Flying J", "Loves", "TA Petro"]
+        ? ["diesel", "fuel station", "gas station"]
       : data.kind === "truck_stop"
         ? ["truck stop", "travel center", "Pilot", "Flying J", "Loves", "TA", "Petro"]
       : data.kind === "weigh_station"
@@ -296,7 +312,10 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     const corridorRadiusMi = 35; // final route-corridor filter for simplified route geometry
     const seen = new Map<string, TruckPoi>();
     let tomtomRawCount = 0;
+    let routeFilteredCount = 0;
     let tomtomFilteredCount = 0;
+    const rawTomTomResults: string[] = [];
+    const routeFilteredResults: string[] = [];
 
     const addRaw = (r: RawResult, sampleLat: number, sampleLon: number) => {
       if (!r.position) return;
@@ -304,13 +323,14 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       const brand = r.poi?.brands?.[0]?.name ?? null;
       const name = r.poi?.name ?? brand ?? "Truck stop";
       const cats = r.poi?.categories ?? [];
+      if (rawTomTomResults.length < 12) rawTomTomResults.push(`${name} · ${cats[0] ?? "uncategorized"}`);
       const fallbackType: TruckPoiType =
         data.kind === "weigh_station" ? "weigh_station"
         : data.kind === "parking" ? "parking"
         : data.kind === "truck_stop" ? "truck_stop"
         : "fuel";
       const type = classify(name, brand, cats, fallbackType);
-      if (data.kind === "fuel" && (type === "rest_area" || type === "parking" || type === "weigh_station")) {
+      if (data.kind === "fuel" && type !== "fuel") {
         tomtomFilteredCount += 1;
         return;
       }
@@ -319,16 +339,9 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         // travel centers, truck plazas, or named truck parking.
         const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
         const isTruckParking =
-          type === "truck_stop" ||
+          (type === "truck_stop" && truckStopAllowed(hay)) ||
           type === "rest_area" ||
-          /\bpilot\b/.test(hay) ||
-          /flying\s*j/.test(hay) ||
-          /love'?s/.test(hay) ||
-          /\bta\b/.test(hay) ||
-          /\bpetro\b/.test(hay) ||
-          /travel\s*cent(er|re)s?/.test(hay) ||
-          /truck\s*plaza/.test(hay) ||
-          /truck\s*stop|truckstop/.test(hay) ||
+          truckStopAllowed(hay) ||
           /truck\s*parking/.test(hay);
         if (!isTruckParking) {
           tomtomFilteredCount += 1;
@@ -338,15 +351,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       if (data.kind === "truck_stop") {
         // Strict allow-list: only major truck-stop chains + generic truck plazas.
         const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
-        const isAllowedTruckStop =
-          /\bpilot\b/.test(hay) ||
-          /flying\s*j/.test(hay) ||
-          /love'?s/.test(hay) ||
-          /\bta\b/.test(hay) ||
-          /travel\s*cent(er|re)s?/.test(hay) ||
-          /\bpetro\b/.test(hay) ||
-          /truck\s*plaza/.test(hay) ||
-          /truck\s*stop|truckstop/.test(hay);
+        const isAllowedTruckStop = truckStopAllowed(hay);
         if (!isAllowedTruckStop) {
           tomtomFilteredCount += 1;
           return;
@@ -362,6 +367,8 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         tomtomFilteredCount += 1;
         return;
       }
+      routeFilteredCount += 1;
+      if (routeFilteredResults.length < 12) routeFilteredResults.push(`${name} · ${routeDistance.toFixed(1)} mi`);
       const id = r.id ?? `${r.position.lat.toFixed(5)},${r.position.lon.toFixed(5)}`;
       const existing = seen.get(id);
       if (existing) {
@@ -443,7 +450,9 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     }
 
 
-    const totalFound = pois.length;
+    const deduplicatedCount = pois.length;
+    const displayedPois = pois.slice(0, data.limit ?? 60);
+    const totalFound = displayedPois.length;
     const routeStart = data.geometry[0];
     const routeEnd = data.geometry[data.geometry.length - 1];
     const debug = {
@@ -452,9 +461,15 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       searchPointCount: samples.length,
       corridorRadiusMi,
       rawResultsCount: tomtomRawCount,
-      filteredResultsCount: totalFound,
+      routeFilteredResultsCount: routeFilteredCount,
+      deduplicatedResultsCount: deduplicatedCount,
+      finalDisplayedCount: displayedPois.length,
+      filteredResultsCount: deduplicatedCount,
       filteredOutCount: tomtomFilteredCount,
       searchingFullRoute: samples.length > 1,
+      rawTomTomResults,
+      routeFilteredResults,
+      finalDisplayedResults: displayedPois.slice(0, 12).map((p) => `${p.name} · ${p.distanceMi != null ? p.distanceMi.toFixed(1) : "?"} mi`),
     };
 
     return {
@@ -463,6 +478,6 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       message,
       totalFound,
       debug,
-      pois: pois.slice(0, data.limit ?? 60),
+      pois: displayedPois,
     };
   });
