@@ -234,12 +234,12 @@ function Dashboard() {
         <h2 className="font-semibold mb-3">Recent live alerts</h2>
         <div className="rounded-xl border border-border bg-card divide-y divide-border">
           {feedLoading && <div className="p-6 text-sm text-muted-foreground">Loading live alerts…</div>}
-          {!feedLoading && weatherAlerts.length === 0 && roadAlerts.length === 0 && (
+          {!feedLoading && feedWeatherAlerts.length === 0 && feedRoadAlerts.length === 0 && (
             <div className="p-6 text-sm text-muted-foreground inline-flex items-center gap-2">
               <AlertTriangle className="size-4" /> No active weather or road alerts from connected sources.
             </div>
           )}
-          {weatherAlerts.slice(0, 5).map((a) => (
+          {feedWeatherAlerts.slice(0, 5).map((a) => (
             <div key={a.id} className="p-4 flex items-start gap-3">
               <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(a.severity)}`}>{a.severity}</span>
               <div className="flex-1 min-w-0">
