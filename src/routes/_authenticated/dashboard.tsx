@@ -12,6 +12,7 @@ import {
   CloudRain, Thermometer, MapPin, Radio, Users, Cloud, Lightbulb, Info,
 } from "lucide-react";
 import { TRUCK_TYPES, TRAILER_TYPES, severityClasses } from "@/lib/navaroad";
+import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { analyzeRoute } from "@/lib/route-analysis.functions";
@@ -146,8 +147,8 @@ function Dashboard() {
           {result && (
             <div className="space-y-3 pt-2 border-t border-border">
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
-                <span><MapPin className="inline size-3.5 mr-1" />{Math.round(result.distanceKm)} km</span>
-                <span>~{Math.round(result.durationMin)} min drive</span>
+                <span><MapPin className="inline size-3.5 mr-1" />{Math.round(result.distanceKm * 0.621371)} mi</span>
+                <span>~{formatDriveTime(result.durationMin)} <span className="text-xs">(Drive time estimate)</span></span>
                 <span>{result.weatherAlertCount} weather alerts · {result.roadAlertCount} DOT alerts on path</span>
               </div>
               <div className="text-xs text-muted-foreground">
@@ -161,22 +162,33 @@ function Dashboard() {
                   Weather forecast not connected. NWS severe weather alerts connected.
                 </div>
               )}
+              <p className="text-xs text-muted-foreground">
+                Weather shown for the start, midpoint, and destination of your route.
+              </p>
               <div className="grid sm:grid-cols-3 gap-2">
-                {result.weather.map((w) => (
-                  <div key={w.label} className="rounded-md border border-border bg-background p-3 text-xs space-y-1">
-                    <div className="font-medium text-sm text-foreground">{w.label}</div>
-                    {w.available ? (
-                      <>
-                        <div className="text-muted-foreground">{w.condition}</div>
-                        <div className="flex items-center gap-2"><Thermometer className="size-3" />{w.tempC != null ? `${Math.round(w.tempC)}°C` : "—"}</div>
-                        <div className="flex items-center gap-2"><Wind className="size-3" />{w.windKph != null ? `${Math.round(w.windKph)} km/h` : "—"}{w.gustKph != null && ` (gust ${Math.round(w.gustKph)})`}</div>
-                        <div className="flex items-center gap-2"><CloudRain className="size-3" />{w.precipMm != null ? `${w.precipMm} mm` : "—"}</div>
-                      </>
-                    ) : (
-                      <div className="text-muted-foreground">Weather forecast not connected. NWS severe weather alerts connected.</div>
-                    )}
-                  </div>
-                ))}
+                {result.weather.map((w) => {
+                  const tempF = w.tempC != null ? Math.round((w.tempC * 9) / 5 + 32) : null;
+                  const windMph = w.windKph != null ? Math.round(w.windKph * 0.621371) : null;
+                  const gustMph = w.gustKph != null ? Math.round(w.gustKph * 0.621371) : null;
+                  const precipIn = w.precipMm != null ? Math.round(w.precipMm * 0.03937 * 100) / 100 : null;
+                  const risk = weatherRiskNote(tempF, windMph, gustMph, precipIn, w.visibilityKm, w.condition);
+                  return (
+                    <div key={w.label} className="rounded-md border border-border bg-background p-3 text-xs space-y-1">
+                      <div className="font-medium text-sm text-foreground">{w.label}</div>
+                      {w.available ? (
+                        <>
+                          <div className="text-muted-foreground">{w.condition}</div>
+                          <div className="flex items-center gap-2"><Thermometer className="size-3" />{tempF != null ? `${tempF}°F` : "—"}</div>
+                          <div className="flex items-center gap-2"><Wind className="size-3" />Wind {windMph != null ? `${windMph} mph` : "—"}{gustMph != null && ` · gust ${gustMph} mph`}</div>
+                          <div className="flex items-center gap-2"><CloudRain className="size-3" />Precip {precipIn != null ? `${precipIn} in` : "—"}</div>
+                          <div className={cn("pt-1 text-[11px]", risk.tone)}>{risk.note}</div>
+                        </>
+                      ) : (
+                        <div className="text-muted-foreground">Weather forecast not connected. NWS severe weather alerts connected.</div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               {result.weatherAlerts.length > 0 && (
                 <div className="space-y-2">
@@ -405,4 +417,32 @@ function groupAlerts(alerts: AlertLike[]): GroupedAlert[] {
     });
   }
   return groups.sort((a, b) => sevRank[b.severity] - sevRank[a.severity]);
+}
+
+function formatDriveTime(min: number): string {
+  const total = Math.max(0, Math.round(min));
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h === 0) return `${m}m`;
+  return `${h}h ${m}m`;
+}
+
+function weatherRiskNote(
+  tempF: number | null,
+  windMph: number | null,
+  gustMph: number | null,
+  precipIn: number | null,
+  visibilityKm: number | null,
+  condition: string,
+): { note: string; tone: string } {
+  const c = (condition ?? "").toLowerCase();
+  if (c.includes("thunder") || c.includes("tornado")) return { note: "Severe weather — use caution.", tone: "text-destructive" };
+  if (gustMph != null && gustMph >= 45) return { note: "High wind gusts — risk for high-profile vehicles.", tone: "text-destructive" };
+  if (windMph != null && windMph >= 30) return { note: "Strong sustained wind.", tone: "text-warning" };
+  if (visibilityKm != null && visibilityKm < 1.5) return { note: "Low visibility — slow down.", tone: "text-warning" };
+  if (precipIn != null && precipIn >= 0.2) return { note: "Heavy precipitation — wet roads.", tone: "text-warning" };
+  if (c.includes("snow") || c.includes("ice")) return { note: "Winter conditions possible.", tone: "text-warning" };
+  if (tempF != null && tempF <= 20) return { note: "Freezing temps — watch for ice.", tone: "text-warning" };
+  if (tempF != null && tempF >= 100) return { note: "Extreme heat — check tires & cooling.", tone: "text-warning" };
+  return { note: "No major weather risk.", tone: "text-success" };
 }
