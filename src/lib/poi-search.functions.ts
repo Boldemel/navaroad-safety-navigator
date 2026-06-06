@@ -28,7 +28,7 @@ const RouteGeometry = z.preprocess((value) => {
 
 const Input = z.object({
   geometry: RouteGeometry,
-  kind: z.enum(["fuel", "parking", "truck_stop", "weigh_station", "cat_scale"]),
+  kind: z.enum(["fuel", "rest_area", "truck_stop", "weigh_station", "cat_scale"]),
   limit: z.number().int().min(1).max(100).optional(),
 });
 
@@ -395,18 +395,18 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       : data.kind === "truck_stop" ? "7311,7311003"
       : data.kind === "weigh_station" ? "7314"
       : data.kind === "cat_scale" ? "7311,7311003"
-      : "7311,7395,7369,7397";
+      : "7395,7397"; // rest_area: Rest Area + Welcome Center
 
     const keywords =
       data.kind === "fuel"
-        ? ["diesel", "fuel station", "gas station"]
+        ? ["diesel", "truck diesel", "Pilot", "Flying J", "Loves", "TA", "Petro"]
       : data.kind === "truck_stop"
         ? ["truck stop", "travel center", "Pilot", "Flying J", "Loves", "TA", "Petro", "Sapp Bros", "Road Ranger"]
       : data.kind === "weigh_station"
         ? ["weigh station", "truck inspection", "port of entry", "inspection station", "scale house", "DOT scale", "agricultural inspection"]
       : data.kind === "cat_scale"
         ? ["CAT scale", "CAT scales", "certified scale", "truck scale"]
-        : ["truck parking", "rest area", "welcome center", "travel center", "truck stop"];
+        : ["rest area", "welcome center", "safety rest area", "highway rest stop"];
 
     const radiusM = 50000; // initial provider search around each sample
     const corridorRadiusMi = 35; // final route-corridor filter for simplified route geometry
@@ -428,31 +428,32 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       const fallbackType: TruckPoiType =
         data.kind === "weigh_station" ? "weigh_station"
         : data.kind === "cat_scale" ? "cat_scale"
-        : data.kind === "parking" ? "parking"
+        : data.kind === "rest_area" ? "rest_area"
         : data.kind === "truck_stop" ? "truck_stop"
         : "fuel";
       const type = classify(name, brand, cats, fallbackType);
       const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
 
       if (data.kind === "fuel") {
-        // Exclude EV charging stations — Fuel Stops is diesel/gasoline only.
+        // Truck diesel only. Exclude EV charging and non-diesel/non-truck stations.
         if (isEvCharging(hay)) {
           tomtomFilteredCount += 1;
           return;
         }
-        const isFuel = type === "fuel" || type === "truck_stop" || truckStopAllowed(hay);
-        if (!isFuel) {
+        const isDieselOrTruck =
+          truckStopAllowed(hay) ||
+          /diesel|truck\s*fuel|truck-?friendly/.test(hay) ||
+          cats.some((c) => /7311003/.test(c));
+        if (!isDieselOrTruck) {
           tomtomFilteredCount += 1;
           return;
         }
       }
-      if (data.kind === "parking") {
-        const isTruckParking =
-          type === "truck_stop" ||
+      if (data.kind === "rest_area") {
+        const isRestArea =
           type === "rest_area" ||
-          truckStopAllowed(hay) ||
-          /truck\s*parking|rest\s*area|rest\s*stop|welcome\s*cent(er|re)|travel\s*cent(er|re)|safety\s*rest/.test(hay);
-        if (!isTruckParking) {
+          /rest\s*area|rest\s*stop|welcome\s*cent(er|re)|safety\s*rest/.test(hay);
+        if (!isRestArea) {
           tomtomFilteredCount += 1;
           return;
         }
@@ -524,7 +525,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
 
     // Step 2: keyword fallback — run if category search yielded few results, or always for
     // brand-name coverage (truck-friendly fuel chains often miscategorize).
-    if (seen.size < 10 || data.kind === "weigh_station" || data.kind === "parking" || data.kind === "cat_scale") {
+    if (seen.size < 10 || data.kind === "weigh_station" || data.kind === "rest_area" || data.kind === "cat_scale") {
       const keywordCalls: Array<Promise<TomTomCall>> = [];
       const keywordSamples: Array<{ lat: number; lon: number }> = [];
       for (const s of samples) {
@@ -568,8 +569,8 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     });
     let provider = "TomTom";
     let message =
-      data.kind === "parking" && pois.length > 0
-        ? "Parking locations found. Live availability not connected."
+      data.kind === "rest_area" && pois.length > 0
+        ? "Rest areas found along the route corridor."
         : undefined;
 
     if (pois.length === 0) {
