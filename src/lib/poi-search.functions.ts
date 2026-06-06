@@ -158,7 +158,8 @@ function isEvCharging(hay: string) {
 
 function isWeighStationStrict(hay: string) {
   if (truckStopAllowed(hay)) return false;
-  return /weigh\s*station|weigh-in-motion|truck\s*inspection|inspection\s*station|port\s*of\s*entry|cat\s*scale|dot\s*scale|scale\s*house/.test(hay);
+  if (isCatScale(hay)) return false;
+  return /weigh\s*station|weigh-in-motion|truck\s*inspection|inspection\s*station|port\s*of\s*entry|dot\s*scale|scale\s*house|agricultural\s*inspection/.test(hay);
 }
 
 
