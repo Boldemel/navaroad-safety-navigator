@@ -1,6 +1,6 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,7 @@ function Dashboard() {
   const truckRouteFn = useServerFn(getTruckRoute);
   const searchPoisFn = useServerFn(searchTruckPois);
   const activeRoute = useActiveRoute();
+  const queryClient = useQueryClient();
   const geo = useGeolocation();
   const router = useRouter();
   const navSession = useNavigationSession();
@@ -168,6 +169,11 @@ function Dashboard() {
       destinationCoords?: { lat: number; lon: number };
       truckProfile?: typeof truckProfile;
     }) => analyzeFn({ data: vars }),
+    onMutate: () => {
+      clearActiveRoute();
+      queryClient.removeQueries({ queryKey: ["fuel-stops"] });
+      queryClient.removeQueries({ queryKey: ["parking-stops"] });
+    },
     onSuccess: (data, vars) => {
       saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
     },
@@ -222,9 +228,17 @@ function Dashboard() {
 
 
   // Live safety feed scoped to the active route corridor (NWS + DOT).
-  const geometry = activeRoute?.geometry ?? [];
+  const geometry = result?.geometry ?? activeRoute?.geometry ?? [];
+  const routeLabel = result
+    ? `${origin || result.origin.name} → ${destination || result.destination.name}`
+    : activeRoute
+      ? `${activeRoute.origin} → ${activeRoute.destination}`
+      : "No active route";
+  const routeKey = geometry.length >= 2
+    ? `${geometry.length}:${geometry[0][0].toFixed(5)},${geometry[0][1].toFixed(5)}:${geometry[geometry.length - 1][0].toFixed(5)},${geometry[geometry.length - 1][1].toFixed(5)}`
+    : "none";
   const { data: feed, isLoading: feedLoading } = useQuery({
-    queryKey: ["safety-feed", activeRoute?.savedAt ?? "none"],
+    queryKey: ["safety-feed", routeKey],
     queryFn: () => feedFn({ data: { geometry } }),
     enabled: geometry.length >= 2,
     refetchInterval: 5 * 60_000,
@@ -247,16 +261,16 @@ function Dashboard() {
   // Truck-friendly fuel + parking POIs along the active route (TomTom).
   const poiGeometry = sampleRouteGeometry(geometry, 1000);
   const { data: fuelStops, isLoading: fuelLoading } = useQuery({
-    queryKey: ["fuel-stops", activeRoute?.savedAt ?? "none"],
-    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "fuel" } }),
+    queryKey: ["fuel-stops", routeKey],
+    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "fuel", limit: 100 } }),
     enabled: geometry.length >= 2,
-    staleTime: 10 * 60_000,
+    staleTime: 0,
   });
   const { data: parkingStops, isLoading: parkingLoading } = useQuery({
-    queryKey: ["parking-stops", activeRoute?.savedAt ?? "none"],
-    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "parking" } }),
+    queryKey: ["parking-stops", routeKey],
+    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "parking", limit: 100 } }),
     enabled: geometry.length >= 2,
-    staleTime: 10 * 60_000,
+    staleTime: 0,
   });
 
   const result = analysis.data;
