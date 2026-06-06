@@ -13,6 +13,8 @@ import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { useDriverNames } from "@/hooks/use-driver-names";
 import { formatDistanceToNow } from "date-fns";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
+import { getTomTomKey } from "@/lib/tomtom.functions";
+import { TomTomMap, type MapMarker } from "@/components/tomtom-map";
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
   component: HazardMap,
