@@ -156,6 +156,18 @@ function HazardMap() {
     [here, onRoute, allHazardsForProximity],
   );
 
+  // Speak the highest-priority hazard whenever it changes (deduped by id in the
+  // voice engine so the same alert is not announced twice).
+  const [voiceSettings] = useVoiceSettings();
+  const lastSpokenAlertRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!voiceAlert || voiceSettings.muted || !voiceSettings.hazardAlerts) return;
+    if (lastSpokenAlertRef.current === voiceAlert.id) return;
+    lastSpokenAlertRef.current = voiceAlert.id;
+    announceHazard({ id: voiceAlert.id, title: voiceAlert.speakable, severity: voiceAlert.severity });
+  }, [voiceAlert, voiceSettings.muted, voiceSettings.hazardAlerts]);
+
+
   function toggleType(v: string) {
     setTypeFilters((s) => {
       const n = new Set(s);
