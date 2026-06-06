@@ -117,9 +117,16 @@ function AlertsCenter() {
         <Bell className="size-6 text-primary" />
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Alerts Center</h1>
-          <p className="text-muted-foreground text-sm">Live alerts from weather APIs, DOT feeds, and driver reports.</p>
-        </div>
+        <p className="text-muted-foreground text-sm">
+          Live alerts from weather APIs, DOT feeds, and driver reports.
+          {activeRoute ? (
+            <> Scoped to your route: <span className="text-foreground">{activeRoute.origin} → {activeRoute.destination}</span>.</>
+          ) : (
+            <> Analyze a route on the Dashboard to see route-scoped weather & road alerts.</>
+          )}
+        </p>
       </div>
+    </div>
 
       <div className="flex flex-wrap gap-2">
         {SOURCES.map((t) => {
