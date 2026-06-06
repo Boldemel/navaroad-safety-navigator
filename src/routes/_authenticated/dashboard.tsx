@@ -151,7 +151,7 @@ function Dashboard() {
               </div>
               {!result.dataAvailability.weather && (
                 <div className="text-sm text-muted-foreground border border-border bg-muted/30 rounded-md p-3">
-                  Live weather data not connected yet.
+                  Weather forecast not connected. NWS severe weather alerts connected.
                 </div>
               )}
               <div className="grid sm:grid-cols-3 gap-2">
@@ -166,20 +166,30 @@ function Dashboard() {
                         <div className="flex items-center gap-2"><CloudRain className="size-3" />{w.precipMm != null ? `${w.precipMm} mm` : "—"}</div>
                       </>
                     ) : (
-                      <div className="text-muted-foreground">Live weather data not connected yet.</div>
+                      <div className="text-muted-foreground">Weather forecast not connected. NWS severe weather alerts connected.</div>
                     )}
                   </div>
                 ))}
               </div>
               {result.weatherAlerts.length > 0 && (
-                <div className="space-y-1.5">
-                  <div className="text-xs font-medium text-muted-foreground">Active alerts on this route</div>
-                  {result.weatherAlerts.map((a) => (
-                    <div key={a.id} className="flex items-start gap-2 text-sm rounded-md border border-border bg-background p-2">
-                      <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(a.severity)}`}>{a.severity}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium">{a.event} — {a.areaDesc}</div>
-                        <div className="text-[11px] text-muted-foreground">Source: NWS · Effective {new Date(a.effective).toLocaleString()}</div>
+                <div className="space-y-2">
+                  <div className="text-xs font-medium text-muted-foreground">
+                    Active alerts on this route ({result.weatherAlerts.length} total, grouped by type & region)
+                  </div>
+                  {groupAlerts(result.weatherAlerts).map((g) => (
+                    <div key={g.key} className="rounded-md border border-border bg-background p-3 text-sm">
+                      <div className="flex items-start gap-2">
+                        <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(g.severity)}`}>{g.severity}</span>
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="font-semibold leading-tight">{g.event}</div>
+                          <div className="grid sm:grid-cols-2 gap-x-4 gap-y-0.5 text-[12px] text-muted-foreground">
+                            <div><span className="text-foreground/70 font-medium">Region:</span> {g.region}</div>
+                            <div><span className="text-foreground/70 font-medium">Source:</span> {g.provider}</div>
+                            <div><span className="text-foreground/70 font-medium">Effective:</span> {new Date(g.effective).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
+                            <div><span className="text-foreground/70 font-medium">Count:</span> {g.count} {g.count === 1 ? "area" : "areas"}</div>
+                          </div>
+                          <div className="text-[12px] pt-1"><span className="text-foreground/70 font-medium">Action:</span> {g.recommendedAction}</div>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -270,7 +280,7 @@ function Dashboard() {
       </div>
 
       <div>
-        <h2 className="font-semibold mb-3">Recent live alerts</h2>
+        <h2 className="font-semibold mb-3">Recent live alerts (grouped by type & region)</h2>
         <div className="rounded-xl border border-border bg-card divide-y divide-border">
           {feedLoading && <div className="p-6 text-sm text-muted-foreground">Loading live alerts…</div>}
           {!feedLoading && feedWeatherAlerts.length === 0 && feedRoadAlerts.length === 0 && (
@@ -278,14 +288,17 @@ function Dashboard() {
               <AlertTriangle className="size-4" /> No active weather or road alerts from connected sources.
             </div>
           )}
-          {feedWeatherAlerts.slice(0, 5).map((a) => (
-            <div key={a.id} className="p-4 flex items-start gap-3">
-              <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(a.severity)}`}>{a.severity}</span>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm">{a.event} — {a.areaDesc}</div>
-                <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{a.headline}</div>
+          {groupAlerts(feedWeatherAlerts).slice(0, 6).map((g) => (
+            <div key={g.key} className="p-4 flex items-start gap-3">
+              <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(g.severity)}`}>{g.severity}</span>
+              <div className="flex-1 min-w-0 space-y-0.5">
+                <div className="font-semibold text-sm">{g.event}</div>
+                <div className="text-[12px] text-muted-foreground">
+                  <span className="text-foreground/70 font-medium">Region:</span> {g.region} · <span className="text-foreground/70 font-medium">Effective:</span> {new Date(g.effective).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · {g.count} {g.count === 1 ? "area" : "areas"}
+                </div>
+                <div className="text-[12px]"><span className="text-foreground/70 font-medium">Action:</span> {g.recommendedAction}</div>
               </div>
-              <span className="text-[10px] text-muted-foreground whitespace-nowrap px-2 py-0.5 rounded border border-border">Weather · {a.provider}</span>
+              <span className="text-[10px] text-muted-foreground whitespace-nowrap px-2 py-0.5 rounded border border-border self-start">Weather · {g.provider}</span>
             </div>
           ))}
         </div>
@@ -320,4 +333,69 @@ function BreakdownRow({ label, value, source }: { label: string; value: number; 
       </span>
     </div>
   );
+}
+
+type AlertLike = {
+  id: string;
+  event: string;
+  severity: "low" | "medium" | "high" | "critical";
+  areaDesc: string;
+  recommendedAction: string;
+  effective: string;
+  provider: string;
+};
+
+type GroupedAlert = {
+  key: string;
+  event: string;
+  severity: "low" | "medium" | "high" | "critical";
+  region: string;
+  count: number;
+  effective: string;
+  provider: string;
+  recommendedAction: string;
+};
+
+function summarizeRegion(areaDescs: string[]): { region: string; count: number } {
+  const states = new Set<string>();
+  let count = 0;
+  for (const desc of areaDescs) {
+    const parts = desc.split(";").map((s) => s.trim()).filter(Boolean);
+    count += parts.length || 1;
+    for (const p of parts) {
+      const m = p.match(/\b([A-Z]{2})\b\s*$/);
+      if (m) states.add(m[1]);
+    }
+  }
+  const region = states.size > 0
+    ? [...states].sort().join(", ")
+    : count > 0 ? `${count} area${count === 1 ? "" : "s"} along route` : "Region unavailable";
+  return { region, count };
+}
+
+function groupAlerts(alerts: AlertLike[]): GroupedAlert[] {
+  const sevRank = { low: 0, medium: 1, high: 2, critical: 3 } as const;
+  const map = new Map<string, AlertLike[]>();
+  for (const a of alerts) {
+    const list = map.get(a.event) ?? [];
+    list.push(a);
+    map.set(a.event, list);
+  }
+  const groups: GroupedAlert[] = [];
+  for (const [event, list] of map) {
+    const top = [...list].sort((x, y) => sevRank[y.severity] - sevRank[x.severity])[0];
+    const { region, count } = summarizeRegion(list.map((a) => a.areaDesc));
+    const earliest = list.reduce((min, a) => (a.effective < min ? a.effective : min), top.effective);
+    groups.push({
+      key: event,
+      event,
+      severity: top.severity,
+      region,
+      count,
+      effective: earliest,
+      provider: top.provider,
+      recommendedAction: top.recommendedAction,
+    });
+  }
+  return groups.sort((a, b) => sevRank[b.severity] - sevRank[a.severity]);
 }
