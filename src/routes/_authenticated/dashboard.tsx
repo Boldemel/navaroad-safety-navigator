@@ -635,6 +635,8 @@ function Dashboard() {
           <StatCard icon={<ShieldAlert className="size-5" />} label="Truck Restriction Risk" count={0} sub="Bridge / weight / hazmat data not connected yet" accent="warning" />
           <StatCard icon={<Fuel className="size-5" />} label="Fuel Stops" count={fuelStops?.totalFound ?? 0} sub={fuelStops && !fuelStops.connected ? "Not connected yet" : usingRoute ? `Truck-friendly · ${fuelStops?.provider ?? "TomTom"}` : "Analyze a route to find stops"} accent="primary" loading={fuelLoading} />
           <StatCard icon={<ParkingCircle className="size-5" />} label="Parking Options" count={parkingStops?.totalFound ?? 0} sub={parkingStops && !parkingStops.connected ? "Not connected yet" : usingRoute ? `Truck stops & rest areas · ${parkingStops?.provider ?? "TomTom"}` : "Analyze a route to find parking"} accent="primary" loading={parkingLoading} />
+          <StatCard icon={<Truck className="size-5" />} label="Truck Stops" count={truckStops?.totalFound ?? 0} sub={truckStops && !truckStops.connected ? "Not connected yet" : usingRoute ? `Pilot/Flying J/Loves/TA · ${truckStops?.provider ?? "TomTom"}` : "Analyze a route to find truck stops"} accent="primary" loading={truckStopsLoading} />
+          <StatCard icon={<Scale className="size-5" />} label="Weigh Stations" count={weighStations?.totalFound ?? 0} sub={weighStations && !weighStations.connected ? "Not connected yet" : usingRoute ? `On route · ${weighStations?.provider ?? "TomTom"}` : "Analyze a route to find weigh stations"} accent="warning" loading={weighLoading} />
           <StatCard icon={<Users className="size-5" />} label="Driver Reports" count={driverCount} sub="Community layer · live" accent="warning" />
         </div>
       </div>
@@ -657,8 +659,25 @@ function Dashboard() {
             result={parkingStops}
             emptyHint="No truck stops, rest areas, or parking detected near this route."
           />
+          <PoiList
+            icon={<Truck className="size-4 text-primary" />}
+            title="Truck Stops on this Route"
+            routeLabel={routeLabel}
+            loading={truckStopsLoading}
+            result={truckStops}
+            emptyHint="No truck stops detected near this route."
+          />
+          <PoiList
+            icon={<Scale className="size-4 text-primary" />}
+            title="Weigh Stations on this Route"
+            routeLabel={routeLabel}
+            loading={weighLoading}
+            result={weighStations}
+            emptyHint="No weigh stations detected near this route."
+          />
         </div>
       )}
+
 
       <div>
         <h2 className="font-semibold mb-3">Recent live alerts (grouped by type & region)</h2>
