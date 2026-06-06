@@ -145,22 +145,108 @@ export function computeSafety(input: ScoredFactors): SafetyResult {
   const totalPenalty = breakdown.weather + breakdown.wind + breakdown.closure + breakdown.hazard;
   const score = Math.max(0, Math.min(100, 100 - totalPenalty));
 
-  const riskLevel: SafetyResult["riskLevel"] =
+  // Score-derived level
+  let riskLevel: SafetyResult["riskLevel"] =
     score >= 85 ? "Safe" : score >= 70 ? "Caution" : score >= 45 ? "High Risk" : "Extreme";
 
-  const scoreExplanation =
-    factors.length === 0
-      ? "Safe because route samples show no severe alerts, dangerous wind, road closures, extreme weather, or verified driver hazards."
-      : `${riskLevel} because ${factors.map((f) => `${f.message} (−${f.penalty})`).join("; ")}.`;
+  // Floor risk level based on active NWS alert types / road closures along the route.
+  // A route is never "Safe" while any active alert is present.
+  const order: SafetyResult["riskLevel"][] = ["Safe", "Caution", "High Risk", "Extreme"];
+  const raise = (lvl: SafetyResult["riskLevel"]) => {
+    if (order.indexOf(lvl) > order.indexOf(riskLevel)) riskLevel = lvl;
+  };
+  const windSensitiveTrailer = /high|cube|box|reefer|dry van|car hauler|flatbed/i.test(
+    input.trailerType ?? "",
+  );
+
+  for (const a of input.weatherAlerts) {
+    const ev = a.event.toLowerCase();
+    const isWarning = ev.includes("warning") || ev.includes("emergency");
+    if (a.category === "tornado") raise(isWarning ? "Extreme" : "High Risk");
+    else if (a.category === "high_wind") {
+      if (isWarning) raise(windSensitiveTrailer ? "Extreme" : "High Risk");
+      else raise("Caution");
+    } else if (a.category === "winter_storm") raise(isWarning ? "High Risk" : "Caution");
+    else if (a.category === "flood") raise(isWarning ? "High Risk" : "Caution");
+    else if (a.category === "thunderstorm") {
+      if (isWarning || a.severity === "critical") raise("High Risk");
+      else raise("Caution");
+    } else if (a.severity === "critical") raise("High Risk");
+    else raise("Caution");
+  }
+  for (const r of input.roadAlerts) {
+    if (r.category === "road_closure") raise(r.severity === "critical" ? "Extreme" : "High Risk");
+    else if (r.severity === "critical" || r.severity === "high") raise("Caution");
+  }
+
+  // Build simplified explanation — alert type, region, source, action.
+  // Do NOT list every county.
+  const summarizeRegion = (areaDesc: string): string => {
+    // Try to extract 2-letter state codes from text like "Adams, IL; Cook, IL"
+    const states = Array.from(new Set((areaDesc.match(/\b[A-Z]{2}\b/g) ?? []))).slice(0, 3);
+    if (states.length) return states.join(", ");
+    const parts = areaDesc.split(";").map((s) => s.trim()).filter(Boolean);
+    if (parts.length <= 1) return areaDesc;
+    return `${parts.length} areas along route`;
+  };
+
+  // Group alerts by event name
+  const grouped = new Map<string, { provider: string; regions: Set<string>; action: string }>();
+  for (const a of input.weatherAlerts) {
+    const g = grouped.get(a.event) ?? {
+      provider: a.provider,
+      regions: new Set<string>(),
+      action: a.recommendedAction,
+    };
+    g.regions.add(summarizeRegion(a.areaDesc));
+    grouped.set(a.event, g);
+  }
+
+  const alertParts: string[] = [];
+  for (const [event, g] of grouped) {
+    const regions = Array.from(g.regions).slice(0, 2).join("; ");
+    alertParts.push(`${event} (${regions || "along route"}, source: ${g.provider})`);
+  }
+  const closureCount = input.roadAlerts.filter((r) => r.category === "road_closure").length;
+  if (closureCount > 0) {
+    const provider = input.roadAlerts[0]?.provider ?? "DOT";
+    alertParts.push(`${closureCount} road closure${closureCount > 1 ? "s" : ""} (source: ${provider})`);
+  }
+
+  let scoreExplanation: string;
+  if (alertParts.length === 0 && factors.length === 0) {
+    scoreExplanation =
+      "Safe — no active weather alerts, dangerous wind, road closures, or verified hazards on the analyzed route.";
+  } else if (alertParts.length > 0) {
+    const headline =
+      riskLevel === "Extreme"
+        ? "Extreme"
+        : riskLevel === "High Risk"
+          ? "High Risk"
+          : "Caution";
+    const recAction =
+      riskLevel === "Extreme"
+        ? "Delay departure until conditions improve."
+        : riskLevel === "High Risk"
+          ? "Re-route or stage until hazards improve."
+          : "Check timing before departure and monitor conditions.";
+    scoreExplanation = `${headline}: ${alertParts.join(" and ")} active along parts of the route. ${recAction}`;
+  } else {
+    scoreExplanation = `${riskLevel} — route conditions show ${factors
+      .map((f) => f.message.toLowerCase())
+      .slice(0, 3)
+      .join("; ")}.`;
+  }
 
   const recommendedAction =
     riskLevel === "Safe"
       ? "Safe — clear to roll. Standard pre-trip checks."
       : riskLevel === "Caution"
-        ? "Caution — monitor listed conditions and reduce speed where needed."
+        ? "Caution — active weather alerts along this route. Monitor and adjust as needed."
         : riskLevel === "High Risk"
           ? "High risk — consider alternate routing or staging until hazards improve."
           : "Extreme — delay departure until conditions improve.";
 
   return { score, breakdown, factors, recommendedAction, riskLevel, scoreExplanation };
 }
+
