@@ -262,10 +262,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         connected: false,
         provider: "not_connected",
         totalFound: 0,
-        message:
-          data.kind === "fuel"
-            ? "Fuel stop data not connected yet."
-            : "Live truck parking availability not connected yet.",
+        message: "POI provider not connected yet.",
         pois: [],
       };
     }
@@ -278,13 +275,21 @@ export const searchTruckPois = createServerFn({ method: "POST" })
 
     // TomTom POI categories:
     // 7311 = Truck Stop / Travel Center, 7311003 = Truck-friendly fuel,
-    // 7395 = Rest Area, 7369 = Open Parking Area, 7309 = Petrol/Gasoline Station.
+    // 7395 = Rest Area, 7369 = Open Parking Area, 7309 = Petrol/Gasoline Station,
+    // 7314 = Weigh Station / Truck inspection.
     const categorySet =
-      data.kind === "fuel" ? "7311,7311003,7309" : "7311,7395,7369";
+      data.kind === "fuel" ? "7311,7311003,7309"
+      : data.kind === "truck_stop" ? "7311,7311003"
+      : data.kind === "weigh_station" ? "7314"
+      : "7311,7395,7369";
 
     const keywords =
       data.kind === "fuel"
         ? ["truck stop", "travel center", "diesel", "Pilot", "Flying J", "Loves", "TA Petro"]
+      : data.kind === "truck_stop"
+        ? ["truck stop", "travel center", "Pilot", "Flying J", "Loves", "TA", "Petro"]
+      : data.kind === "weigh_station"
+        ? ["weigh station", "truck inspection", "port of entry"]
         : ["truck stop", "rest area", "travel center", "truck parking"];
 
     const radiusM = 50000; // initial provider search around each sample
@@ -299,16 +304,29 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       const brand = r.poi?.brands?.[0]?.name ?? null;
       const name = r.poi?.name ?? brand ?? "Truck stop";
       const cats = r.poi?.categories ?? [];
-      const type = classify(name, brand, cats);
-      // For "fuel" kind, drop pure rest areas/parking and small non-truck stations.
-      if (data.kind === "fuel" && (type === "rest_area" || type === "parking")) {
+      const fallbackType: TruckPoiType =
+        data.kind === "weigh_station" ? "weigh_station"
+        : data.kind === "parking" ? "parking"
+        : data.kind === "truck_stop" ? "truck_stop"
+        : "fuel";
+      const type = classify(name, brand, cats, fallbackType);
+      if (data.kind === "fuel" && (type === "rest_area" || type === "parking" || type === "weigh_station")) {
         tomtomFilteredCount += 1;
         return;
       }
-      if (data.kind === "parking" && type === "fuel") {
+      if (data.kind === "parking" && (type === "fuel" || type === "weigh_station")) {
         tomtomFilteredCount += 1;
         return;
       }
+      if (data.kind === "truck_stop" && type !== "truck_stop") {
+        tomtomFilteredCount += 1;
+        return;
+      }
+      if (data.kind === "weigh_station" && type !== "weigh_station") {
+        tomtomFilteredCount += 1;
+        return;
+      }
+
       const routeDistance = distanceToRouteMi(data.geometry, r.position.lat, r.position.lon);
       if (routeDistance == null || routeDistance > corridorRadiusMi) {
         tomtomFilteredCount += 1;
