@@ -686,6 +686,7 @@ function PoiList({
           state?: string | null;
           type?: string;
           distanceMi?: number | null;
+          source?: string;
         }>;
       }
     | undefined;
@@ -728,6 +729,7 @@ function PoiList({
                     <div className="text-[11px] text-muted-foreground truncate">
                       {region || p.address}
                       {p.type && <> · <span className="uppercase tracking-wider">{typeLabel(p.type)}</span></>}
+                      {p.source && <> · Source: {p.source}</>}
                     </div>
                   </div>
                   {p.distanceMi != null && (

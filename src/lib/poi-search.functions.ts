@@ -32,6 +32,7 @@ const Input = z.object({
 });
 
 export type TruckPoiType = "fuel" | "truck_stop" | "rest_area" | "parking";
+export type TruckPoiSource = "TomTom" | "OpenStreetMap";
 
 export type TruckPoi = {
   id: string;
@@ -46,7 +47,7 @@ export type TruckPoi = {
   lon: number;
   distanceMi?: number | null;
   phone?: string | null;
-  source: "TomTom";
+  source: TruckPoiSource;
 };
 
 export type TruckPoiResult = {
@@ -105,14 +106,46 @@ function sampleEveryMiles(
   return samples.slice(0, maxSamples);
 }
 
-function classify(name: string, brand: string | null, categories: string[]): TruckPoiType {
+function classify(
+  name: string,
+  brand: string | null,
+  categories: string[],
+  fallback: TruckPoiType = "fuel",
+): TruckPoiType {
   const hay = `${name} ${brand ?? ""} ${categories.join(" ")}`.toLowerCase();
   if (/rest area|rest stop/.test(hay)) return "rest_area";
   if (/truck stop|travel center|travel centre|truckstop/.test(hay)) return "truck_stop";
   if (TRUCK_FUEL_BRANDS.some((b) => hay.includes(b.toLowerCase()))) return "truck_stop";
   if (/diesel|fuel|gas station|petrol|gasoline/.test(hay)) return "fuel";
   if (/parking/.test(hay)) return "parking";
-  return "fuel";
+  return fallback;
+}
+
+function distanceToRouteMi(geom: Array<[number, number]>, lat: number, lon: number) {
+  let best = Infinity;
+  for (const [routeLon, routeLat] of geom) {
+    best = Math.min(best, distMi(lat, lon, routeLat, routeLon));
+  }
+  return Number.isFinite(best) ? best : null;
+}
+
+function tomtomError(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const j = payload as {
+    errorText?: string;
+    message?: string;
+    error?: { description?: string; message?: string } | string;
+    detailedError?: { message?: string; code?: string };
+  };
+  if (j.detailedError?.message) return j.detailedError.message;
+  if (typeof j.error === "string") return j.error;
+  if (j.error?.description) return j.error.description;
+  if (j.error?.message) return j.error.message;
+  return j.errorText ?? j.message ?? null;
+}
+
+function redactTomTomKey(url: string, key: string) {
+  return url.replace(key, "REDACTED_TOMTOM_API_KEY");
 }
 
 type RawResult = {
@@ -128,13 +161,20 @@ type RawResult = {
   dist?: number;
 };
 
+type TomTomCall = {
+  url: string;
+  status: number;
+  error: string | null;
+  results: RawResult[];
+};
+
 async function tomtomNearby(
   key: string,
   lat: number,
   lon: number,
   categorySet: string,
   radiusM: number,
-): Promise<RawResult[]> {
+): Promise<TomTomCall> {
   const p = new URLSearchParams({
     key,
     lat: String(lat),
@@ -143,13 +183,13 @@ async function tomtomNearby(
     limit: "50",
     categorySet,
   });
+  const url = `https://api.tomtom.com/search/2/nearbySearch/.json?${p}`;
   try {
-    const r = await fetch(`https://api.tomtom.com/search/2/nearbySearch/.json?${p}`);
-    if (!r.ok) return [];
-    const j = (await r.json()) as { results?: RawResult[] };
-    return j.results ?? [];
+    const r = await fetch(url);
+    const j = (await r.json().catch(() => null)) as { results?: RawResult[] } | null;
+    return { url, status: r.status, error: r.ok ? null : tomtomError(j), results: r.ok ? j?.results ?? [] : [] };
   } catch {
-    return [];
+    return { url, status: 0, error: "TomTom request failed", results: [] };
   }
 }
 
@@ -159,7 +199,7 @@ async function tomtomKeyword(
   lat: number,
   lon: number,
   radiusM: number,
-): Promise<RawResult[]> {
+): Promise<TomTomCall> {
   const p = new URLSearchParams({
     key,
     lat: String(lat),
@@ -168,13 +208,95 @@ async function tomtomKeyword(
     limit: "50",
     idxSet: "POI",
   });
+  const url = `https://api.tomtom.com/search/2/poiSearch/${encodeURIComponent(query)}.json?${p}`;
   try {
-    const r = await fetch(
-      `https://api.tomtom.com/search/2/poiSearch/${encodeURIComponent(query)}.json?${p}`,
+    const r = await fetch(url);
+    const j = (await r.json().catch(() => null)) as { results?: RawResult[] } | null;
+    return { url, status: r.status, error: r.ok ? null : tomtomError(j), results: r.ok ? j?.results ?? [] : [] };
+  } catch {
+    return { url, status: 0, error: "TomTom request failed", results: [] };
+  }
+}
+
+type OsmElement = {
+  type: "node" | "way" | "relation";
+  id: number;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+};
+
+function osmQuery(kind: "fuel" | "parking", samples: Array<{ lat: number; lon: number }>) {
+  const radiusM = 30000;
+  const parts: string[] = [];
+  for (const s of samples) {
+    if (kind === "fuel") {
+      parts.push(`node(around:${radiusM},${s.lat},${s.lon})["amenity"="fuel"];`);
+      parts.push(`way(around:${radiusM},${s.lat},${s.lon})["amenity"="fuel"];`);
+      parts.push(`node(around:${radiusM},${s.lat},${s.lon})["highway"="services"];`);
+      parts.push(`way(around:${radiusM},${s.lat},${s.lon})["highway"="services"];`);
+    } else {
+      parts.push(`node(around:${radiusM},${s.lat},${s.lon})["highway"="rest_area"];`);
+      parts.push(`way(around:${radiusM},${s.lat},${s.lon})["highway"="rest_area"];`);
+      parts.push(`node(around:${radiusM},${s.lat},${s.lon})["highway"="services"];`);
+      parts.push(`way(around:${radiusM},${s.lat},${s.lon})["highway"="services"];`);
+      parts.push(`node(around:${radiusM},${s.lat},${s.lon})["amenity"="parking"]["hgv"];`);
+      parts.push(`way(around:${radiusM},${s.lat},${s.lon})["amenity"="parking"]["hgv"];`);
+    }
+  }
+  return `[out:json][timeout:25];(${parts.join("\n")});out center tags 100;`;
+}
+
+async function searchOpenStreetMapPois(
+  kind: "fuel" | "parking",
+  geometry: Array<[number, number]>,
+  samples: Array<{ lat: number; lon: number }>,
+): Promise<TruckPoi[]> {
+  try {
+    const res = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "Navaroad/1.0 route-poi-search",
+      },
+      body: `data=${encodeURIComponent(osmQuery(kind, samples))}`,
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { elements?: OsmElement[] };
+    const seen = new Map<string, TruckPoi>();
+    for (const el of json.elements ?? []) {
+      const lat = el.lat ?? el.center?.lat;
+      const lon = el.lon ?? el.center?.lon;
+      if (lat == null || lon == null) continue;
+      const tags = el.tags ?? {};
+      const brand = tags.brand ?? tags.operator ?? null;
+      const name = tags.name ?? brand ?? (tags.highway === "rest_area" ? "Rest area" : tags.highway === "services" ? "Travel center" : kind === "fuel" ? "Fuel station" : "Truck parking");
+      const categories = [tags.amenity, tags.highway, tags.hgv, tags.parking].filter(Boolean) as string[];
+      const type = classify(name, brand, categories, kind === "parking" ? "parking" : "fuel");
+      if (kind === "fuel" && type === "parking") continue;
+      if (kind === "parking" && type === "fuel") continue;
+      const id = `osm:${el.type}:${el.id}`;
+      if (seen.has(id)) continue;
+      seen.set(id, {
+        id,
+        name,
+        brand,
+        category: categories[0] ?? type,
+        type,
+        address: [tags["addr:housenumber"], tags["addr:street"]].filter(Boolean).join(" "),
+        city: tags["addr:city"] ?? null,
+        state: tags["addr:state"] ?? null,
+        lat,
+        lon,
+        distanceMi: distanceToRouteMi(geometry, lat, lon),
+        phone: tags.phone ?? null,
+        source: "OpenStreetMap",
+      });
+    }
+    return Array.from(seen.values()).sort(
+      (a, b) => (a.distanceMi ?? Infinity) - (b.distanceMi ?? Infinity),
     );
-    if (!r.ok) return [];
-    const j = (await r.json()) as { results?: RawResult[] };
-    return j.results ?? [];
   } catch {
     return [];
   }
@@ -215,22 +337,24 @@ export const searchTruckPois = createServerFn({ method: "POST" })
 
     const radiusM = 50000; // 50 km corridor around each sample
     const seen = new Map<string, TruckPoi>();
+    let tomtomRawCount = 0;
+    let tomtomFilteredCount = 0;
 
     const addRaw = (r: RawResult, sampleLat: number, sampleLon: number) => {
       if (!r.position) return;
+      tomtomRawCount += 1;
       const brand = r.poi?.brands?.[0]?.name ?? null;
       const name = r.poi?.name ?? brand ?? "Truck stop";
       const cats = r.poi?.categories ?? [];
       const type = classify(name, brand, cats);
       // For "fuel" kind, drop pure rest areas/parking and small non-truck stations.
-      if (data.kind === "fuel" && (type === "rest_area" || type === "parking")) return;
-      // For "fuel" kind, allow truck_stop or fuel; drop fuel if it has no truck-friendly hint AND no diesel keyword.
-      if (data.kind === "fuel" && type === "fuel") {
-        const hay = `${name} ${brand ?? ""}`.toLowerCase();
-        const truckFriendly =
-          TRUCK_FUEL_BRANDS.some((b) => hay.includes(b.toLowerCase())) ||
-          /diesel|truck/.test(hay);
-        if (!truckFriendly) return;
+      if (data.kind === "fuel" && (type === "rest_area" || type === "parking")) {
+        tomtomFilteredCount += 1;
+        return;
+      }
+      if (data.kind === "parking" && type === "fuel") {
+        tomtomFilteredCount += 1;
+        return;
       }
       const id = r.id ?? `${r.position.lat.toFixed(5)},${r.position.lon.toFixed(5)}`;
       const distance =
@@ -261,12 +385,12 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     const categoryResults = await Promise.all(
       samples.map((s) => tomtomNearby(key, s.lat, s.lon, categorySet, radiusM)),
     );
-    samples.forEach((s, i) => categoryResults[i].forEach((r) => addRaw(r, s.lat, s.lon)));
+    samples.forEach((s, i) => categoryResults[i].results.forEach((r) => addRaw(r, s.lat, s.lon)));
 
     // Step 2: keyword fallback — run if category search yielded few results, or always for
     // brand-name coverage (truck-friendly fuel chains often miscategorize).
     if (seen.size < 10) {
-      const keywordCalls: Array<Promise<RawResult[]>> = [];
+      const keywordCalls: Array<Promise<TomTomCall>> = [];
       const keywordSamples: Array<{ lat: number; lon: number }> = [];
       for (const s of samples) {
         for (const kw of keywords) {
@@ -276,21 +400,51 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       }
       const kwResults = await Promise.all(keywordCalls);
       kwResults.forEach((list, i) =>
-        list.forEach((r) => addRaw(r, keywordSamples[i].lat, keywordSamples[i].lon)),
+        list.results.forEach((r) => addRaw(r, keywordSamples[i].lat, keywordSamples[i].lon)),
       );
     }
 
-    const pois = Array.from(seen.values()).sort(
+    const tomtomCalls = [...categoryResults];
+    const firstError = tomtomCalls.find((c) => c.error)?.error ?? null;
+    const firstFuelUrl = redactTomTomKey(categoryResults[0]?.url ?? "", key);
+    console.info("Navaroad TomTom POI diagnostics", {
+      kind: data.kind,
+      keyRead: true,
+      keyLength: key.length,
+      firstUrl: firstFuelUrl,
+      routePointCount: data.geometry.length,
+      sampleCount: samples.length,
+      searchesFullRoute: samples.length > 1,
+      rawTomTomCount: tomtomRawCount,
+      filteredOutAfterTomTom: tomtomFilteredCount,
+      firstTomTomStatus: categoryResults[0]?.status,
+      firstTomTomError: firstError,
+    });
+
+    let pois = Array.from(seen.values()).sort(
       (a, b) => (a.distanceMi ?? Infinity) - (b.distanceMi ?? Infinity),
     );
+    let provider = "TomTom";
+    let message =
+      data.kind === "parking" && pois.length > 0
+        ? "Parking locations found. Live availability not connected."
+        : undefined;
+
+    if (pois.length === 0 && firstError) {
+      const fallback = await searchOpenStreetMapPois(data.kind, data.geometry, samples);
+      if (fallback.length > 0) {
+        pois = fallback;
+        provider = "OpenStreetMap";
+        message = `TomTom Search returned: ${firstError}. Showing route-wide ${data.kind === "fuel" ? "fuel stops" : "parking locations"} from OpenStreetMap instead.`;
+      } else {
+        message = `TomTom Search returned: ${firstError}. No fallback locations were returned along the route.`;
+      }
+    }
 
     return {
       connected: true,
-      provider: "TomTom",
-      message:
-        data.kind === "parking" && pois.length > 0
-          ? "Parking locations found. Live availability not connected."
-          : undefined,
+      provider,
+      message,
       pois: pois.slice(0, data.limit ?? 60),
     };
   });
