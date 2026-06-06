@@ -390,13 +390,14 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     const radiusM = 50000; // initial provider search around each sample
     const corridorRadiusMi = 35; // final route-corridor filter for simplified route geometry
     const seen = new Map<string, TruckPoi>();
+    const cumMi = buildCumMi(data.geometry);
     let tomtomRawCount = 0;
     let routeFilteredCount = 0;
     let tomtomFilteredCount = 0;
     const rawTomTomResults: string[] = [];
     const routeFilteredResults: string[] = [];
 
-    const addRaw = (r: RawResult, sampleLat: number, sampleLon: number) => {
+    const addRaw = (r: RawResult, _sampleLat: number, _sampleLon: number) => {
       if (!r.position) return;
       tomtomRawCount += 1;
       const brand = r.poi?.brands?.[0]?.name ?? null;
@@ -409,10 +410,14 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         : data.kind === "truck_stop" ? "truck_stop"
         : "fuel";
       const type = classify(name, brand, cats, fallbackType);
+      const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
+
       if (data.kind === "fuel") {
-        // Fuel includes branded truck stops (Pilot/Flying J/Love's/TA/Petro all sell diesel)
-        // plus any classified fuel station. Exclude rest areas, parking, weigh stations.
-        const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
+        // Exclude EV charging stations — Fuel Stops is diesel/gasoline only.
+        if (isEvCharging(hay)) {
+          tomtomFilteredCount += 1;
+          return;
+        }
         const isFuel = type === "fuel" || type === "truck_stop" || truckStopAllowed(hay);
         if (!isFuel) {
           tomtomFilteredCount += 1;
@@ -420,9 +425,6 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         }
       }
       if (data.kind === "parking") {
-        // Only show truck-relevant parking: brand truck stops, rest areas,
-        // travel centers, truck plazas, or named truck parking.
-        const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
         const isTruckParking =
           (type === "truck_stop" && truckStopAllowed(hay)) ||
           type === "rest_area" ||
@@ -434,30 +436,36 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         }
       }
       if (data.kind === "truck_stop") {
-        // Strict allow-list: only major truck-stop chains + generic truck plazas.
-        const hay = `${name} ${brand ?? ""} ${cats.join(" ")}`.toLowerCase();
-        const isAllowedTruckStop = truckStopAllowed(hay);
-        if (!isAllowedTruckStop) {
+        if (!truckStopAllowed(hay)) {
           tomtomFilteredCount += 1;
           return;
         }
       }
-      if (data.kind === "weigh_station" && type !== "weigh_station") {
-        tomtomFilteredCount += 1;
-        return;
+      if (data.kind === "weigh_station") {
+        // Strict: only state weigh stations, ports of entry, CAT scales, official
+        // inspection facilities. Reject truck-stop brands explicitly.
+        if (!isWeighStationStrict(hay)) {
+          tomtomFilteredCount += 1;
+          return;
+        }
       }
 
-      const routeDistance = distanceToRouteMi(data.geometry, r.position.lat, r.position.lon);
-      if (routeDistance == null || routeDistance > corridorRadiusMi) {
+      const projection = projectOnRouteMi(data.geometry, cumMi, r.position.lat, r.position.lon);
+      if (!projection || projection.perpMi > corridorRadiusMi) {
         tomtomFilteredCount += 1;
         return;
       }
+      const routeDistance = projection.perpMi;
+      const progressMi = projection.progressMi;
       routeFilteredCount += 1;
       if (routeFilteredResults.length < 12) routeFilteredResults.push(`${name} · ${routeDistance.toFixed(1)} mi`);
       const id = r.id ?? `${r.position.lat.toFixed(5)},${r.position.lon.toFixed(5)}`;
       const existing = seen.get(id);
       if (existing) {
-        if ((existing.distanceMi ?? Infinity) > routeDistance) existing.distanceMi = routeDistance;
+        if ((existing.distanceMi ?? Infinity) > routeDistance) {
+          existing.distanceMi = routeDistance;
+          existing.routeProgressMi = progressMi;
+        }
         return;
       }
       seen.set(id, {
@@ -472,10 +480,13 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         lat: r.position.lat,
         lon: r.position.lon,
         distanceMi: routeDistance,
+        routeProgressMi: progressMi,
         phone: r.poi?.phone ?? null,
         source: "TomTom",
+        restrictions: null,
       });
     };
+
 
     // Step 1: category search at every sample, in parallel.
     const categoryResults = await Promise.all(
