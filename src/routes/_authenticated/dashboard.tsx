@@ -215,7 +215,11 @@ function Dashboard() {
 
   function onAnalyze(e: React.FormEvent) {
     e.preventDefault();
-    analysis.mutate({ origin, destination, truck, trailer });
+    analysis.mutate({
+      origin, destination, truck, trailer,
+      ...(originPlace ? { originCoords: { lat: originPlace.lat, lon: originPlace.lon } } : {}),
+      ...(destPlace ? { destinationCoords: { lat: destPlace.lat, lon: destPlace.lon } } : {}),
+    });
   }
 
   return (
