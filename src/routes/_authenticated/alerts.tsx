@@ -199,6 +199,7 @@ function AlertsCenter() {
               {t.label}
             </button>
           );
+        })}
         {activeRoute && (
           <button
             onClick={() => setOnRouteOnly((v) => !v)}
