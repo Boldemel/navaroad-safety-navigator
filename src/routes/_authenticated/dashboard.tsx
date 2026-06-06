@@ -58,8 +58,11 @@ function Dashboard() {
     try {
       const r = await reverseGeocodeFn({ data: { lat, lon } });
       setOrigin(r.label);
+      setOriginPlace({ label: r.label, lat, lon, city: null, state: null, country: null });
     } catch {
-      setOrigin(`${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+      const fallback = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+      setOrigin(fallback);
+      setOriginPlace({ label: fallback, lat, lon, city: null, state: null, country: null });
     } finally {
       setLocating(false);
       setPendingAutoAnalyze(true);
