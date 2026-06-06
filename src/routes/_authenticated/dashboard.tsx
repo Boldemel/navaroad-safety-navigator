@@ -57,15 +57,29 @@ function Dashboard() {
     },
   });
 
-  const weatherAlerts = feed?.weatherAlerts ?? [];
-  const roadAlerts = feed?.roadAlerts ?? [];
-  const windCount = weatherAlerts.filter((a) => a.category === "high_wind" || a.category === "tornado").length;
-  const weatherCount = weatherAlerts.length;
-  const closureCount = roadAlerts.filter((a) => a.category === "road_closure" || a.category === "detour").length;
+  const result = analysis.data;
+
+  // Stat cards: prefer the analyzed route when present, else fall back to the
+  // live national feed. This keeps Wind/Weather Risk specific to the path.
+  const routeRisks = result?.risks ?? [];
+  const feedWeatherAlerts = feed?.weatherAlerts ?? [];
+  const feedRoadAlerts = feed?.roadAlerts ?? [];
+  const usingRoute = !!result;
+  const weatherCount = usingRoute
+    ? routeRisks.filter((r) => r.type === "precip" || r.type === "visibility" || r.type === "temp" || r.type === "weather_alert").length
+    : feedWeatherAlerts.length;
+  const windCount = usingRoute
+    ? routeRisks.filter((r) => r.type === "wind").length + feedWeatherAlerts.filter((a) => result && result.weatherAlerts.some((x) => x.id === a.id) && (a.category === "high_wind" || a.category === "tornado")).length
+    : feedWeatherAlerts.filter((a) => a.category === "high_wind" || a.category === "tornado").length;
+  const closureCount = usingRoute
+    ? routeRisks.filter((r) => r.type === "closure").length
+    : feedRoadAlerts.filter((a) => a.category === "road_closure" || a.category === "detour").length;
   const driverCount = hazards.length;
 
-  const result = analysis.data;
   const score = result?.score ?? null;
+  const breakdown = result?.breakdown;
+  const trailerBump = ["Dry Van", "Reefer", "Curtain Side"].includes(trailer) ? 6 : 2;
+  const totalPenalty = breakdown ? breakdown.weather + breakdown.wind + breakdown.closure + breakdown.hazard + trailerBump : 0;
 
   function onAnalyze(e: React.FormEvent) {
     e.preventDefault();
