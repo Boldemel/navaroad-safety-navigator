@@ -137,13 +137,18 @@ function classify(
   fallback: TruckPoiType = "fuel",
 ): TruckPoiType {
   const hay = `${name} ${brand ?? ""} ${categories.join(" ")}`.toLowerCase();
+  if (isCatScale(hay)) return "cat_scale";
   if (TRUCK_STOP_BRANDS.some((b) => hay.includes(b.toLowerCase()))) return "truck_stop";
   if (/truck stop|travel center|travel centre|truckstop|truck plaza/.test(hay)) return "truck_stop";
-  if (/weigh station|weigh-in-motion|inspection station|port of entry|cat scale/.test(hay)) return "weigh_station";
+  if (/weigh station|weigh-in-motion|inspection station|port of entry|agricultural inspection/.test(hay)) return "weigh_station";
   if (/rest area|rest stop/.test(hay)) return "rest_area";
   if (/diesel|fuel|gas station|petrol|gasoline/.test(hay)) return "fuel";
   if (/parking/.test(hay)) return "parking";
   return fallback;
+}
+
+function isCatScale(hay: string) {
+  return /\bcat\s*scale\b|certified\s*automated\s*truck\s*scale|certified\s*commercial\s*scale/.test(hay);
 }
 
 // Brands / keywords that indicate EV charging — excluded from Fuel Stops.
