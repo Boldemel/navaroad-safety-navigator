@@ -136,7 +136,7 @@ function HazardMap() {
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Hazard Map</h1>
-          <p className="text-muted-foreground text-sm">Live NWS weather alerts, DOT incidents, and driver reports — no sample data.</p>
+          <p className="text-muted-foreground text-sm">Live NWS weather alerts, TomTom incidents, and driver reports — no sample data.</p>
         </div>
         <div className="inline-flex items-center gap-2 text-xs text-muted-foreground rounded-full border border-border bg-card px-3 py-1.5">
           <Radio className={`size-3 ${loading ? "animate-pulse" : "text-success"}`} />
