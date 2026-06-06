@@ -213,6 +213,22 @@ export const analyzeRoute = createServerFn({ method: "POST" })
         weather: weatherAvailable,
         weatherAlerts: weatherAlerts.length > 0,
         road: roadAlerts.length > 0,
+        truckRestrictions: false,
+      },
+      truckRestrictions: {
+        connected: false,
+        message:
+          "Truck restriction data not connected yet. Route not verified against bridge clearance, weight limits, or hazmat restrictions.",
+        profile: data.truckProfile
+          ? {
+              heightIn: data.truckProfile.heightIn ?? null,
+              weightLbs: data.truckProfile.weightLbs ?? null,
+              lengthFt: data.truckProfile.lengthFt ?? null,
+              axles: data.truckProfile.axles ?? null,
+              hazmat: !!data.truckProfile.hazmat,
+              loaded: data.truckProfile.loaded ?? null,
+            }
+          : null,
       },
       providers: {
         weather: weatherAvailable ? "Open-Meteo" : "not_connected",
