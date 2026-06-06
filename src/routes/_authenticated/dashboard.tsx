@@ -769,7 +769,9 @@ function PoiList({
     : t === "rest_area" ? "Rest area"
     : t === "parking" ? "Parking"
     : t === "fuel" ? "Fuel"
+    : t === "weigh_station" ? "Weigh station"
     : "";
+
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-3">
       <div className="flex items-center gap-2">{icon}<h3 className="font-semibold">{title}</h3></div>
