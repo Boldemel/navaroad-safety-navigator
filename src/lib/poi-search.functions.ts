@@ -189,6 +189,62 @@ function distanceToRouteMi(geom: Array<[number, number]>, lat: number, lon: numb
   return Number.isFinite(best) ? best : null;
 }
 
+// Precompute cumulative miles along the route polyline.
+function buildCumMi(geom: Array<[number, number]>): number[] {
+  const cum: number[] = [0];
+  for (let i = 1; i < geom.length; i++) {
+    const [aLon, aLat] = geom[i - 1];
+    const [bLon, bLat] = geom[i];
+    cum.push(cum[i - 1] + distMi(aLat, aLon, bLat, bLon));
+  }
+  return cum;
+}
+
+// Project (lat,lon) onto the route and return cumulative miles from origin
+// to the closest point on the route (route progression). Also returns the
+// perpendicular distance to the route.
+function projectOnRouteMi(
+  geom: Array<[number, number]>,
+  cumMi: number[],
+  lat: number,
+  lon: number,
+): { perpMi: number; progressMi: number } | null {
+  let bestPerp = Infinity;
+  let bestProgress = 0;
+  for (let i = 1; i < geom.length; i++) {
+    const [aLon, aLat] = geom[i - 1];
+    const [bLon, bLat] = geom[i];
+    const milesPerDegLat = 69;
+    const milesPerDegLon = 69 * Math.cos((lat * Math.PI) / 180);
+    const px = lon * milesPerDegLon;
+    const py = lat * milesPerDegLat;
+    const ax = aLon * milesPerDegLon;
+    const ay = aLat * milesPerDegLat;
+    const bx = bLon * milesPerDegLon;
+    const by = bLat * milesPerDegLat;
+    const dx = bx - ax;
+    const dy = by - ay;
+    let t = 0;
+    let perp: number;
+    if (dx === 0 && dy === 0) {
+      perp = Math.hypot(px - ax, py - ay);
+    } else {
+      t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+      const cx = ax + t * dx;
+      const cy = ay + t * dy;
+      perp = Math.hypot(px - cx, py - cy);
+    }
+    if (perp < bestPerp) {
+      bestPerp = perp;
+      const segLen = cumMi[i] - cumMi[i - 1];
+      bestProgress = cumMi[i - 1] + t * segLen;
+    }
+  }
+  if (!Number.isFinite(bestPerp)) return null;
+  return { perpMi: bestPerp, progressMi: bestProgress };
+}
+
+
 function tomtomError(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
   const j = payload as {
