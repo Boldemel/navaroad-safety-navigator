@@ -32,6 +32,8 @@ export type WeatherAlert = {
   recommendedAction: string;
   effective: string; // ISO
   expires: string | null;
+  lat: number | null;
+  lon: number | null;
 };
 
 function wmoToText(code: number | undefined): string {
