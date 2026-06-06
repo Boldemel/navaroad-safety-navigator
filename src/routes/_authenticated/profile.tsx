@@ -4,9 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { TRUCK_TYPES, TRAILER_TYPES } from "@/lib/navaroad";
 import { toast } from "sonner";
 import { User } from "lucide-react";
 import { VoiceSettingsCard } from "@/components/voice-settings-card";
@@ -23,9 +21,6 @@ function Profile() {
   const [email, setEmail] = useState("");
   const [form, setForm] = useState({
     driver_name: "",
-    truck_type: "Sleeper",
-    trailer_type: "Dry Van",
-    load_status: "empty",
     notify_email: true,
     notify_push: true,
     notify_sms: false,
@@ -40,9 +35,6 @@ function Profile() {
       if (data) {
         setForm({
           driver_name: data.driver_name ?? "",
-          truck_type: data.truck_type ?? "Sleeper",
-          trailer_type: data.trailer_type ?? "Dry Van",
-          load_status: data.load_status ?? "empty",
           notify_email: data.notify_email ?? true,
           notify_push: data.notify_push ?? true,
           notify_sms: data.notify_sms ?? false,
@@ -64,6 +56,7 @@ function Profile() {
   }
 
   if (loading) return <div className="p-8 text-muted-foreground text-sm">Loading…</div>;
+
 
   return (
     <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-6">
