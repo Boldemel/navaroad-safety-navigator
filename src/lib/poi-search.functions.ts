@@ -478,19 +478,38 @@ export const searchTruckPois = createServerFn({ method: "POST" })
 
     if (pois.length === 0 && firstError) {
       const fallback = await searchOpenStreetMapPois(data.kind, data.geometry, samples);
-      if (fallback.length > 0) {
-        pois = fallback;
+      const routeFilteredFallback = fallback.filter((p) => (p.distanceMi ?? Infinity) <= corridorRadiusMi);
+      tomtomRawCount += fallback.length;
+      tomtomFilteredCount += fallback.length - routeFilteredFallback.length;
+      if (routeFilteredFallback.length > 0) {
+        pois = routeFilteredFallback;
         provider = "OpenStreetMap";
-        message = `TomTom Search returned: ${firstError}. Showing route-wide ${data.kind === "fuel" ? "fuel stops" : "parking locations"} from OpenStreetMap instead.`;
+        message = `OpenStreetMap fallback — route filtered. TomTom Search returned: ${firstError}.`;
       } else {
         message = `TomTom Search returned: ${firstError}. No fallback locations were returned along the route.`;
       }
     }
 
+    const totalFound = pois.length;
+    const routeStart = data.geometry[0];
+    const routeEnd = data.geometry[data.geometry.length - 1];
+    const debug = {
+      routeUsed: `${routeStart[1].toFixed(4)}, ${routeStart[0].toFixed(4)} → ${routeEnd[1].toFixed(4)}, ${routeEnd[0].toFixed(4)}`,
+      routePointCount: data.geometry.length,
+      searchPointCount: samples.length,
+      corridorRadiusMi,
+      rawResultsCount: tomtomRawCount,
+      filteredResultsCount: totalFound,
+      filteredOutCount: tomtomFilteredCount,
+      searchingFullRoute: samples.length > 1,
+    };
+
     return {
       connected: true,
       provider,
       message,
+      totalFound,
+      debug,
       pois: pois.slice(0, data.limit ?? 60),
     };
   });
