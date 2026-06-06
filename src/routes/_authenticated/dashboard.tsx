@@ -248,7 +248,14 @@ function Dashboard() {
                       : "Use my current location"}
                 </button>
               </div>
-              <Input required value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Denver, CO" />
+              <AddressAutocomplete
+                required
+                value={origin}
+                onChange={(t) => { setOrigin(t); if (originPlace && t !== originPlace.label) setOriginPlace(null); }}
+                onSelect={(p) => setOriginPlace(p)}
+                placeholder="Denver, CO"
+                proximity={geo.coords ?? null}
+              />
               {geo.status === "denied" && (
                 <p className="text-[11px] text-destructive">Location access is needed for live route safety alerts.</p>
               )}
@@ -259,7 +266,14 @@ function Dashboard() {
 
             <div className="space-y-1.5">
               <Label>Destination</Label>
-              <Input required value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Salt Lake City, UT" />
+              <AddressAutocomplete
+                required
+                value={destination}
+                onChange={(t) => { setDestination(t); if (destPlace && t !== destPlace.label) setDestPlace(null); }}
+                onSelect={(p) => setDestPlace(p)}
+                placeholder="Salt Lake City, UT"
+                proximity={originPlace ? { lat: originPlace.lat, lon: originPlace.lon } : (geo.coords ?? null)}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Truck Type</Label>
