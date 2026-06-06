@@ -85,14 +85,22 @@ export const analyzeRoute = createServerFn({ method: "POST" })
     const r = await route(o, d2);
 
     // Sample 3 points: start, mid, end
-    const mid = r.geometry[Math.floor(r.geometry.length / 2)] ?? [(o.lon + d2.lon) / 2, (o.lat + d2.lat) / 2];
+    const midCoordinate = r.geometry[Math.floor(r.geometry.length / 2)];
+    const midLon = midCoordinate ? midCoordinate[0] : (o.lon + d2.lon) / 2;
+    const midLat = midCoordinate ? midCoordinate[1] : (o.lat + d2.lat) / 2;
     const samples = [
       { label: "Origin", lat: o.lat, lon: o.lon },
-      { label: "Midpoint", lat: mid[1], lon: mid[0] },
+      { label: "Midpoint", lat: midLat, lon: midLon },
       { label: "Destination", lat: d2.lat, lon: d2.lon },
     ];
     const weather = await Promise.all(
-      samples.map(async (s) => ({ ...s, ...(await weatherAt(s.lat, s.lon)) ?? { tempC: null, windKph: null, gustKph: null, precipMm: null, condition: "Unknown" } }))
+      samples.map(async (s) => {
+        const currentWeather = await weatherAt(s.lat, s.lon);
+        return {
+          ...s,
+          ...(currentWeather ?? { tempC: null, windKph: null, gustKph: null, precipMm: null, condition: "Unknown" }),
+        };
+      })
     );
 
     // Compute risks
