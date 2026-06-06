@@ -293,12 +293,20 @@ function truckStopAllowed(hay: string) {
     /\bpilot\b/.test(hay) ||
     /flying\s*j/.test(hay) ||
     /love'?s/.test(hay) ||
-    /\bta\b/.test(hay) ||
+    /\bta\b\s*(travel|truck)?/.test(hay) ||
     /\bpetro\b/.test(hay) ||
+    /sapp\s*(bros|brothers)/.test(hay) ||
+    /road\s*ranger/.test(hay) ||
+    /casey'?s\s*(truck|general)?/.test(hay) ||
     /travel\s*cent(er|re)s?/.test(hay) ||
     /truck\s*plaza/.test(hay) ||
     /truck\s*stop|truckstop/.test(hay)
   );
+}
+
+// Strict reject list for "truck stop" — RV parks, campgrounds, etc.
+function isNotTruckStop(hay: string) {
+  return /\brv\s*park\b|campground|koa\b|camp\s*ground|\brv\s*resort\b|mobile\s*home/.test(hay);
 }
 
 async function tomtomNearby(
