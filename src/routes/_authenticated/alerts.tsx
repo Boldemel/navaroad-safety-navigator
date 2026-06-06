@@ -62,6 +62,11 @@ function AlertsCenter() {
     action?: string | null;
     updatedAt: string;
     reporter_id?: string | null;
+    lat?: number | null;
+    lon?: number | null;
+    category?: string;
+    onRoute?: boolean;
+    distanceMi?: number;
   };
 
   const items: Item[] = useMemo(() => {
@@ -75,6 +80,9 @@ function AlertsCenter() {
       message: a.headline,
       action: a.recommendedAction,
       updatedAt: a.effective,
+      lat: a.lat ?? null,
+      lon: a.lon ?? null,
+      category: a.category,
     }));
     const road: Item[] = (feed?.roadAlerts ?? []).map((r) => ({
       id: r.id,
@@ -86,8 +94,11 @@ function AlertsCenter() {
       message: r.description,
       action: r.recommendedAction,
       updatedAt: r.updatedAt,
+      lat: r.lat ?? null,
+      lon: r.lon ?? null,
+      category: r.category,
     }));
-    const drivers: Item[] = hazards.map((h) => ({
+    const driverItems: Item[] = hazards.map((h) => ({
       id: h.id,
       source: "driver",
       sourceLabel: "Driver Report",
@@ -98,11 +109,52 @@ function AlertsCenter() {
       action: null,
       updatedAt: h.created_at,
       reporter_id: h.reporter_id,
+      lat: h.latitude ?? null,
+      lon: h.longitude ?? null,
+      category: h.hazard_type,
     }));
-    return [...weather, ...road, ...drivers].sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt));
-  }, [feed, hazards]);
+    const all = [...weather, ...road, ...driverItems];
 
-  const visible = items.filter((it) => filters.has(it.source));
+    // Tag items inside the 10mi route corridor and compute distance-to-route.
+    if (geometry.length >= 2) {
+      const probes: HazardLike[] = all
+        .filter((i) => i.lat != null && i.lon != null)
+        .map((i) => ({
+          id: i.source + i.id,
+          title: i.type,
+          category: i.category ?? i.type,
+          severity: i.severity,
+          lat: i.lat ?? null,
+          lon: i.lon ?? null,
+          source: i.sourceLabel,
+        }));
+      const onRoute = hazardsAlongRoute(geometry, probes, 10);
+      const byKey = new Map(onRoute.map((h) => [h.id, h.distanceMi]));
+      for (const it of all) {
+        const key = it.source + it.id;
+        if (byKey.has(key)) {
+          it.onRoute = true;
+          it.distanceMi = byKey.get(key);
+          if (!it.action) {
+            it.action = recommendedActionFor(
+              { id: key, title: it.type, category: it.category ?? it.type, severity: it.severity, lat: it.lat, lon: it.lon, source: it.sourceLabel },
+              it.distanceMi ?? 0,
+            );
+          }
+        }
+      }
+    }
+
+    return all.sort((a, b) => {
+      // On-route items first, then newest.
+      if (!!b.onRoute !== !!a.onRoute) return b.onRoute ? 1 : -1;
+      return +new Date(b.updatedAt) - +new Date(a.updatedAt);
+    });
+  }, [feed, hazards, geometry]);
+
+  const [onRouteOnly, setOnRouteOnly] = useState(false);
+  const visible = items.filter((it) => filters.has(it.source) && (!onRouteOnly || it.onRoute));
+  const onRouteCount = items.filter((i) => i.onRoute).length;
   const loading = feedLoading || hazardsLoading;
 
   function toggle(v: Source) {
