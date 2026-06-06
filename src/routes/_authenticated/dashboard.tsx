@@ -769,11 +769,11 @@ function Dashboard() {
           />
           <PoiList
             icon={<ParkingCircle className="size-4 text-primary" />}
-            title="Truck Parking on this Route"
+            title="Rest Areas on this Route"
             routeLabel={routeLabel}
             loading={parkingLoading}
             result={parkingStops}
-            emptyHint="No truck stops, rest areas, or parking detected near this route."
+            emptyHint="No rest areas or welcome centers detected near this route."
           />
           <PoiList
             icon={<Truck className="size-4 text-primary" />}
