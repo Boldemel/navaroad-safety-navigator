@@ -244,6 +244,9 @@ function Dashboard() {
     onSuccess: () => {
       router.navigate({ to: "/hazard-map" });
     },
+  });
+
+
 
   const navToPoi = useMutation({
     mutationFn: async (p: { lat: number; lon: number; name: string }) => {
