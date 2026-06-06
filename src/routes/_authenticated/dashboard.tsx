@@ -109,8 +109,11 @@ function Dashboard() {
 
 
   const analysis = useMutation({
-    mutationFn: (vars: { origin: string; destination: string; truck: string; trailer: string }) =>
-      analyzeFn({ data: vars }),
+    mutationFn: (vars: {
+      origin: string; destination: string; truck: string; trailer: string;
+      originCoords?: { lat: number; lon: number };
+      destinationCoords?: { lat: number; lon: number };
+    }) => analyzeFn({ data: vars }),
     onSuccess: (data, vars) => {
       saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
     },
