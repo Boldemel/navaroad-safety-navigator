@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useMemo } from "react";
@@ -24,24 +24,33 @@ function colorIcon(color: string) {
   });
 }
 
-function FitBounds({ markers }: { markers: MapMarker[] }) {
+function FitBounds({ points }: { points: Array<[number, number]> }) {
   const map = useMap();
   useEffect(() => {
-    if (markers.length === 0) return;
-    const bounds = L.latLngBounds(markers.map((m) => [m.lat, m.lon] as [number, number]));
-    map.fitBounds(bounds, { padding: [30, 30], maxZoom: 8 });
-  }, [markers, map]);
+    if (points.length === 0) return;
+    const bounds = L.latLngBounds(points);
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
+  }, [points, map]);
   return null;
+}
+
+// TomTom API keys are alphanumeric ~30+ chars with no spaces. If the secret
+// contains a prompt or other text, we fall back to OpenStreetMap tiles so the
+// map still renders.
+function isValidTomTomKey(k: string | null): k is string {
+  return !!k && /^[A-Za-z0-9]{20,}$/.test(k.trim());
 }
 
 export default function TomTomMapClient({
   tomtomKey,
   markers,
+  routeGeometry = [],
   showTraffic = true,
   height = "100%",
 }: {
   tomtomKey: string | null;
   markers: MapMarker[];
+  routeGeometry?: Array<[number, number]>; // [lon, lat]
   showTraffic?: boolean;
   height?: string;
 }) {
@@ -49,22 +58,31 @@ export default function TomTomMapClient({
     () => markers.filter((m) => Number.isFinite(m.lat) && Number.isFinite(m.lon)),
     [markers],
   );
+  const routeLatLngs = useMemo<Array<[number, number]>>(
+    () => routeGeometry.filter((p) => Array.isArray(p) && p.length === 2).map(([lon, lat]) => [lat, lon]),
+    [routeGeometry],
+  );
+  const fitPoints = useMemo<Array<[number, number]>>(
+    () => [...routeLatLngs, ...validMarkers.map((m) => [m.lat, m.lon] as [number, number])],
+    [routeLatLngs, validMarkers],
+  );
 
-  const tileUrl = tomtomKey
+  const keyOk = isValidTomTomKey(tomtomKey);
+  const tileUrl = keyOk
     ? `https://api.tomtom.com/map/1/tile/basic/main/{z}/{x}/{y}.png?key=${tomtomKey}`
     : "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-  const attribution = tomtomKey
+  const attribution = keyOk
     ? '&copy; <a href="https://www.tomtom.com/">TomTom</a>'
     : '&copy; OpenStreetMap contributors';
 
   const center: [number, number] =
-    validMarkers.length > 0 ? [validMarkers[0].lat, validMarkers[0].lon] : [39.5, -98.35];
+    routeLatLngs[0] ?? (validMarkers.length > 0 ? [validMarkers[0].lat, validMarkers[0].lon] : [39.5, -98.35]);
 
   return (
-    <div style={{ height, width: "100%" }} className="rounded-xl overflow-hidden border border-border">
+    <div style={{ height, width: "100%" }} className="rounded-xl overflow-hidden border border-border relative">
       <MapContainer center={center} zoom={4} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
         <TileLayer url={tileUrl} attribution={attribution} />
-        {tomtomKey && showTraffic && (
+        {keyOk && showTraffic && (
           <>
             <TileLayer
               url={`https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key=${tomtomKey}`}
@@ -76,6 +94,9 @@ export default function TomTomMapClient({
             />
           </>
         )}
+        {routeLatLngs.length >= 2 && (
+          <Polyline positions={routeLatLngs} pathOptions={{ color: "#3b82f6", weight: 5, opacity: 0.85 }} />
+        )}
         {validMarkers.map((m) => (
           <Marker key={m.id} position={[m.lat, m.lon]} icon={m.color ? colorIcon(m.color) : defaultIcon}>
             <Popup>
@@ -86,8 +107,13 @@ export default function TomTomMapClient({
             </Popup>
           </Marker>
         ))}
-        <FitBounds markers={validMarkers} />
+        <FitBounds points={fitPoints} />
       </MapContainer>
+      {!keyOk && tomtomKey && (
+        <div className="absolute top-2 right-2 z-[1000] rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-[11px] px-2 py-1">
+          TomTom key invalid — using OpenStreetMap fallback
+        </div>
+      )}
     </div>
   );
 }
