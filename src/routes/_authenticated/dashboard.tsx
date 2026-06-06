@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { analyzeRoute } from "@/lib/route-analysis.functions";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
+import { useActiveRoute, saveActiveRoute } from "@/hooks/use-active-route";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
