@@ -76,6 +76,19 @@ export type RouteAnalysis = {
     weather: boolean;
     weatherAlerts: boolean;
     road: boolean;
+    truckRestrictions: boolean;
+  };
+  truckRestrictions: {
+    connected: boolean;
+    message: string;
+    profile: {
+      heightIn: number | null;
+      weightLbs: number | null;
+      lengthFt: number | null;
+      axles: number | null;
+      hazmat: boolean;
+      loaded: boolean | null;
+    } | null;
   };
   providers: { weather: string; weatherAlerts: string; road: string };
 };
