@@ -85,7 +85,7 @@ export const analyzeRoute = createServerFn({ method: "POST" })
     const r = await route(o, d2);
 
     // Sample 3 points: start, mid, end
-    const mid = r.geometry[Math.floor(r.geometry.length / 2)] ?? [(<number>o.lon + d2.lon) / 2, (o.lat + d2.lat) / 2];
+    const mid = r.geometry[Math.floor(r.geometry.length / 2)] ?? [(o.lon + d2.lon) / 2, (o.lat + d2.lat) / 2];
     const samples = [
       { label: "Origin", lat: o.lat, lon: o.lon },
       { label: "Midpoint", lat: mid[1], lon: mid[0] },
