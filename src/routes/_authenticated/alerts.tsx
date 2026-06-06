@@ -11,6 +11,8 @@ import { useDriverNames } from "@/hooks/use-driver-names";
 import { cn } from "@/lib/utils";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { useActiveRoute } from "@/hooks/use-active-route";
+import { hazardsAlongRoute, recommendedActionFor, type HazardLike } from "@/lib/hazard-proximity";
+import { Route as RouteIcon } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/alerts")({
   component: AlertsCenter,
