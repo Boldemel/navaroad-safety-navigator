@@ -19,8 +19,12 @@ export function TomTomMap(props: {
   markers: MapMarker[];
   routeGeometry?: Array<[number, number]>;
   currentLocation?: { lat: number; lon: number } | null;
+  headingDeg?: number | null;
   showTraffic?: boolean;
   height?: string;
+  follow?: boolean;
+  followZoom?: number;
+  recenterToken?: number;
 }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
