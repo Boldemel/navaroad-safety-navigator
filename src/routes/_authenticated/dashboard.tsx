@@ -69,7 +69,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function Dashboard() {
   // Hydrate from the last analysis so route data survives navigation away/back.
-  const cached: CachedAnalysis | null = null;
+  const cached = null as CachedAnalysis | null;
   const [origin, setOrigin] = useState(cached?.origin ?? "");
   const [destination, setDestination] = useState(cached?.destination ?? "");
   const [originPlace, setOriginPlace] = useState<SelectedPlace | null>(cached?.originPlace ?? null);
@@ -237,20 +237,11 @@ function Dashboard() {
     },
     onSuccess: (data, vars) => {
       if (data.geometry.length >= 2) {
-        saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
+        saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry, result: data, input: vars });
         const key = routeInputKey(vars.origin, vars.destination, vars.originCoords ?? null, vars.destinationCoords ?? null);
         setAnalyzedRouteKey(key);
         setCachedResult(data);
-        writeCachedAnalysis({
-          result: data,
-          origin: vars.origin,
-          destination: vars.destination,
-          originPlace,
-          destPlace,
-          truck: vars.truck,
-          trailer: vars.trailer,
-          analyzedRouteKey: key,
-        });
+        writeCachedAnalysis(null);
       } else {
         clearActiveRoute();
         setAnalyzedRouteKey(null);
@@ -345,7 +336,7 @@ function Dashboard() {
       if (routeAnalysis.geometry.length < 2) {
         throw new Error(routeAnalysis.routeMessage ?? "Route could not be calculated. Please check the address or try another destination.");
       }
-      saveActiveRoute({ origin: originLabel, destination: destinationLabel, geometry: routeAnalysis.geometry });
+      saveActiveRoute({ origin: originLabel, destination: destinationLabel, geometry: routeAnalysis.geometry, result: routeAnalysis });
       const route = await truckRouteFn({
         data: { originLat, originLon, destLat: p.lat, destLon: p.lon, truck: true },
       });
@@ -359,7 +350,7 @@ function Dashboard() {
         trafficDurationMin: route.durationTrafficMin,
         truck: true,
       });
-      saveActiveRoute({ origin: originLabel, destination: destinationLabel, geometry: route.geometry });
+      saveActiveRoute({ origin: originLabel, destination: destinationLabel, geometry: route.geometry, result: routeAnalysis });
       return route;
     },
     onMutate: (p) => {
