@@ -1083,8 +1083,6 @@ function PoiList({
           <span><span className="font-medium text-foreground/70">Corridor:</span> {result?.debug?.corridorRadiusMi ?? 20} mi</span>
         </div>
       </div>
-        </div>
-      </div>
       {loading ? (
         <div className="text-sm text-muted-foreground inline-flex items-center gap-2"><Loader2 className="size-3.5 animate-spin" /> Searching along route…</div>
       ) : !result ? (
