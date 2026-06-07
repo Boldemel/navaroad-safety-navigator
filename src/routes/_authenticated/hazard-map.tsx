@@ -155,19 +155,29 @@ function HazardMap() {
     queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "truck_stop", limit: 100 } }),
     enabled: poiEnabled,
     staleTime: 10 * 60_000,
+    initialData: () => readPoiCache("truck_stop", routeKey),
+    initialDataUpdatedAt: () => readPoiCacheAt("truck_stop", routeKey),
   });
   const { data: restAreasData } = useQuery({
     queryKey: ["hazard-map-rest-areas", routeKey],
     queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "rest_area", limit: 100 } }),
     enabled: poiEnabled,
     staleTime: 10 * 60_000,
+    initialData: () => readPoiCache("rest_area", routeKey),
+    initialDataUpdatedAt: () => readPoiCacheAt("rest_area", routeKey),
   });
   const { data: weighStationsData } = useQuery({
     queryKey: ["hazard-map-weigh-stations", routeKey],
     queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "weigh_station", limit: 100 } }),
     enabled: poiEnabled,
     staleTime: 10 * 60_000,
+    initialData: () => readPoiCache("weigh_station", routeKey),
+    initialDataUpdatedAt: () => readPoiCacheAt("weigh_station", routeKey),
   });
+  useEffect(() => { if (truckStopsData) writePoiCache("truck_stop", routeKey, truckStopsData); }, [truckStopsData, routeKey]);
+  useEffect(() => { if (restAreasData) writePoiCache("rest_area", routeKey, restAreasData); }, [restAreasData, routeKey]);
+  useEffect(() => { if (weighStationsData) writePoiCache("weigh_station", routeKey, weighStationsData); }, [weighStationsData, routeKey]);
+
 
 
   const apiMarkers: Marker[] = useMemo(() => {
