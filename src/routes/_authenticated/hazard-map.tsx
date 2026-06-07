@@ -22,6 +22,7 @@ import { useActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { hazardsWithin, hazardsAlongRoute, nearestHazardAlert, type HazardLike } from "@/lib/hazard-proximity";
 import { searchTruckPois, type TruckPoiResult } from "@/lib/poi-search.functions";
+import { DriveModePanel } from "@/components/drive-mode-panel";
 
 // POI marker colors (kept in sync with the legend below).
 const POI_COLORS = {
@@ -125,6 +126,9 @@ function HazardMap() {
   const [showRestAreas, setShowRestAreas] = useState(true);
   const [showWeighStations, setShowWeighStations] = useState(true);
   const [typeFilters, setTypeFilters] = useState<Set<string>>(new Set(HAZARD_TYPES.map((h) => h.value)));
+  const [driveActive, setDriveActive] = useState(false);
+  const [follow, setFollow] = useState(false);
+  const [recenterToken, setRecenterToken] = useState(0);
   useRealtimeInvalidate(["hazard_reports"], [["map-hazards"], ["driver-names"]]);
   const poiFn = useServerFn(searchTruckPois);
 
@@ -435,12 +439,39 @@ function HazardMap() {
         </div>
       )}
 
+      <DriveModePanel
+        active={driveActive}
+        onToggle={() => {
+          const next = !driveActive;
+          setDriveActive(next);
+          setFollow(next);
+          if (next && geo.status !== "granted") geo.request();
+          if (next) setRecenterToken((t) => t + 1);
+        }}
+        onRecenter={() => { setFollow(true); setRecenterToken((t) => t + 1); }}
+        follow={follow}
+        setFollow={setFollow}
+        route={activeRoute}
+        here={here}
+        geo={geo.coords}
+        hazards={allHazardsForProximity
+          .filter((h): h is HazardLike & { lat: number; lon: number } => h.lat != null && h.lon != null)
+          .map((h) => ({ id: h.id, title: h.title, severity: h.severity, category: h.category, lat: h.lat, lon: h.lon }))}
+        truckStops={(truckStopsData?.pois ?? []).map((p) => ({ id: p.id, name: p.name, lat: p.lat, lon: p.lon }))}
+        restAreas={(restAreasData?.pois ?? []).map((p) => ({ id: p.id, name: p.name, lat: p.lat, lon: p.lon }))}
+        weighStations={(weighStationsData?.pois ?? []).map((p) => ({ id: p.id, name: p.name, lat: p.lat, lon: p.lon }))}
+      />
+
       <div className="grid gap-3 md:grid-cols-[1fr_220px]">
         <div className="relative aspect-[16/8] overflow-hidden">
           <TomTomMap
             tomtomKey={tomtom?.key ?? null}
             showTraffic
             height="100%"
+            follow={follow}
+            followZoom={15}
+            recenterToken={recenterToken}
+            headingDeg={geo.coords?.headingDeg ?? null}
             routeGeometry={focusPoint ? [] : geometry}
             currentLocation={focusPoint ? null : here}
             markers={focusPoint

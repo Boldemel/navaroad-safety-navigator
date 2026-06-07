@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type GeoCoords = { lat: number; lon: number; accuracyM: number | null; at: string };
+export type GeoCoords = {
+  lat: number;
+  lon: number;
+  accuracyM: number | null;
+  speedMps: number | null;
+  headingDeg: number | null;
+  at: string;
+};
 export type GeoState = {
   coords: GeoCoords | null;
   status: "idle" | "prompting" | "granted" | "denied" | "unavailable" | "error";
@@ -38,6 +45,8 @@ export function useGeolocation(opts: { watch?: boolean } = {}) {
       lat: pos.coords.latitude,
       lon: pos.coords.longitude,
       accuracyM: pos.coords.accuracy ?? null,
+      speedMps: pos.coords.speed ?? null,
+      headingDeg: pos.coords.heading ?? null,
       at: new Date().toISOString(),
     };
     try {

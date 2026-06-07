@@ -54,15 +54,33 @@ function colorIcon(color: string) {
   return glyphIcon(color);
 }
 
-function FitBounds({ points }: { points: Array<[number, number]> }) {
+function FitBounds({ points, enabled = true }: { points: Array<[number, number]>; enabled?: boolean }) {
   const map = useMap();
   useEffect(() => {
-    if (points.length === 0) return;
+    if (!enabled || points.length === 0) return;
     const bounds = L.latLngBounds(points);
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
-  }, [points, map]);
+  }, [points, map, enabled]);
   return null;
 }
+
+function FollowLocation({
+  center,
+  zoom,
+  trigger,
+}: {
+  center: { lat: number; lon: number } | null;
+  zoom: number;
+  trigger: number;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (!center) return;
+    map.setView([center.lat, center.lon], zoom, { animate: true });
+  }, [center?.lat, center?.lon, trigger, map, zoom]);
+  return null;
+}
+
 
 // TomTom API keys are alphanumeric ~30+ chars with no spaces. If the secret
 // contains a prompt or other text, we fall back to OpenStreetMap tiles so the
@@ -71,20 +89,38 @@ function isValidTomTomKey(k: string | null): k is string {
   return !!k && /^[A-Za-z0-9]{20,}$/.test(k.trim());
 }
 
+function truckArrowIcon(headingDeg: number | null) {
+  const rot = headingDeg ?? 0;
+  const html = `<div style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;transform:rotate(${rot}deg);transform-origin:center">
+    <div style="width:26px;height:26px;border-radius:9999px;background:#22c55e;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:white">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 14h6v8h4v-8h6Z"/></svg>
+    </div>
+  </div>`;
+  return L.divIcon({ className: "", html, iconSize: [34, 34], iconAnchor: [17, 17] });
+}
+
 export default function TomTomMapClient({
   tomtomKey,
   markers,
   routeGeometry = [],
   currentLocation = null,
+  headingDeg = null,
   showTraffic = true,
   height = "100%",
+  follow = false,
+  followZoom = 14,
+  recenterToken = 0,
 }: {
   tomtomKey: string | null;
   markers: MapMarker[];
   routeGeometry?: Array<[number, number]>; // [lon, lat]
   currentLocation?: { lat: number; lon: number } | null;
+  headingDeg?: number | null;
   showTraffic?: boolean;
   height?: string;
+  follow?: boolean;
+  followZoom?: number;
+  recenterToken?: number;
 }) {
   const validMarkers = useMemo(
     () => markers.filter((m) => Number.isFinite(m.lat) && Number.isFinite(m.lon)),
@@ -146,14 +182,15 @@ export default function TomTomMapClient({
           </Marker>
         ))}
         {currentLocation && (
-          <Marker position={[currentLocation.lat, currentLocation.lon]} icon={colorIcon("#22c55e")}>
+          <Marker position={[currentLocation.lat, currentLocation.lon]} icon={truckArrowIcon(headingDeg)}>
             <Popup>
               <div className="text-sm font-medium">You are here</div>
               <div className="text-xs text-gray-600">{currentLocation.lat.toFixed(4)}, {currentLocation.lon.toFixed(4)}</div>
             </Popup>
           </Marker>
         )}
-        <FitBounds points={fitPoints} />
+        <FitBounds points={fitPoints} enabled={!follow} />
+        {follow && <FollowLocation center={currentLocation} zoom={followZoom} trigger={recenterToken} />}
       </MapContainer>
 
       {!keyOk && tomtomKey && (
@@ -164,3 +201,4 @@ export default function TomTomMapClient({
     </div>
   );
 }
+
