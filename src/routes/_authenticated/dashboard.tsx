@@ -948,28 +948,30 @@ function PoiDialog({
                 ? [p.address, !p.address!.includes(region) ? region : null].filter(Boolean).join(" · ")
                 : region;
               return (
-                <li key={p.id} className="py-3 flex items-start gap-3">
-                  <MapPin className="size-4 mt-1 text-primary shrink-0" />
-                  <div className="flex-1 min-w-0 space-y-0.5">
-                    <div className="font-medium truncate">{p.name}{p.brand && p.brand !== p.name ? ` · ${p.brand}` : ""}</div>
-                    {fullAddress && (
-                      <div className="text-[12px] text-muted-foreground">{fullAddress}</div>
-                    )}
-                    <div className="text-[11px] text-muted-foreground/80 flex flex-wrap items-center gap-x-2">
-                      <span className="uppercase tracking-wider">{typeLabelShort(p.type)}</span>
-                      {(p as { routeProgressMi?: number | null }).routeProgressMi != null && (
-                        <span>· Mile {Math.round((p as { routeProgressMi: number }).routeProgressMi)} from start</span>
+                <li key={p.id} className="py-3 flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
+                  <div className="flex items-start gap-2 flex-1 min-w-0">
+                    <MapPin className="size-4 mt-1 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <div className="font-medium break-words">{p.name}{p.brand && p.brand !== p.name ? ` · ${p.brand}` : ""}</div>
+                      {fullAddress && (
+                        <div className="text-[12px] text-muted-foreground break-words">{fullAddress}</div>
                       )}
-                      {p.distanceMi != null && (
-                        <span>· {p.distanceMi < 1 ? "<1 mi" : `${Math.round(p.distanceMi)} mi`} off route</span>
-                      )}
+                      <div className="text-[11px] text-muted-foreground/80 flex flex-wrap items-center gap-x-2">
+                        <span className="uppercase tracking-wider">{typeLabelShort(p.type)}</span>
+                        {(p as { routeProgressMi?: number | null }).routeProgressMi != null && (
+                          <span>· Mile {Math.round((p as { routeProgressMi: number }).routeProgressMi)} from start</span>
+                        )}
+                        {p.distanceMi != null && (
+                          <span>· {p.distanceMi < 1 ? "<1 mi" : `${Math.round(p.distanceMi)} mi`} off route</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-1.5 shrink-0">
-                    <Button size="sm" variant="outline" onClick={() => onShowOnMap(p)}>
+                  <div className="flex sm:flex-col gap-1.5 shrink-0">
+                    <Button size="sm" variant="outline" className="flex-1 sm:flex-none" onClick={() => onShowOnMap(p)}>
                       <MapPin className="size-3.5" /> Show on Map
                     </Button>
-                    <Button size="sm" onClick={() => onNavigate(p)} disabled={navigating}>
+                    <Button size="sm" className="flex-1 sm:flex-none" onClick={() => onNavigate(p)} disabled={navigating}>
                       {navigating ? <Loader2 className="size-3.5 animate-spin" /> : <Navigation2 className="size-3.5" />} Navigate
                     </Button>
                   </div>
