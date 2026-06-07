@@ -241,12 +241,27 @@ function Dashboard() {
     onSuccess: (data, vars) => {
       if (data.geometry.length >= 2) {
         saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
-        setAnalyzedRouteKey(routeInputKey(vars.origin, vars.destination, vars.originCoords ?? null, vars.destinationCoords ?? null));
+        const key = routeInputKey(vars.origin, vars.destination, vars.originCoords ?? null, vars.destinationCoords ?? null);
+        setAnalyzedRouteKey(key);
+        setCachedResult(data);
+        writeCachedAnalysis({
+          result: data,
+          origin: vars.origin,
+          destination: vars.destination,
+          originPlace,
+          destPlace,
+          truck: vars.truck,
+          trailer: vars.trailer,
+          analyzedRouteKey: key,
+        });
       } else {
         clearActiveRoute();
         setAnalyzedRouteKey(null);
+        setCachedResult(null);
+        writeCachedAnalysis(null);
       }
     },
+
   });
 
   const startNav = useMutation({
