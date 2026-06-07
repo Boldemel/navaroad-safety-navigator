@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type GeoCoords = { lat: number; lon: number; accuracyM: number | null; at: string };
+export type GeoCoords = {
+  lat: number;
+  lon: number;
+  accuracyM: number | null;
+  speedMps: number | null;
+  headingDeg: number | null;
+  at: string;
+};
 export type GeoState = {
   coords: GeoCoords | null;
   status: "idle" | "prompting" | "granted" | "denied" | "unavailable" | "error";
