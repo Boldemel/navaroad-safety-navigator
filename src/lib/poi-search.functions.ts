@@ -577,6 +577,7 @@ async function tomtomKeyword(
 export type SearchTruckPoisInput = z.infer<typeof Input>;
 
 export async function searchTruckPoisForRoute(data: SearchTruckPoisInput): Promise<TruckPoiResult> {
+    data = Input.parse(data);
     const key = process.env.TOMTOM_API_KEY;
     if (!key) {
       return {
