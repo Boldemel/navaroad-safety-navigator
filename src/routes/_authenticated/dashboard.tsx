@@ -918,7 +918,7 @@ function PoiDialog({
   const debug = result?.debug;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-[calc(100vw-1.5rem)] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
@@ -948,28 +948,30 @@ function PoiDialog({
                 ? [p.address, !p.address!.includes(region) ? region : null].filter(Boolean).join(" · ")
                 : region;
               return (
-                <li key={p.id} className="py-3 flex items-start gap-3">
-                  <MapPin className="size-4 mt-1 text-primary shrink-0" />
-                  <div className="flex-1 min-w-0 space-y-0.5">
-                    <div className="font-medium truncate">{p.name}{p.brand && p.brand !== p.name ? ` · ${p.brand}` : ""}</div>
-                    {fullAddress && (
-                      <div className="text-[12px] text-muted-foreground">{fullAddress}</div>
-                    )}
-                    <div className="text-[11px] text-muted-foreground/80 flex flex-wrap items-center gap-x-2">
-                      <span className="uppercase tracking-wider">{typeLabelShort(p.type)}</span>
-                      {(p as { routeProgressMi?: number | null }).routeProgressMi != null && (
-                        <span>· Mile {Math.round((p as { routeProgressMi: number }).routeProgressMi)} from start</span>
+                <li key={p.id} className="py-3 flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
+                  <div className="flex items-start gap-2 flex-1 min-w-0">
+                    <MapPin className="size-4 mt-1 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <div className="font-medium break-words">{p.name}{p.brand && p.brand !== p.name ? ` · ${p.brand}` : ""}</div>
+                      {fullAddress && (
+                        <div className="text-[12px] text-muted-foreground break-words">{fullAddress}</div>
                       )}
-                      {p.distanceMi != null && (
-                        <span>· {p.distanceMi < 1 ? "<1 mi" : `${Math.round(p.distanceMi)} mi`} off route</span>
-                      )}
+                      <div className="text-[11px] text-muted-foreground/80 flex flex-wrap items-center gap-x-2">
+                        <span className="uppercase tracking-wider">{typeLabelShort(p.type)}</span>
+                        {(p as { routeProgressMi?: number | null }).routeProgressMi != null && (
+                          <span>· Mile {Math.round((p as { routeProgressMi: number }).routeProgressMi)} from start</span>
+                        )}
+                        {p.distanceMi != null && (
+                          <span>· {p.distanceMi < 1 ? "<1 mi" : `${Math.round(p.distanceMi)} mi`} off route</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-1.5 shrink-0">
-                    <Button size="sm" variant="outline" onClick={() => onShowOnMap(p)}>
+                  <div className="flex sm:flex-col gap-1.5 shrink-0">
+                    <Button size="sm" variant="outline" className="flex-1 sm:flex-none" onClick={() => onShowOnMap(p)}>
                       <MapPin className="size-3.5" /> Show on Map
                     </Button>
-                    <Button size="sm" onClick={() => onNavigate(p)} disabled={navigating}>
+                    <Button size="sm" className="flex-1 sm:flex-none" onClick={() => onNavigate(p)} disabled={navigating}>
                       {navigating ? <Loader2 className="size-3.5 animate-spin" /> : <Navigation2 className="size-3.5" />} Navigate
                     </Button>
                   </div>
@@ -1002,9 +1004,9 @@ function StatCard({ icon, label, count, sub, accent, loading, onClick }: { icon:
       )}
     >
       <div className={`size-10 rounded-md flex items-center justify-center border ${colors}`}>{icon}</div>
-      <div className="mt-4 text-3xl font-semibold">{loading ? <Loader2 className="size-7 animate-spin" /> : count}</div>
+      <div className="mt-4 text-2xl sm:text-3xl font-semibold tabular-nums">{loading ? <Loader2 className="size-7 animate-spin" /> : count}</div>
       <div className="text-sm text-muted-foreground">{label}</div>
-      {sub && <div className="text-[11px] text-muted-foreground/80 mt-0.5">{sub}</div>}
+      {sub && <div className="text-[11px] text-muted-foreground/80 mt-0.5 break-words">{sub}</div>}
       {clickable && <div className="text-[10px] text-primary/80 mt-1">View locations →</div>}
     </div>
   );
@@ -1065,20 +1067,20 @@ function PoiList({
     : "";
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+    <div className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-3 min-w-0">
       <div className="flex items-center gap-2">{icon}<h3 className="font-semibold">{title}</h3></div>
-      <div className="rounded-md border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground space-y-1">
+      <div className="rounded-md border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground space-y-1 break-words">
         <div><span className="font-medium text-foreground/70">Route used:</span> {routeLabel}</div>
         {result?.debug?.routeUsed && (
           <div><span className="font-medium text-foreground/70">Polyline:</span> {result.debug.routeUsed}</div>
         )}
-        <div>
-          <span className="font-medium text-foreground/70">Search points:</span> {result?.debug?.searchPointCount ?? 0}
-          {" · "}<span className="font-medium text-foreground/70">Raw:</span> {result?.debug?.rawResultsCount ?? 0}
-          {" · "}<span className="font-medium text-foreground/70">Route-filtered:</span> {result?.debug?.routeFilteredResultsCount ?? result?.debug?.filteredResultsCount ?? 0}
-          {" · "}<span className="font-medium text-foreground/70">Deduped:</span> {result?.debug?.deduplicatedResultsCount ?? result?.totalFound ?? 0}
-          {" · "}<span className="font-medium text-foreground/70">Displayed:</span> {result?.debug?.finalDisplayedCount ?? result?.pois.length ?? 0}
-          {" · "}<span className="font-medium text-foreground/70">Corridor:</span> {result?.debug?.corridorRadiusMi ?? 20} mi
+        <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+          <span><span className="font-medium text-foreground/70">Search points:</span> {result?.debug?.searchPointCount ?? 0}</span>
+          <span><span className="font-medium text-foreground/70">Raw:</span> {result?.debug?.rawResultsCount ?? 0}</span>
+          <span><span className="font-medium text-foreground/70">Route-filtered:</span> {result?.debug?.routeFilteredResultsCount ?? result?.debug?.filteredResultsCount ?? 0}</span>
+          <span><span className="font-medium text-foreground/70">Deduped:</span> {result?.debug?.deduplicatedResultsCount ?? result?.totalFound ?? 0}</span>
+          <span><span className="font-medium text-foreground/70">Displayed:</span> {result?.debug?.finalDisplayedCount ?? result?.pois.length ?? 0}</span>
+          <span><span className="font-medium text-foreground/70">Corridor:</span> {result?.debug?.corridorRadiusMi ?? 20} mi</span>
         </div>
       </div>
       {loading ? (
