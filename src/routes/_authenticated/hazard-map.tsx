@@ -132,6 +132,29 @@ function HazardMap() {
     },
   });
 
+  // Truck-friendly POIs along the active route. Same source as the Dashboard.
+  const poiGeometry = useMemo(() => samplePoiGeometry(geometry, 1000), [geometry]);
+  const routeKey = activeRoute?.savedAt ?? "none";
+  const { data: truckStopsData } = useQuery({
+    queryKey: ["hazard-map-truck-stops", routeKey],
+    queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "truck_stop", limit: 100 } }),
+    enabled: geometry.length >= 2,
+    staleTime: 10 * 60_000,
+  });
+  const { data: restAreasData } = useQuery({
+    queryKey: ["hazard-map-rest-areas", routeKey],
+    queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "rest_area", limit: 100 } }),
+    enabled: geometry.length >= 2,
+    staleTime: 10 * 60_000,
+  });
+  const { data: weighStationsData } = useQuery({
+    queryKey: ["hazard-map-weigh-stations", routeKey],
+    queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "weigh_station", limit: 100 } }),
+    enabled: geometry.length >= 2,
+    staleTime: 10 * 60_000,
+  });
+
+
   const apiMarkers: Marker[] = useMemo(() => {
     const weather: Marker[] = (feed?.weatherAlerts ?? []).map((a) => ({
       id: a.id, layer: "api", source: `NWS (${a.provider})`,
