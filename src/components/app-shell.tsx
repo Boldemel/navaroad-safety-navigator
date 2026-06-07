@@ -73,6 +73,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
 
         <NavigationBanner />
+        <ProximityAlertStack />
         <main className="flex-1 overflow-x-hidden">{children}</main>
 
         {/* Mobile bottom nav */}
