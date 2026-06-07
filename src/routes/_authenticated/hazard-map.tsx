@@ -378,31 +378,81 @@ function HazardMap() {
         </div>
       )}
 
-      <div className="relative aspect-[16/8] overflow-hidden">
-        <TomTomMap
-          tomtomKey={tomtom?.key ?? null}
-          showTraffic
-          height="100%"
-          routeGeometry={focusPoint ? [] : geometry}
-          currentLocation={focusPoint ? null : here}
-          markers={focusPoint
-            ? [{ id: "focus", lat: focusPoint.lat, lon: focusPoint.lon, title: focusLabel ?? "Selected location", description: focusDetails, color: "#22c55e" }]
-            : allVisible
-              .filter((m): m is Marker & { lat: number; lon: number } => m.lat != null && m.lon != null)
-              .map<MapMarker>((m) => ({
-                id: m.layer + m.id,
-                lat: m.lat,
-                lon: m.lon,
-                title: m.title,
-                description: `${m.source} · ${m.location}`,
-                color:
-                  m.layer === "driver"
-                    ? "#f59e0b"
-                    : m.severity === "critical" || m.severity === "high"
-                      ? "#ef4444"
-                      : "#3b82f6",
-              }))}
-        />
+      <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+        <div className="relative aspect-[16/8] overflow-hidden">
+          <TomTomMap
+            tomtomKey={tomtom?.key ?? null}
+            showTraffic
+            height="100%"
+            routeGeometry={focusPoint ? [] : geometry}
+            currentLocation={focusPoint ? null : here}
+            markers={focusPoint
+              ? [{ id: "focus", lat: focusPoint.lat, lon: focusPoint.lon, title: focusLabel ?? "Selected location", description: focusDetails, color: "#22c55e" }]
+              : [
+                  ...allVisible
+                    .filter((m): m is Marker & { lat: number; lon: number } => m.lat != null && m.lon != null)
+                    .map<MapMarker>((m) => ({
+                      id: m.layer + m.id,
+                      lat: m.lat,
+                      lon: m.lon,
+                      title: m.title,
+                      description: `${m.source} · ${m.location}`,
+                      color:
+                        m.layer === "driver"
+                          ? "#f59e0b"
+                          : m.severity === "critical" || m.severity === "high"
+                            ? "#ef4444"
+                            : "#3b82f6",
+                    })),
+                  ...(showTruckStops ? (truckStopsData?.pois ?? []) : []).map<MapMarker>((p) => ({
+                    id: "ts-" + p.id,
+                    lat: p.lat,
+                    lon: p.lon,
+                    title: p.name,
+                    description: `Truck stop · ${p.address || `${p.city ?? ""} ${p.state ?? ""}`.trim() || p.source}`,
+                    color: POI_COLORS.truck_stop,
+                  })),
+                  ...(showRestAreas ? (restAreasData?.pois ?? []) : []).map<MapMarker>((p) => ({
+                    id: "ra-" + p.id,
+                    lat: p.lat,
+                    lon: p.lon,
+                    title: p.name,
+                    description: `Rest area · ${p.address || `${p.city ?? ""} ${p.state ?? ""}`.trim() || p.source}`,
+                    color: POI_COLORS.rest_area,
+                  })),
+                  ...(showWeighStations ? (weighStationsData?.pois ?? []) : []).map<MapMarker>((p) => ({
+                    id: "ws-" + p.id,
+                    lat: p.lat,
+                    lon: p.lon,
+                    title: p.name,
+                    description: `Weigh station · ${p.address || `${p.city ?? ""} ${p.state ?? ""}`.trim() || p.source}`,
+                    color: POI_COLORS.weigh_station,
+                  })),
+                ]}
+          />
+        </div>
+
+        {/* Map key / legend */}
+        <aside className="rounded-xl border border-border bg-card p-3 text-xs space-y-3 h-fit">
+          <div className="font-medium text-sm">Map Key</div>
+          <div className="space-y-2">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Hazards</div>
+            <LegendRow color="#ef4444" icon={<AlertTriangle className="size-3.5" />} label="High / critical alert" />
+            <LegendRow color="#3b82f6" icon={<Cloud className="size-3.5" />} label="Weather / road alert" />
+            <LegendRow color="#f59e0b" icon={<User className="size-3.5" />} label="Driver report" />
+          </div>
+          <div className="space-y-2">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Truck POIs</div>
+            <LegendRow color={POI_COLORS.truck_stop} icon={<Truck className="size-3.5" />} label="Truck stop / travel center" />
+            <LegendRow color={POI_COLORS.rest_area} icon={<TreePine className="size-3.5" />} label="Rest area / welcome center" />
+            <LegendRow color={POI_COLORS.weigh_station} icon={<Scale className="size-3.5" />} label="Weigh / inspection station" />
+          </div>
+          <div className="space-y-2">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Other</div>
+            <LegendRow color="#22c55e" icon={<MapPin className="size-3.5" />} label="Selected / focused point" />
+            <LegendRow color="#3b82f6" icon={<LocateFixed className="size-3.5" />} label="Your current location" outline />
+          </div>
+        </aside>
       </div>
 
       {activeRoute && (
