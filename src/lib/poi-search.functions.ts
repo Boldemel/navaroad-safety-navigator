@@ -777,6 +777,25 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       );
     }
 
+    // Step 2b: brand-filtered nearby search for truck stops. This forces
+    // TomTom to return each major brand (Love's, Pilot/Flying J, TA, Petro,
+    // etc.) end-to-end along the route, even when keyword search misses
+    // them due to noisy text matching.
+    if (data.kind === "truck_stop") {
+      const brandTasks: Array<() => Promise<TomTomCall>> = [];
+      const brandTaskSamples: Array<{ lat: number; lon: number }> = [];
+      for (const s of samples) {
+        for (const brand of truckStopBrands) {
+          brandTasks.push(() => tomtomNearby(key, s.lat, s.lon, "7311,7311003", radiusM, brand));
+          brandTaskSamples.push(s);
+        }
+      }
+      const brandResults = await runLimited(brandTasks, 6);
+      brandResults.forEach((call, i) =>
+        call.results.forEach((r) => addRaw(r, brandTaskSamples[i].lat, brandTaskSamples[i].lon)),
+      );
+    }
+
     // Step 3 (supplemental): OpenStreetMap Overpass for rest areas, truck
     // parking, and weigh stations. TomTom coverage of these categories is
     // sparse in the US; OSM has much better data. Routing/navigation/fuel
