@@ -570,3 +570,31 @@ function HazardMap() {
     </div>
   );
 }
+
+function LegendRow({
+  color,
+  icon,
+  label,
+  outline,
+}: {
+  color: string;
+  icon: React.ReactNode;
+  label: string;
+  outline?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className="inline-flex size-5 items-center justify-center rounded-full text-white shrink-0"
+        style={{
+          backgroundColor: outline ? "transparent" : color,
+          border: outline ? `2px solid ${color}` : `1px solid ${color}`,
+          color: outline ? color : "white",
+        }}
+      >
+        {icon}
+      </span>
+      <span className="text-foreground/90">{label}</span>
+    </div>
+  );
+}
