@@ -19,7 +19,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { analyzeRoute, type RouteAnalysis } from "@/lib/route-analysis.functions";
-import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { useActiveRoute, saveActiveRoute, clearActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { reverseGeocode } from "@/lib/geo.functions";
@@ -28,7 +27,7 @@ import { startNavigation, useNavigationSession, stopNavigation } from "@/hooks/u
 import { AddressAutocomplete, type SelectedPlace, type FavoriteSuggestion } from "@/components/address-autocomplete";
 import { useFavoriteLocations } from "@/components/favorite-locations-card";
 import { favoriteCategoryLabel } from "@/lib/favorite-locations";
-import { searchTruckPois } from "@/lib/poi-search.functions";
+import type { TruckPoiResult } from "@/lib/poi-search.functions";
 
 // Persist the last analysis so navigating away (e.g. to the Hazard Map) and
 // back to the Dashboard doesn't reset the route, score, and stat cards to zero.
@@ -70,7 +69,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function Dashboard() {
   // Hydrate from the last analysis so route data survives navigation away/back.
-  const cached = typeof window !== "undefined" ? readCachedAnalysis() : null;
+  const cached: CachedAnalysis | null = null;
   const [origin, setOrigin] = useState(cached?.origin ?? "");
   const [destination, setDestination] = useState(cached?.destination ?? "");
   const [originPlace, setOriginPlace] = useState<SelectedPlace | null>(cached?.originPlace ?? null);
@@ -81,10 +80,8 @@ function Dashboard() {
   useRealtimeInvalidate(["hazard_reports"], [["dash-hazards"]]);
 
   const analyzeFn = useServerFn(analyzeRoute);
-  const feedFn = useServerFn(getSafetyFeed);
   const reverseGeocodeFn = useServerFn(reverseGeocode);
   const truckRouteFn = useServerFn(getTruckRoute);
-  const searchPoisFn = useServerFn(searchTruckPois);
   const activeRoute = useActiveRoute();
   const queryClient = useQueryClient();
   const geo = useGeolocation();
