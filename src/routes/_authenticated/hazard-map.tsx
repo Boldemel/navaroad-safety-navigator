@@ -277,6 +277,33 @@ function HazardMap() {
         >
           <User className="size-3.5" /> Driver reports ({driverMarkers.length})
         </button>
+        <button
+          onClick={() => setShowTruckStops((v) => !v)}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition",
+            showTruckStops ? "border-[color:var(--legend-truck,#f97316)]/50 bg-orange-500/15 text-orange-500" : "border-border bg-card text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Truck className="size-3.5" /> Truck stops ({truckStopsData?.pois.length ?? 0})
+        </button>
+        <button
+          onClick={() => setShowRestAreas((v) => !v)}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition",
+            showRestAreas ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-500" : "border-border bg-card text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <TreePine className="size-3.5" /> Rest areas ({restAreasData?.pois.length ?? 0})
+        </button>
+        <button
+          onClick={() => setShowWeighStations((v) => !v)}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition",
+            showWeighStations ? "border-violet-500/50 bg-violet-500/15 text-violet-500" : "border-border bg-card text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Scale className="size-3.5" /> Weigh stations ({weighStationsData?.pois.length ?? 0})
+        </button>
       </div>
 
       {showDriver && (
