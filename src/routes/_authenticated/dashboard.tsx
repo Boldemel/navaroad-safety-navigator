@@ -266,7 +266,7 @@ function Dashboard() {
 
   const startNav = useMutation({
     mutationFn: async () => {
-      const result = analysis.data;
+      const result = analysis.data ?? cachedResult;
       if (!result) throw new Error("Analyze a route first.");
       // Prefer live GPS as origin; fall back to analyzed origin coords.
       let originLat = result.origin.lat;
