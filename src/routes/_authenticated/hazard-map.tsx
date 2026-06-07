@@ -126,6 +126,9 @@ function HazardMap() {
   const [showRestAreas, setShowRestAreas] = useState(true);
   const [showWeighStations, setShowWeighStations] = useState(true);
   const [typeFilters, setTypeFilters] = useState<Set<string>>(new Set(HAZARD_TYPES.map((h) => h.value)));
+  const [driveActive, setDriveActive] = useState(false);
+  const [follow, setFollow] = useState(false);
+  const [recenterToken, setRecenterToken] = useState(0);
   useRealtimeInvalidate(["hazard_reports"], [["map-hazards"], ["driver-names"]]);
   const poiFn = useServerFn(searchTruckPois);
 
