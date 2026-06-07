@@ -288,13 +288,48 @@ type RawResult = {
   poi?: { name?: string; brands?: Array<{ name: string }>; phone?: string; categories?: string[] };
   address?: {
     freeformAddress?: string;
+    streetName?: string;
+    streetNumber?: string;
+    routeNumbers?: string[];
     municipality?: string;
+    municipalitySubdivision?: string;
+    countrySecondarySubdivision?: string;
     countrySubdivision?: string;
     countrySubdivisionName?: string;
+    postalCode?: string;
   };
   position?: { lat: number; lon: number };
   dist?: number;
 };
+
+type TomTomAddress = NonNullable<RawResult["address"]>;
+
+function hasSpecificAddress(address: string | null | undefined, name?: string | null, city?: string | null, state?: string | null) {
+  const value = (address ?? "").trim();
+  if (!value) return false;
+  const lower = value.toLowerCase();
+  const weak = ["location", "rest area", "weigh station", "service area", "source: open"];
+  if (weak.includes(lower)) return false;
+  if (name && lower === name.trim().toLowerCase()) return false;
+  if (city && lower === city.trim().toLowerCase()) return false;
+  if (state && lower === state.trim().toLowerCase()) return false;
+  if (/^\d{5}(?:-\d{4})?$/.test(value)) return false;
+  if (/\b(i[-\s]?\d+|interstate|us[-\s]?\d+|state\s+route|sr[-\s]?\d+|hwy|highway|route|road|rd\b|street|st\b|avenue|ave\b|drive|dr\b|boulevard|blvd\b|pike|parkway|turnpike|exit\s+\d+)\b/i.test(value)) return true;
+  return /\d/.test(value) && /[a-z]/i.test(value);
+}
+
+function tomtomAddressLine(address?: TomTomAddress | null) {
+  if (!address) return "";
+  const street = [address.streetNumber, address.streetName].filter(Boolean).join(" ").trim();
+  const route = address.routeNumbers?.[0]?.trim() ?? "";
+  const freeform = address.freeformAddress?.trim() ?? "";
+  const city = address.municipality ?? address.municipalitySubdivision ?? null;
+  const state = address.countrySubdivision ?? address.countrySubdivisionName ?? null;
+  for (const candidate of [street, freeform, route]) {
+    if (hasSpecificAddress(candidate, null, city, state)) return candidate;
+  }
+  return "";
+}
 
 type TomTomCall = {
   url: string;
