@@ -37,39 +37,6 @@ function samplePoiGeometry(geom: Array<[number, number]>, maxPoints: number) {
   return sampled;
 }
 
-// LocalStorage-backed cache for POIs so the map shows the last-seen icons
-// immediately on revisit while fresh results load in the background.
-type PoiKind = "truck_stop" | "rest_area" | "weigh_station";
-type CachedPois = TruckPoiResult;
-const POI_CACHE_PREFIX = "navaroad.poiCache.";
-function poiCacheKey(kind: PoiKind, routeKey: string) {
-  return `${POI_CACHE_PREFIX}${kind}.${routeKey}`;
-}
-type PoiCacheEntry = { at: number; data: CachedPois };
-function readPoiCache(kind: PoiKind, routeKey: string): CachedPois | undefined {
-  if (typeof window === "undefined" || routeKey === "none") return undefined;
-  try {
-    const raw = window.localStorage.getItem(poiCacheKey(kind, routeKey));
-    if (!raw) return undefined;
-    return (JSON.parse(raw) as PoiCacheEntry).data;
-  } catch { return undefined; }
-}
-function readPoiCacheAt(kind: PoiKind, routeKey: string): number | undefined {
-  if (typeof window === "undefined" || routeKey === "none") return undefined;
-  try {
-    const raw = window.localStorage.getItem(poiCacheKey(kind, routeKey));
-    if (!raw) return undefined;
-    return (JSON.parse(raw) as PoiCacheEntry).at;
-  } catch { return undefined; }
-}
-function writePoiCache(kind: PoiKind, routeKey: string, data: CachedPois) {
-  if (typeof window === "undefined" || routeKey === "none") return;
-  try {
-    window.localStorage.setItem(poiCacheKey(kind, routeKey), JSON.stringify({ at: Date.now(), data } satisfies PoiCacheEntry));
-  } catch { /* ignore quota */ }
-}
-
-
 export const Route = createFileRoute("/_authenticated/hazard-map")({
   component: HazardMap,
   validateSearch: (search: Record<string, unknown>) => ({
