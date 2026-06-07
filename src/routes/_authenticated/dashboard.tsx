@@ -1004,9 +1004,9 @@ function StatCard({ icon, label, count, sub, accent, loading, onClick }: { icon:
       )}
     >
       <div className={`size-10 rounded-md flex items-center justify-center border ${colors}`}>{icon}</div>
-      <div className="mt-4 text-3xl font-semibold">{loading ? <Loader2 className="size-7 animate-spin" /> : count}</div>
+      <div className="mt-4 text-2xl sm:text-3xl font-semibold tabular-nums">{loading ? <Loader2 className="size-7 animate-spin" /> : count}</div>
       <div className="text-sm text-muted-foreground">{label}</div>
-      {sub && <div className="text-[11px] text-muted-foreground/80 mt-0.5">{sub}</div>}
+      {sub && <div className="text-[11px] text-muted-foreground/80 mt-0.5 break-words">{sub}</div>}
       {clickable && <div className="text-[10px] text-primary/80 mt-1">View locations →</div>}
     </div>
   );
