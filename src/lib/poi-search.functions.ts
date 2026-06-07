@@ -777,7 +777,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
           keywordSamples.push(s);
         }
       }
-      const kwResults = await runLimited(keywordTasks, 2);
+      const kwResults = await runLimited(keywordTasks, 6);
       kwResults.forEach((call, i) =>
         call.results.forEach((r) => addRaw(r, keywordSamples[i].lat, keywordSamples[i].lon)),
       );
