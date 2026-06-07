@@ -815,6 +815,37 @@ export const searchTruckPois = createServerFn({ method: "POST" })
 
     const deduplicatedCount = pois.length;
     const displayedPois = pois.slice(0, data.limit ?? 60);
+
+    // Backfill missing addresses for displayed POIs (typically OSM rest areas
+    // and weigh stations) using TomTom reverse geocoding. Throttled to keep
+    // API usage bounded.
+    const needsAddress = displayedPois.filter((p) => !p.address || !p.address.trim() || !p.city);
+    if (needsAddress.length > 0) {
+      await runLimited(
+        needsAddress.map((p) => async () => {
+          try {
+            const url = `https://api.tomtom.com/search/2/reverseGeocode/${p.lat},${p.lon}.json?key=${encodeURIComponent(key)}`;
+            const r = await fetch(url);
+            if (!r.ok) return;
+            const j = (await r.json().catch(() => null)) as {
+              addresses?: Array<{ address?: { freeformAddress?: string; municipality?: string; countrySubdivision?: string; countrySubdivisionName?: string; streetName?: string; streetNumber?: string; postalCode?: string } }>;
+            } | null;
+            const a = j?.addresses?.[0]?.address;
+            if (!a) return;
+            const street = [a.streetNumber, a.streetName].filter(Boolean).join(" ");
+            if (!p.address || !p.address.trim()) {
+              p.address = street || a.freeformAddress || "";
+            }
+            if (!p.city && a.municipality) p.city = a.municipality;
+            if (!p.state) p.state = a.countrySubdivision ?? a.countrySubdivisionName ?? null;
+          } catch {
+            // ignore reverse geocode errors; POI remains without address
+          }
+        }),
+        6,
+      );
+    }
+
     const totalFound = displayedPois.length;
     const routeStart = data.geometry[0];
     const routeEnd = data.geometry[data.geometry.length - 1];
