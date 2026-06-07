@@ -578,12 +578,44 @@ export const searchTruckPois = createServerFn({ method: "POST" })
 
     const keywords =
       data.kind === "truck_stop"
-        ? ["Pilot", "Flying J", "Loves", "TA Travel Center", "Petro", "Sapp Bros", "Road Ranger", "Casey's Travel Center", "truck stop", "travel center"]
+        ? [
+            "Pilot Travel Center",
+            "Flying J",
+            "Love's Travel Stop",
+            "Loves Travel Stop",
+            "TA Travel Center",
+            "TravelCenters of America",
+            "Petro Stopping Center",
+            "Sapp Bros",
+            "Road Ranger",
+            "Casey's Travel Center",
+            "truck stop",
+            "travel center",
+          ]
       : data.kind === "weigh_station"
         ? ["weigh station", "truck inspection", "port of entry", "inspection station", "scale house", "DOT scale", "agricultural inspection"]
       : data.kind === "cat_scale"
         ? ["CAT scale", "CAT scales", "certified automated truck scale", "truck scale"]
         : ["rest area", "welcome center", "safety rest area", "highway rest stop"];
+
+    // TomTom brand IDs/names for truck stops — used with categorySearch's
+    // brandSet parameter so a brand always surfaces even when keyword search
+    // is noisy.
+    const truckStopBrands = [
+      "Love's Travel Stops",
+      "Love's",
+      "Pilot",
+      "Pilot Travel Centers",
+      "Flying J",
+      "Pilot Flying J",
+      "TA",
+      "TravelCenters of America",
+      "Petro",
+      "Petro Stopping Centers",
+      "Sapp Bros",
+      "Road Ranger",
+      "Casey's General Store",
+    ];
 
     const radiusM = 50000; // initial provider search around each sample
     const corridorRadiusMi = data.kind === "truck_stop" ? 8 : data.kind === "weigh_station" ? 5 : 3;
