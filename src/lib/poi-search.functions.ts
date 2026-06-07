@@ -338,6 +338,27 @@ type TomTomCall = {
   results: RawResult[];
 };
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function tomtomRequest(url: string): Promise<TomTomCall> {
+  let last: TomTomCall = { url, status: 0, error: "TomTom request failed", results: [] };
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const r = await fetch(url);
+      const j = (await r.json().catch(() => null)) as { results?: RawResult[] } | null;
+      last = { url, status: r.status, error: r.ok ? null : tomtomError(j), results: r.ok ? j?.results ?? [] : [] };
+      if (r.ok || (r.status !== 429 && r.status < 500) || attempt === 3) return last;
+      const retryAfter = Number(r.headers.get("retry-after"));
+      await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 700 * (attempt + 1) ** 2);
+    } catch {
+      last = { url, status: 0, error: "TomTom request failed", results: [] };
+      if (attempt === 3) return last;
+      await sleep(700 * (attempt + 1) ** 2);
+    }
+  }
+  return last;
+}
+
 function truckStopAllowed(hay: string) {
   return (
     /\bpilot\b/.test(hay) ||
@@ -372,12 +393,22 @@ type OsmPoi = {
   state: string | null;
 };
 
-function overpassQueryFor(kind: "rest_area" | "weigh_station" | "cat_scale", samples: Array<{ lat: number; lon: number }>): string {
+function overpassQueryFor(kind: "rest_area" | "truck_stop" | "weigh_station" | "cat_scale", samples: Array<{ lat: number; lon: number }>): string {
   const radius = 50000;
+  const truckBrandRegex = "Pilot|Flying J|Love.?s|TA Travel|TravelCenters|Petro|Sapp Bros|Sapp Brothers|Road Ranger|Casey.?s Travel";
   const clauses: string[] = [];
   for (const s of samples) {
     const around = `around:${radius},${s.lat.toFixed(5)},${s.lon.toFixed(5)}`;
-    if (kind === "rest_area") {
+    if (kind === "truck_stop") {
+      clauses.push(`node["amenity"="fuel"]["hgv"~"yes|designated",i](${around});`);
+      clauses.push(`way["amenity"="fuel"]["hgv"~"yes|designated",i](${around});`);
+      clauses.push(`node["amenity"="fuel"]["fuel:HGV_diesel"="yes"](${around});`);
+      clauses.push(`way["amenity"="fuel"]["fuel:HGV_diesel"="yes"](${around});`);
+      clauses.push(`node["brand"~"${truckBrandRegex}",i](${around});`);
+      clauses.push(`way["brand"~"${truckBrandRegex}",i](${around});`);
+      clauses.push(`node["name"~"truck stop|truckstop|truck plaza|travel cent(er|re)|${truckBrandRegex}",i](${around});`);
+      clauses.push(`way["name"~"truck stop|truckstop|truck plaza|travel cent(er|re)|${truckBrandRegex}",i](${around});`);
+    } else if (kind === "rest_area") {
       clauses.push(`node["highway"="rest_area"](${around});`);
       clauses.push(`way["highway"="rest_area"](${around});`);
       clauses.push(`node["highway"="services"](${around});`);
@@ -401,7 +432,7 @@ function overpassQueryFor(kind: "rest_area" | "weigh_station" | "cat_scale", sam
 
 async function overpassAlongRoute(
   samples: Array<{ lat: number; lon: number }>,
-  kind: "rest_area" | "weigh_station" | "cat_scale",
+  kind: "rest_area" | "truck_stop" | "weigh_station" | "cat_scale",
 ): Promise<{ results: OsmPoi[]; error: string | null }> {
   const endpoints = [
     "https://overpass-api.de/api/interpreter",
@@ -440,7 +471,11 @@ async function overpassAlongRoute(
         let type: TruckPoiType;
         let category: string;
         let name = tags.name ?? "";
-        if (kind === "weigh_station") {
+        if (kind === "truck_stop") {
+          type = "truck_stop";
+          category = "Truck stop";
+          if (!name) name = tags.brand ?? tags.operator ?? "Truck Stop";
+        } else if (kind === "weigh_station") {
           type = "weigh_station";
           category = "Weigh station";
           if (!name) name = "Weigh Station";
@@ -511,13 +546,7 @@ async function tomtomNearby(
   });
   if (brandSet) p.set("brandSet", brandSet);
   const url = `https://api.tomtom.com/search/2/nearbySearch/.json?${p}`;
-  try {
-    const r = await fetch(url);
-    const j = (await r.json().catch(() => null)) as { results?: RawResult[] } | null;
-    return { url, status: r.status, error: r.ok ? null : tomtomError(j), results: r.ok ? j?.results ?? [] : [] };
-  } catch {
-    return { url, status: 0, error: "TomTom request failed", results: [] };
-  }
+  return tomtomRequest(url);
 }
 
 async function tomtomKeyword(
@@ -536,13 +565,7 @@ async function tomtomKeyword(
     idxSet: "POI",
   });
   const url = `https://api.tomtom.com/search/2/poiSearch/${encodeURIComponent(query)}.json?${p}`;
-  try {
-    const r = await fetch(url);
-    const j = (await r.json().catch(() => null)) as { results?: RawResult[] } | null;
-    return { url, status: r.status, error: r.ok ? null : tomtomError(j), results: r.ok ? j?.results ?? [] : [] };
-  } catch {
-    return { url, status: 0, error: "TomTom request failed", results: [] };
-  }
+  return tomtomRequest(url);
 }
 
 
@@ -563,10 +586,10 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       return { connected: true, provider: "TomTom", totalFound: 0, pois: [] };
     }
 
-    // Sample every ~50 miles along the route corridor (cap 40 samples to bound API calls).
-    // On a 1,100 mi route this gives ~22 search points so brands/scales/stations
-    // are searched from origin to destination, not just at the endpoints.
-    const samples = sampleEveryMiles(data.geometry, 50, 40);
+    // Sample the full corridor without flooding the POI provider. Prior runs
+    // fired hundreds of truck-stop requests at once, hit rate limits, and then
+    // displayed partial results, which caused inconsistent counts between runs.
+    const samples = sampleEveryMiles(data.geometry, 75, 24);
 
     // TomTom POI categories:
     // 7311 = Truck Stop / Travel Center, 7311003 = Truck-friendly fuel,
@@ -599,25 +622,6 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       : data.kind === "cat_scale"
         ? ["CAT scale", "CAT scales", "certified automated truck scale", "truck scale"]
         : ["rest area", "welcome center", "safety rest area", "highway rest stop"];
-
-    // TomTom brand IDs/names for truck stops — used with categorySearch's
-    // brandSet parameter so a brand always surfaces even when keyword search
-    // is noisy.
-    const truckStopBrands = [
-      "Love's Travel Stops",
-      "Love's",
-      "Pilot",
-      "Pilot Travel Centers",
-      "Flying J",
-      "Pilot Flying J",
-      "TA",
-      "TravelCenters of America",
-      "Petro",
-      "Petro Stopping Centers",
-      "Sapp Bros",
-      "Road Ranger",
-      "Casey's General Store",
-    ];
 
     const radiusM = 50000; // initial provider search around each sample
     const corridorRadiusMi = data.kind === "truck_stop" ? 8 : data.kind === "weigh_station" ? 5 : 3;
@@ -737,7 +741,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     // Step 1: category search at every sample, throttled.
     const categoryResults = await runLimited(
       samples.map((s) => () => tomtomNearby(key, s.lat, s.lon, categorySet, radiusM)),
-      4,
+      2,
     );
     samples.forEach((s, i) => categoryResults[i].results.forEach((r) => addRaw(r, s.lat, s.lon)));
 
@@ -753,14 +757,11 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       // Run keyword search across the full route (not just a strided subset)
       // so brands like Pilot/Flying J/Love's/TA/Petro/Sapp Bros/Road Ranger/
       // Casey's Travel Center and CAT Scales are surfaced end-to-end.
-      // Cap the total number of keyword samples to keep API usage bounded.
-      // Use every route sample for keyword search so each brand is queried
-      // end-to-end with no gaps.
-      const maxKwSamples = samples.length;
-      const stride = 1;
+      // Keep keyword searches targeted so repeated analyses do not get
+      // throttled and return partial, inconsistent data.
       const kwSamples = samples;
       const kwList =
-        data.kind === "truck_stop" ? keywords.slice(0, 10)
+        data.kind === "truck_stop" ? ["Love's Travel Stop", "TA Travel Center", "Petro Stopping Center", "truck stop", "travel center"]
         : data.kind === "cat_scale" ? keywords.slice(0, 4)
         : keywords.slice(0, 4);
       const keywordTasks: Array<() => Promise<TomTomCall>> = [];
@@ -771,39 +772,19 @@ export const searchTruckPois = createServerFn({ method: "POST" })
           keywordSamples.push(s);
         }
       }
-      const kwResults = await runLimited(keywordTasks, 6);
+      const kwResults = await runLimited(keywordTasks, 2);
       kwResults.forEach((call, i) =>
         call.results.forEach((r) => addRaw(r, keywordSamples[i].lat, keywordSamples[i].lon)),
       );
     }
 
-    // Step 2b: brand-filtered nearby search for truck stops. This forces
-    // TomTom to return each major brand (Love's, Pilot/Flying J, TA, Petro,
-    // etc.) end-to-end along the route, even when keyword search misses
-    // them due to noisy text matching.
-    if (data.kind === "truck_stop") {
-      const brandTasks: Array<() => Promise<TomTomCall>> = [];
-      const brandTaskSamples: Array<{ lat: number; lon: number }> = [];
-      for (const s of samples) {
-        for (const brand of truckStopBrands) {
-          brandTasks.push(() => tomtomNearby(key, s.lat, s.lon, "7311,7311003", radiusM, brand));
-          brandTaskSamples.push(s);
-        }
-      }
-      const brandResults = await runLimited(brandTasks, 6);
-      brandResults.forEach((call, i) =>
-        call.results.forEach((r) => addRaw(r, brandTaskSamples[i].lat, brandTaskSamples[i].lon)),
-      );
-    }
-
     // Step 3 (supplemental): OpenStreetMap Overpass for rest areas, truck
-    // parking, and weigh stations. TomTom coverage of these categories is
-    // sparse in the US; OSM has much better data. Routing/navigation/fuel
-    // remain TomTom-only.
+    // stops, parking, and weigh stations so provider throttling does not leave
+    // the route with a partial list.
     let osmRawCount = 0;
     let osmAddedCount = 0;
     let osmError: string | null = null;
-    if (data.kind === "rest_area" || data.kind === "weigh_station" || data.kind === "cat_scale") {
+    if (data.kind === "rest_area" || data.kind === "truck_stop" || data.kind === "weigh_station" || data.kind === "cat_scale") {
       const osm = await overpassAlongRoute(samples, data.kind);
       osmError = osm.error;
       osmRawCount = osm.results.length;
@@ -815,6 +796,11 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         if (data.kind === "rest_area") {
           if (truckStopAllowed(hay) || isCatScale(hay) || isExcludedJunk(hay)) continue;
           if (o.type !== "rest_area") continue;
+        }
+        if (data.kind === "truck_stop") {
+          const truckHay = o.name.toLowerCase();
+          if (isCatScale(hay) || isNotTruckStop(hay) || isExcludedJunk(hay)) continue;
+          if (o.type !== "truck_stop" || !truckStopAllowed(truckHay)) continue;
         }
         if (data.kind === "weigh_station") {
           if (isCatScale(hay) || truckStopAllowed(hay) || isExcludedJunk(hay)) continue;
