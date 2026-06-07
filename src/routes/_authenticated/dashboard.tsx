@@ -418,7 +418,7 @@ function Dashboard() {
   const closureCount = usingRoute
     ? routeRisks.filter((r) => r.type === "closure").length
     : feedRoadAlerts.filter((a) => a.category === "road_closure" || a.category === "detour").length;
-  const driverCount = hazards.length;
+  const driverCount = result?.driverReports.length ?? 0;
   const hasRouteWeatherAlerts = usingRoute && feedWeatherAlerts.length > 0;
 
   const score = result?.score ?? null;
@@ -846,7 +846,7 @@ function Dashboard() {
   );
 }
 
-type PoiDialogResult = NonNullable<Awaited<ReturnType<typeof searchTruckPois>>>;
+type PoiDialogResult = TruckPoiResult;
 type PoiItem = PoiDialogResult["pois"][number];
 
 function typeLabelShort(t?: string) {
