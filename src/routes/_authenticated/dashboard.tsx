@@ -388,12 +388,6 @@ function Dashboard() {
     enabled: geometry.length >= 2,
     staleTime: 10 * 60_000,
   });
-  const { data: catScales, isLoading: catScalesLoading } = useQuery({
-    queryKey: ["cat-scales", routeKey],
-    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "cat_scale", limit: 100 } }),
-    enabled: geometry.length >= 2,
-    staleTime: 10 * 60_000,
-  });
 
 
   // Stat cards: each card uses ONLY its own category data.
