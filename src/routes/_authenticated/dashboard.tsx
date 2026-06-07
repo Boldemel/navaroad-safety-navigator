@@ -559,7 +559,7 @@ function Dashboard() {
                   const windMph = w.windKph != null ? Math.round(w.windKph * 0.621371) : null;
                   const gustMph = w.gustKph != null ? Math.round(w.gustKph * 0.621371) : null;
                   const precipIn = w.precipMm != null ? Math.round(w.precipMm * 0.03937 * 100) / 100 : null;
-                  const risk = weatherRiskNote(tempF, windMph, gustMph, precipIn, w.visibilityKm, w.condition);
+                  const risk = weatherRiskNote(tempF, windMph, gustMph, precipIn, w.visibilityKm, w.condition, hasRouteWeatherAlerts);
                   return (
                     <div key={w.label} className="rounded-md border border-border bg-background p-3 text-xs space-y-1">
                       <div className="font-medium text-sm text-foreground">{w.label}</div>
