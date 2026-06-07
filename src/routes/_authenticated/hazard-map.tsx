@@ -94,12 +94,11 @@ function HazardMap() {
   const [follow, setFollow] = useState(false);
   const [recenterToken, setRecenterToken] = useState(0);
   useRealtimeInvalidate(["hazard_reports"], [["map-hazards"], ["driver-names"]]);
-  const poiFn = useServerFn(searchTruckPois);
 
   const { data: drivers = {} } = useDriverNames();
-  const feedFn = useServerFn(getSafetyFeed);
   const tomtomKeyFn = useServerFn(getTomTomKey);
   const activeRoute = useActiveRoute();
+  const result = activeRoute?.result ?? null;
   const geometry = activeRoute?.geometry ?? [];
   const geo = useGeolocation({ watch: true });
   const { focusLat, focusLon, focusLabel, focusDetails } = Route.useSearch();
@@ -115,68 +114,12 @@ function HazardMap() {
     staleTime: Infinity,
   });
 
-  const { data: feed, isLoading: feedLoading } = useQuery({
-    queryKey: ["safety-feed", activeRoute?.savedAt ?? "none"],
-    queryFn: () => feedFn({ data: { geometry } }),
-    enabled: geometry.length >= 2,
-    refetchInterval: 5 * 60_000,
-    staleTime: 60_000,
-  });
-
-  const { data: hazards = [], isLoading: hazardsLoading } = useQuery({
-    queryKey: ["map-hazards"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("hazard_reports").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Truck-friendly POIs along the active route, or around current GPS as a
-  // fallback so the map isn't empty when no route has been analyzed yet.
-  const poiGeometry = useMemo(() => {
-    if (geometry.length >= 2) return samplePoiGeometry(geometry, 1000);
-    if (geo.coords) {
-      // Build a tiny 2-point "route" centered on the driver so the same
-      // server fn (which expects a geometry) can search nearby POIs.
-      const { lat, lon } = geo.coords;
-      const d = 0.25; // ~17 mi box
-      return [
-        [lon - d, lat - d] as [number, number],
-        [lon + d, lat + d] as [number, number],
-      ];
-    }
-    return [];
-  }, [geometry, geo.coords?.lat, geo.coords?.lon]);
-  const poiEnabled = poiGeometry.length >= 2;
-  const routeKey = activeRoute?.savedAt ?? (geo.coords ? `here-${geo.coords.lat.toFixed(2)}-${geo.coords.lon.toFixed(2)}` : "none");
-  const { data: truckStopsData } = useQuery({
-    queryKey: ["hazard-map-truck-stops", routeKey],
-    queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "truck_stop", limit: 100 } }),
-    enabled: poiEnabled,
-    staleTime: 10 * 60_000,
-    initialData: () => readPoiCache("truck_stop", routeKey),
-    initialDataUpdatedAt: () => readPoiCacheAt("truck_stop", routeKey),
-  });
-  const { data: restAreasData } = useQuery({
-    queryKey: ["hazard-map-rest-areas", routeKey],
-    queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "rest_area", limit: 100 } }),
-    enabled: poiEnabled,
-    staleTime: 10 * 60_000,
-    initialData: () => readPoiCache("rest_area", routeKey),
-    initialDataUpdatedAt: () => readPoiCacheAt("rest_area", routeKey),
-  });
-  const { data: weighStationsData } = useQuery({
-    queryKey: ["hazard-map-weigh-stations", routeKey],
-    queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "weigh_station", limit: 100 } }),
-    enabled: poiEnabled,
-    staleTime: 10 * 60_000,
-    initialData: () => readPoiCache("weigh_station", routeKey),
-    initialDataUpdatedAt: () => readPoiCacheAt("weigh_station", routeKey),
-  });
-  useEffect(() => { if (truckStopsData) writePoiCache("truck_stop", routeKey, truckStopsData); }, [truckStopsData, routeKey]);
-  useEffect(() => { if (restAreasData) writePoiCache("rest_area", routeKey, restAreasData); }, [restAreasData, routeKey]);
-  useEffect(() => { if (weighStationsData) writePoiCache("weigh_station", routeKey, weighStationsData); }, [weighStationsData, routeKey]);
+  const feed = result ? { weatherAlerts: result.weatherAlerts, roadAlerts: result.roadAlerts, generatedAt: result.generatedAt } : null;
+  const truckStopsData = result?.truckStops;
+  const restAreasData = result?.restAreas;
+  const weighStationsData = result?.weighStations;
+  const hazards = result?.driverReports ?? [];
+  const loading = false;
 
 
 
