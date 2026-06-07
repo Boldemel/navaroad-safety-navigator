@@ -396,22 +396,29 @@ function Dashboard() {
   });
 
 
-  // Stat cards: prefer the analyzed route when present, else fall back to the
-  // live national feed. This keeps Wind/Weather Risk specific to the path.
+  // Stat cards: each card uses ONLY its own category data.
+  // Weather/wind are derived from NWS alerts on the route (feed is already
+  // route-scoped in getSafetyFeed), so wind/tornado alerts are split out of
+  // the Weather card and counted only under Wind.
   const routeRisks = result?.risks ?? [];
   const feedWeatherAlerts = feed?.weatherAlerts ?? [];
   const feedRoadAlerts = feed?.roadAlerts ?? [];
   const usingRoute = !!result && !routeUnavailable && routeMatchesCurrentInputs;
+  const isWindAlert = (cat: string) => cat === "high_wind" || cat === "tornado";
+  const weatherAlertsOnly = feedWeatherAlerts.filter((a) => !isWindAlert(a.category));
+  const windAlertsOnly = feedWeatherAlerts.filter((a) => isWindAlert(a.category));
   const weatherCount = usingRoute
-    ? routeRisks.filter((r) => r.type === "precip" || r.type === "visibility" || r.type === "temp" || r.type === "weather_alert").length
-    : feedWeatherAlerts.length;
+    ? weatherAlertsOnly.length +
+      routeRisks.filter((r) => r.type === "precip" || r.type === "visibility" || r.type === "temp").length
+    : weatherAlertsOnly.length;
   const windCount = usingRoute
-    ? routeRisks.filter((r) => r.type === "wind").length + feedWeatherAlerts.filter((a) => result && result.weatherAlerts.some((x) => x.id === a.id) && (a.category === "high_wind" || a.category === "tornado")).length
-    : feedWeatherAlerts.filter((a) => a.category === "high_wind" || a.category === "tornado").length;
+    ? windAlertsOnly.length + routeRisks.filter((r) => r.type === "wind").length
+    : windAlertsOnly.length;
   const closureCount = usingRoute
     ? routeRisks.filter((r) => r.type === "closure").length
     : feedRoadAlerts.filter((a) => a.category === "road_closure" || a.category === "detour").length;
   const driverCount = hazards.length;
+  const hasRouteWeatherAlerts = usingRoute && feedWeatherAlerts.length > 0;
 
   const score = result?.score ?? null;
   const breakdown = result?.breakdown;
