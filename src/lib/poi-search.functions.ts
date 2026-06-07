@@ -364,7 +364,7 @@ function overpassQueryFor(kind: "rest_area" | "weigh_station" | "cat_scale", sam
 
 async function overpassAlongRoute(
   samples: Array<{ lat: number; lon: number }>,
-  kind: "rest_area" | "weigh_station",
+  kind: "rest_area" | "weigh_station" | "cat_scale",
 ): Promise<{ results: OsmPoi[]; error: string | null }> {
   const endpoints = [
     "https://overpass-api.de/api/interpreter",
@@ -407,6 +407,10 @@ async function overpassAlongRoute(
           type = "weigh_station";
           category = "Weigh station";
           if (!name) name = "Weigh Station";
+        } else if (kind === "cat_scale") {
+          type = "cat_scale";
+          category = "CAT Scale";
+          if (!name) name = tags.brand ? `${tags.brand} CAT Scale` : "CAT Scale";
         } else if (tags.amenity === "parking") {
           type = "parking";
           category = "Truck parking";
@@ -420,6 +424,15 @@ async function overpassAlongRoute(
           category = "Rest area";
           if (!name) name = "Rest Area";
         }
+        // Build a real street address from OSM addr:* tags when present.
+        const streetParts = [
+          [tags["addr:housenumber"], tags["addr:street"]].filter(Boolean).join(" "),
+        ].filter(Boolean);
+        const cityPart = tags["addr:city"] ?? tags["addr:town"] ?? tags["addr:village"] ?? null;
+        const statePart = tags["addr:state"] ?? null;
+        const composed =
+          tags["addr:full"] ??
+          [streetParts.join(", "), cityPart, statePart].filter(Boolean).join(", ");
         out.push({
           osmType: el.type,
           osmId: String(el.id),
@@ -428,7 +441,7 @@ async function overpassAlongRoute(
           name,
           category,
           type,
-          address: tags["addr:full"] ?? null,
+          address: composed || null,
         });
       }
       return { results: out, error: null };
