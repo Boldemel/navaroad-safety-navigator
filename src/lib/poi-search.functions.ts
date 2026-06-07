@@ -525,6 +525,8 @@ async function overpassAlongRoute(
       return { results: out, error: null };
     } catch (e) {
       lastError = e instanceof Error ? e.message : "Overpass request failed";
+    } finally {
+      clearTimeout(timer);
     }
   }
   return { results: [], error: lastError };
