@@ -69,12 +69,15 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 
 function Dashboard() {
-  const [origin, setOrigin] = useState("");
-  const [destination, setDestination] = useState("");
-  const [originPlace, setOriginPlace] = useState<SelectedPlace | null>(null);
-  const [destPlace, setDestPlace] = useState<SelectedPlace | null>(null);
-  const [truck, setTruck] = useState("Sleeper");
-  const [trailer, setTrailer] = useState("Dry Van");
+  // Hydrate from the last analysis so route data survives navigation away/back.
+  const cached = typeof window !== "undefined" ? readCachedAnalysis() : null;
+  const [origin, setOrigin] = useState(cached?.origin ?? "");
+  const [destination, setDestination] = useState(cached?.destination ?? "");
+  const [originPlace, setOriginPlace] = useState<SelectedPlace | null>(cached?.originPlace ?? null);
+  const [destPlace, setDestPlace] = useState<SelectedPlace | null>(cached?.destPlace ?? null);
+  const [truck, setTruck] = useState(cached?.truck ?? "Sleeper");
+  const [trailer, setTrailer] = useState(cached?.trailer ?? "Dry Van");
+  const [cachedResult, setCachedResult] = useState<RouteAnalysis | null>(cached?.result ?? null);
   useRealtimeInvalidate(["hazard_reports"], [["dash-hazards"]]);
 
   const analyzeFn = useServerFn(analyzeRoute);
@@ -90,7 +93,8 @@ function Dashboard() {
   const [locating, setLocating] = useState(false);
   const [awaitingCoords, setAwaitingCoords] = useState(false);
   const [poiDialog, setPoiDialog] = useState<{ title: string; result: PoiDialogResult | null } | null>(null);
-  const [analyzedRouteKey, setAnalyzedRouteKey] = useState<string | null>(null);
+  const [analyzedRouteKey, setAnalyzedRouteKey] = useState<string | null>(cached?.analyzedRouteKey ?? null);
+
 
   function routeInputKey(
     originText: string,
