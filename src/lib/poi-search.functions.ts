@@ -368,6 +368,8 @@ type OsmPoi = {
   category: string;
   type: TruckPoiType;
   address: string | null;
+  city: string | null;
+  state: string | null;
 };
 
 function overpassQueryFor(kind: "rest_area" | "weigh_station" | "cat_scale", samples: Array<{ lat: number; lon: number }>): string {
@@ -459,15 +461,16 @@ async function overpassAlongRoute(
           category = "Rest area";
           if (!name) name = "Rest Area";
         }
-        // Build a real street address from OSM addr:* tags when present.
+        // Build a real street/location address from OSM addr:* tags when present.
         const streetParts = [
           [tags["addr:housenumber"], tags["addr:street"]].filter(Boolean).join(" "),
         ].filter(Boolean);
         const cityPart = tags["addr:city"] ?? tags["addr:town"] ?? tags["addr:village"] ?? null;
         const statePart = tags["addr:state"] ?? null;
+        const roadPart = tags.ref ?? tags["destination:ref"] ?? tags["addr:street"] ?? tags.highway ?? null;
         const composed =
           tags["addr:full"] ??
-          [streetParts.join(", "), cityPart, statePart].filter(Boolean).join(", ");
+          [streetParts.join(", ") || roadPart, cityPart, statePart].filter(Boolean).join(", ");
         out.push({
           osmType: el.type,
           osmId: String(el.id),
@@ -477,6 +480,8 @@ async function overpassAlongRoute(
           category,
           type,
           address: composed || null,
+          city: cityPart,
+          state: statePart,
         });
       }
       return { results: out, error: null };
