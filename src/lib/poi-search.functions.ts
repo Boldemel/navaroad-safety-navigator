@@ -827,13 +827,13 @@ export const searchTruckPois = createServerFn({ method: "POST" })
 
     // Sort by route progression (driving order) — closest upcoming stop first.
     // Tiebreak by perpendicular distance from the route.
-    let pois = Array.from(seen.values()).sort((a, b) => {
+    const pois = Array.from(seen.values()).sort((a, b) => {
       const pa = a.routeProgressMi ?? Infinity;
       const pb = b.routeProgressMi ?? Infinity;
       if (pa !== pb) return pa - pb;
       return (a.distanceMi ?? Infinity) - (b.distanceMi ?? Infinity);
     });
-    let provider = "TomTom";
+    const provider = "TomTom";
     let message =
       data.kind === "rest_area" && pois.length > 0
         ? "Rest areas found along the route corridor."
