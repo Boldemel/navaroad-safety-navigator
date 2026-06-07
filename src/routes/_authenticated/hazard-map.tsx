@@ -379,7 +379,7 @@ function HazardMap() {
             recenterToken={recenterToken}
             headingDeg={geo.coords?.headingDeg ?? null}
             routeGeometry={focusPoint ? [] : geometry}
-            currentLocation={focusPoint ? null : here}
+            currentLocation={here}
             markers={focusPoint
               ? [{ id: "focus", lat: focusPoint.lat, lon: focusPoint.lon, title: focusLabel ?? "Selected location", description: focusDetails, color: "#22c55e", iconKey: "pin" }]
               : [
