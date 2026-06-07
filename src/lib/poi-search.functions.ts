@@ -335,24 +335,28 @@ type OsmPoi = {
   address: string | null;
 };
 
-function overpassQueryFor(kind: "rest_area" | "weigh_station", samples: Array<{ lat: number; lon: number }>): string {
+function overpassQueryFor(kind: "rest_area" | "weigh_station" | "cat_scale", samples: Array<{ lat: number; lon: number }>): string {
   const radius = 50000;
   const clauses: string[] = [];
   for (const s of samples) {
     const around = `around:${radius},${s.lat.toFixed(5)},${s.lon.toFixed(5)}`;
     if (kind === "rest_area") {
-      // Strictly rest areas + service areas. Truck parking lots are
-      // intentionally excluded because they often sit at truck-stop brands
-      // (Pilot/Love's) and would leak into the Rest Areas list.
       clauses.push(`node["highway"="rest_area"](${around});`);
       clauses.push(`way["highway"="rest_area"](${around});`);
       clauses.push(`node["highway"="services"](${around});`);
       clauses.push(`way["highway"="services"](${around});`);
-    } else {
+    } else if (kind === "weigh_station") {
       clauses.push(`node["highway"="weigh_station"](${around});`);
       clauses.push(`way["highway"="weigh_station"](${around});`);
       clauses.push(`node["amenity"="weighbridge"](${around});`);
       clauses.push(`way["amenity"="weighbridge"](${around});`);
+    } else {
+      // cat_scale — match by brand or name (CAT Scale Company tags vary)
+      clauses.push(`node["brand"~"CAT Scale",i](${around});`);
+      clauses.push(`way["brand"~"CAT Scale",i](${around});`);
+      clauses.push(`node["name"~"CAT Scale",i](${around});`);
+      clauses.push(`way["name"~"CAT Scale",i](${around});`);
+      clauses.push(`node["operator"~"CAT Scale",i](${around});`);
     }
   }
   return `[out:json][timeout:25];(${clauses.join("")});out center 400;`;
@@ -360,7 +364,7 @@ function overpassQueryFor(kind: "rest_area" | "weigh_station", samples: Array<{ 
 
 async function overpassAlongRoute(
   samples: Array<{ lat: number; lon: number }>,
-  kind: "rest_area" | "weigh_station",
+  kind: "rest_area" | "weigh_station" | "cat_scale",
 ): Promise<{ results: OsmPoi[]; error: string | null }> {
   const endpoints = [
     "https://overpass-api.de/api/interpreter",
@@ -403,6 +407,10 @@ async function overpassAlongRoute(
           type = "weigh_station";
           category = "Weigh station";
           if (!name) name = "Weigh Station";
+        } else if (kind === "cat_scale") {
+          type = "cat_scale";
+          category = "CAT Scale";
+          if (!name) name = tags.brand ? `${tags.brand} CAT Scale` : "CAT Scale";
         } else if (tags.amenity === "parking") {
           type = "parking";
           category = "Truck parking";
@@ -416,6 +424,15 @@ async function overpassAlongRoute(
           category = "Rest area";
           if (!name) name = "Rest Area";
         }
+        // Build a real street address from OSM addr:* tags when present.
+        const streetParts = [
+          [tags["addr:housenumber"], tags["addr:street"]].filter(Boolean).join(" "),
+        ].filter(Boolean);
+        const cityPart = tags["addr:city"] ?? tags["addr:town"] ?? tags["addr:village"] ?? null;
+        const statePart = tags["addr:state"] ?? null;
+        const composed =
+          tags["addr:full"] ??
+          [streetParts.join(", "), cityPart, statePart].filter(Boolean).join(", ");
         out.push({
           osmType: el.type,
           osmId: String(el.id),
@@ -424,7 +441,7 @@ async function overpassAlongRoute(
           name,
           category,
           type,
-          address: tags["addr:full"] ?? null,
+          address: composed || null,
         });
       }
       return { results: out, error: null };
@@ -691,7 +708,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     let osmRawCount = 0;
     let osmAddedCount = 0;
     let osmError: string | null = null;
-    if (data.kind === "rest_area" || data.kind === "weigh_station") {
+    if (data.kind === "rest_area" || data.kind === "weigh_station" || data.kind === "cat_scale") {
       const osm = await overpassAlongRoute(samples, data.kind);
       osmError = osm.error;
       osmRawCount = osm.results.length;
@@ -708,6 +725,9 @@ export const searchTruckPois = createServerFn({ method: "POST" })
           if (isCatScale(hay) || truckStopAllowed(hay) || isExcludedJunk(hay)) continue;
           if (o.type !== "weigh_station") continue;
         }
+        if (data.kind === "cat_scale") {
+          if (o.type !== "cat_scale") continue;
+        }
         let dupe = false;
         for (const existing of seen.values()) {
           if (distMi(existing.lat, existing.lon, o.lat, o.lon) < 0.25) {
@@ -716,6 +736,16 @@ export const searchTruckPois = createServerFn({ method: "POST" })
           }
         }
         if (dupe) continue;
+        // Extract city/state from composed OSM address ("…, City, ST")
+        let osmCity: string | null = null;
+        let osmState: string | null = null;
+        if (o.address) {
+          const parts = o.address.split(",").map((s) => s.trim()).filter(Boolean);
+          if (parts.length >= 2) {
+            osmState = parts[parts.length - 1] || null;
+            osmCity = parts[parts.length - 2] || null;
+          }
+        }
         const id = `osm-${o.osmType}-${o.osmId}`;
         seen.set(id, {
           id,
@@ -724,8 +754,8 @@ export const searchTruckPois = createServerFn({ method: "POST" })
           category: o.category,
           type: o.type,
           address: o.address ?? "",
-          city: null,
-          state: null,
+          city: osmCity,
+          state: osmState,
           lat: o.lat,
           lon: o.lon,
           distanceMi: projection.perpMi,

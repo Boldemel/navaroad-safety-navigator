@@ -906,13 +906,16 @@ function PoiDialog({
           <ul className="divide-y divide-border max-h-[60vh] overflow-auto -mx-2 px-2">
             {pois.map((p) => {
               const region = [p.city, p.state].filter(Boolean).join(", ");
+              const fullAddress = [p.address, !p.address?.includes(region) ? region : null]
+                .filter(Boolean)
+                .join(" · ") || p.address || region || "Location";
               return (
                 <li key={p.id} className="py-3 flex items-start gap-3">
                   <MapPin className="size-4 mt-1 text-primary shrink-0" />
                   <div className="flex-1 min-w-0 space-y-0.5">
                     <div className="font-medium truncate">{p.name}{p.brand && p.brand !== p.name ? ` · ${p.brand}` : ""}</div>
                     <div className="text-[12px] text-muted-foreground">
-                      {region || p.address || "Location"}
+                      {fullAddress}
                     </div>
                     <div className="text-[11px] text-muted-foreground/80 flex flex-wrap items-center gap-x-2">
                       <span className="uppercase tracking-wider">{typeLabelShort(p.type)}</span>
@@ -1059,13 +1062,16 @@ function PoiList({
           <ul className="divide-y divide-border max-h-80 overflow-auto">
             {result.pois.slice(0, 20).map((p) => {
               const region = [p.city, p.state].filter(Boolean).join(", ");
+              const fullAddress = [p.address, !p.address?.includes(region) ? region : null]
+                .filter(Boolean)
+                .join(" · ") || p.address || region || "Location";
               return (
                 <li key={p.id} className="py-2 flex items-start gap-3 text-sm">
                   <MapPin className="size-3.5 mt-1 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{p.name}{p.brand && p.brand !== p.name ? ` · ${p.brand}` : ""}</div>
                     <div className="text-[11px] text-muted-foreground truncate">
-                      {region || p.address}
+                      {fullAddress}
                       {p.type && <> · <span className="uppercase tracking-wider">{typeLabel(p.type)}</span></>}
                       {p.source && <> · Source: {p.source}</>}
                     </div>
@@ -1120,19 +1126,21 @@ type GroupedAlert = {
 };
 
 function summarizeRegion(areaDescs: string[]): { region: string; count: number } {
-  const states = new Set<string>();
-  let count = 0;
+  // NWS areaDesc is semicolon-separated and typically county-level
+  // (e.g. "Dallas County, TX; Tarrant County, TX"). Show the actual
+  // affected counties/zones — not just the state — so a "Dallas, TX"
+  // flood warning shows exactly which counties are under warning.
+  const areas = new Set<string>();
   for (const desc of areaDescs) {
-    const parts = desc.split(";").map((s) => s.trim()).filter(Boolean);
-    count += parts.length || 1;
-    for (const p of parts) {
-      const m = p.match(/\b([A-Z]{2})\b\s*$/);
-      if (m) states.add(m[1]);
+    for (const p of desc.split(";").map((s) => s.trim()).filter(Boolean)) {
+      areas.add(p);
     }
   }
-  const region = states.size > 0
-    ? [...states].sort().join(", ")
-    : count > 0 ? `${count} area${count === 1 ? "" : "s"} along route` : "Region unavailable";
+  const list = [...areas];
+  const count = list.length;
+  if (count === 0) return { region: "Region unavailable", count: 0 };
+  const shown = list.slice(0, 4).join(" · ");
+  const region = count > 4 ? `${shown} +${count - 4} more` : shown;
   return { region, count };
 }
 
