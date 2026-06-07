@@ -21,7 +21,7 @@ import { TomTomMap, type MapMarker } from "@/components/tomtom-map";
 import { useActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { hazardsWithin, hazardsAlongRoute, nearestHazardAlert, type HazardLike } from "@/lib/hazard-proximity";
-import { searchTruckPois } from "@/lib/poi-search.functions";
+import { searchTruckPois, type TruckPoiResult } from "@/lib/poi-search.functions";
 
 // POI marker colors (kept in sync with the legend below).
 const POI_COLORS = {
@@ -37,6 +37,38 @@ function samplePoiGeometry(geom: Array<[number, number]>, maxPoints: number) {
     sampled.push(geom[Math.floor((i / (maxPoints - 1)) * (geom.length - 1))]);
   }
   return sampled;
+}
+
+// LocalStorage-backed cache for POIs so the map shows the last-seen icons
+// immediately on revisit while fresh results load in the background.
+type PoiKind = "truck_stop" | "rest_area" | "weigh_station";
+type CachedPois = TruckPoiResult;
+const POI_CACHE_PREFIX = "navaroad.poiCache.";
+function poiCacheKey(kind: PoiKind, routeKey: string) {
+  return `${POI_CACHE_PREFIX}${kind}.${routeKey}`;
+}
+type PoiCacheEntry = { at: number; data: CachedPois };
+function readPoiCache(kind: PoiKind, routeKey: string): CachedPois | undefined {
+  if (typeof window === "undefined" || routeKey === "none") return undefined;
+  try {
+    const raw = window.localStorage.getItem(poiCacheKey(kind, routeKey));
+    if (!raw) return undefined;
+    return (JSON.parse(raw) as PoiCacheEntry).data;
+  } catch { return undefined; }
+}
+function readPoiCacheAt(kind: PoiKind, routeKey: string): number | undefined {
+  if (typeof window === "undefined" || routeKey === "none") return undefined;
+  try {
+    const raw = window.localStorage.getItem(poiCacheKey(kind, routeKey));
+    if (!raw) return undefined;
+    return (JSON.parse(raw) as PoiCacheEntry).at;
+  } catch { return undefined; }
+}
+function writePoiCache(kind: PoiKind, routeKey: string, data: CachedPois) {
+  if (typeof window === "undefined" || routeKey === "none") return;
+  try {
+    window.localStorage.setItem(poiCacheKey(kind, routeKey), JSON.stringify({ at: Date.now(), data } satisfies PoiCacheEntry));
+  } catch { /* ignore quota */ }
 }
 
 
@@ -155,19 +187,29 @@ function HazardMap() {
     queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "truck_stop", limit: 100 } }),
     enabled: poiEnabled,
     staleTime: 10 * 60_000,
+    initialData: () => readPoiCache("truck_stop", routeKey),
+    initialDataUpdatedAt: () => readPoiCacheAt("truck_stop", routeKey),
   });
   const { data: restAreasData } = useQuery({
     queryKey: ["hazard-map-rest-areas", routeKey],
     queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "rest_area", limit: 100 } }),
     enabled: poiEnabled,
     staleTime: 10 * 60_000,
+    initialData: () => readPoiCache("rest_area", routeKey),
+    initialDataUpdatedAt: () => readPoiCacheAt("rest_area", routeKey),
   });
   const { data: weighStationsData } = useQuery({
     queryKey: ["hazard-map-weigh-stations", routeKey],
     queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "weigh_station", limit: 100 } }),
     enabled: poiEnabled,
     staleTime: 10 * 60_000,
+    initialData: () => readPoiCache("weigh_station", routeKey),
+    initialDataUpdatedAt: () => readPoiCacheAt("weigh_station", routeKey),
   });
+  useEffect(() => { if (truckStopsData) writePoiCache("truck_stop", routeKey, truckStopsData); }, [truckStopsData, routeKey]);
+  useEffect(() => { if (restAreasData) writePoiCache("rest_area", routeKey, restAreasData); }, [restAreasData, routeKey]);
+  useEffect(() => { if (weighStationsData) writePoiCache("weigh_station", routeKey, weighStationsData); }, [weighStationsData, routeKey]);
+
 
 
   const apiMarkers: Marker[] = useMemo(() => {
