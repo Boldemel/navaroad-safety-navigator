@@ -22,6 +22,7 @@ import { useActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { hazardsWithin, hazardsAlongRoute, nearestHazardAlert, type HazardLike } from "@/lib/hazard-proximity";
 import { searchTruckPois, type TruckPoiResult } from "@/lib/poi-search.functions";
+import { DriveModePanel } from "@/components/drive-mode-panel";
 
 // POI marker colors (kept in sync with the legend below).
 const POI_COLORS = {
