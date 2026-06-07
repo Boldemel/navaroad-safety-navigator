@@ -659,9 +659,17 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       data.kind === "cat_scale" ||
       seen.size < 10
     ) {
-      const stride = Math.max(1, Math.ceil(samples.length / 6));
+      // Run keyword search across the full route (not just a strided subset)
+      // so brands like Pilot/Flying J/Love's/TA/Petro/Sapp Bros/Road Ranger/
+      // Casey's Travel Center and CAT Scales are surfaced end-to-end.
+      // Cap the total number of keyword samples to keep API usage bounded.
+      const maxKwSamples = 18;
+      const stride = Math.max(1, Math.ceil(samples.length / maxKwSamples));
       const kwSamples = samples.filter((_, i) => i % stride === 0);
-      const kwList = keywords.slice(0, data.kind === "truck_stop" ? 7 : 4);
+      const kwList =
+        data.kind === "truck_stop" ? keywords.slice(0, 10)
+        : data.kind === "cat_scale" ? keywords.slice(0, 4)
+        : keywords.slice(0, 4);
       const keywordTasks: Array<() => Promise<TomTomCall>> = [];
       const keywordSamples: Array<{ lat: number; lon: number }> = [];
       for (const s of kwSamples) {
@@ -670,7 +678,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
           keywordSamples.push(s);
         }
       }
-      const kwResults = await runLimited(keywordTasks, 4);
+      const kwResults = await runLimited(keywordTasks, 6);
       kwResults.forEach((call, i) =>
         call.results.forEach((r) => addRaw(r, keywordSamples[i].lat, keywordSamples[i].lon)),
       );
