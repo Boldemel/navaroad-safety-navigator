@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
-import { analyzeRoute } from "@/lib/route-analysis.functions";
+import { analyzeRoute, type RouteAnalysis } from "@/lib/route-analysis.functions";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { useActiveRoute, saveActiveRoute, clearActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
@@ -29,6 +29,38 @@ import { AddressAutocomplete, type SelectedPlace, type FavoriteSuggestion } from
 import { useFavoriteLocations } from "@/components/favorite-locations-card";
 import { favoriteCategoryLabel } from "@/lib/favorite-locations";
 import { searchTruckPois } from "@/lib/poi-search.functions";
+
+// Persist the last analysis so navigating away (e.g. to the Hazard Map) and
+// back to the Dashboard doesn't reset the route, score, and stat cards to zero.
+const ANALYSIS_CACHE_KEY = "navaroad.lastAnalysis";
+type CachedAnalysis = {
+  result: RouteAnalysis;
+  origin: string;
+  destination: string;
+  originPlace: SelectedPlace | null;
+  destPlace: SelectedPlace | null;
+  truck: string;
+  trailer: string;
+  analyzedRouteKey: string;
+};
+function readCachedAnalysis(): CachedAnalysis | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(ANALYSIS_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as CachedAnalysis) : null;
+  } catch {
+    return null;
+  }
+}
+function writeCachedAnalysis(v: CachedAnalysis | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (v) window.localStorage.setItem(ANALYSIS_CACHE_KEY, JSON.stringify(v));
+    else window.localStorage.removeItem(ANALYSIS_CACHE_KEY);
+  } catch {
+    /* ignore quota */
+  }
+}
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
