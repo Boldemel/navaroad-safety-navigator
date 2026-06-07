@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
-import { analyzeRoute } from "@/lib/route-analysis.functions";
+import { analyzeRoute, type RouteAnalysis } from "@/lib/route-analysis.functions";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { useActiveRoute, saveActiveRoute, clearActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
@@ -30,6 +30,38 @@ import { useFavoriteLocations } from "@/components/favorite-locations-card";
 import { favoriteCategoryLabel } from "@/lib/favorite-locations";
 import { searchTruckPois } from "@/lib/poi-search.functions";
 
+// Persist the last analysis so navigating away (e.g. to the Hazard Map) and
+// back to the Dashboard doesn't reset the route, score, and stat cards to zero.
+const ANALYSIS_CACHE_KEY = "navaroad.lastAnalysis";
+type CachedAnalysis = {
+  result: RouteAnalysis;
+  origin: string;
+  destination: string;
+  originPlace: SelectedPlace | null;
+  destPlace: SelectedPlace | null;
+  truck: string;
+  trailer: string;
+  analyzedRouteKey: string;
+};
+function readCachedAnalysis(): CachedAnalysis | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(ANALYSIS_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as CachedAnalysis) : null;
+  } catch {
+    return null;
+  }
+}
+function writeCachedAnalysis(v: CachedAnalysis | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (v) window.localStorage.setItem(ANALYSIS_CACHE_KEY, JSON.stringify(v));
+    else window.localStorage.removeItem(ANALYSIS_CACHE_KEY);
+  } catch {
+    /* ignore quota */
+  }
+}
+
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
 });
@@ -37,12 +69,15 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 
 function Dashboard() {
-  const [origin, setOrigin] = useState("");
-  const [destination, setDestination] = useState("");
-  const [originPlace, setOriginPlace] = useState<SelectedPlace | null>(null);
-  const [destPlace, setDestPlace] = useState<SelectedPlace | null>(null);
-  const [truck, setTruck] = useState("Sleeper");
-  const [trailer, setTrailer] = useState("Dry Van");
+  // Hydrate from the last analysis so route data survives navigation away/back.
+  const cached = typeof window !== "undefined" ? readCachedAnalysis() : null;
+  const [origin, setOrigin] = useState(cached?.origin ?? "");
+  const [destination, setDestination] = useState(cached?.destination ?? "");
+  const [originPlace, setOriginPlace] = useState<SelectedPlace | null>(cached?.originPlace ?? null);
+  const [destPlace, setDestPlace] = useState<SelectedPlace | null>(cached?.destPlace ?? null);
+  const [truck, setTruck] = useState(cached?.truck ?? "Sleeper");
+  const [trailer, setTrailer] = useState(cached?.trailer ?? "Dry Van");
+  const [cachedResult, setCachedResult] = useState<RouteAnalysis | null>(cached?.result ?? null);
   useRealtimeInvalidate(["hazard_reports"], [["dash-hazards"]]);
 
   const analyzeFn = useServerFn(analyzeRoute);
@@ -58,7 +93,8 @@ function Dashboard() {
   const [locating, setLocating] = useState(false);
   const [awaitingCoords, setAwaitingCoords] = useState(false);
   const [poiDialog, setPoiDialog] = useState<{ title: string; result: PoiDialogResult | null } | null>(null);
-  const [analyzedRouteKey, setAnalyzedRouteKey] = useState<string | null>(null);
+  const [analyzedRouteKey, setAnalyzedRouteKey] = useState<string | null>(cached?.analyzedRouteKey ?? null);
+
 
   function routeInputKey(
     originText: string,
@@ -205,17 +241,32 @@ function Dashboard() {
     onSuccess: (data, vars) => {
       if (data.geometry.length >= 2) {
         saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
-        setAnalyzedRouteKey(routeInputKey(vars.origin, vars.destination, vars.originCoords ?? null, vars.destinationCoords ?? null));
+        const key = routeInputKey(vars.origin, vars.destination, vars.originCoords ?? null, vars.destinationCoords ?? null);
+        setAnalyzedRouteKey(key);
+        setCachedResult(data);
+        writeCachedAnalysis({
+          result: data,
+          origin: vars.origin,
+          destination: vars.destination,
+          originPlace,
+          destPlace,
+          truck: vars.truck,
+          trailer: vars.trailer,
+          analyzedRouteKey: key,
+        });
       } else {
         clearActiveRoute();
         setAnalyzedRouteKey(null);
+        setCachedResult(null);
+        writeCachedAnalysis(null);
       }
     },
+
   });
 
   const startNav = useMutation({
     mutationFn: async () => {
-      const result = analysis.data;
+      const result = analysis.data ?? cachedResult;
       if (!result) throw new Error("Analyze a route first.");
       // Prefer live GPS as origin; fall back to analyzed origin coords.
       let originLat = result.origin.lat;
@@ -330,7 +381,7 @@ function Dashboard() {
 
 
   // Live safety feed scoped to the active route corridor (NWS + DOT).
-  const result = analysis.isPending ? undefined : analysis.data;
+  const result = analysis.isPending ? cachedResult ?? undefined : analysis.data ?? cachedResult ?? undefined;
   const routeUnavailable = result?.routeStatus === "unavailable";
   const currentRouteKey = routeInputKey(
     origin,
