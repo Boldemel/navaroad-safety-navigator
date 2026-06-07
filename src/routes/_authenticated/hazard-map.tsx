@@ -132,25 +132,40 @@ function HazardMap() {
     },
   });
 
-  // Truck-friendly POIs along the active route. Same source as the Dashboard.
-  const poiGeometry = useMemo(() => samplePoiGeometry(geometry, 1000), [geometry]);
-  const routeKey = activeRoute?.savedAt ?? "none";
+  // Truck-friendly POIs along the active route, or around current GPS as a
+  // fallback so the map isn't empty when no route has been analyzed yet.
+  const poiGeometry = useMemo(() => {
+    if (geometry.length >= 2) return samplePoiGeometry(geometry, 1000);
+    if (geo.coords) {
+      // Build a tiny 2-point "route" centered on the driver so the same
+      // server fn (which expects a geometry) can search nearby POIs.
+      const { lat, lon } = geo.coords;
+      const d = 0.25; // ~17 mi box
+      return [
+        [lon - d, lat - d] as [number, number],
+        [lon + d, lat + d] as [number, number],
+      ];
+    }
+    return [];
+  }, [geometry, geo.coords?.lat, geo.coords?.lon]);
+  const poiEnabled = poiGeometry.length >= 2;
+  const routeKey = activeRoute?.savedAt ?? (geo.coords ? `here-${geo.coords.lat.toFixed(2)}-${geo.coords.lon.toFixed(2)}` : "none");
   const { data: truckStopsData } = useQuery({
     queryKey: ["hazard-map-truck-stops", routeKey],
     queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "truck_stop", limit: 100 } }),
-    enabled: geometry.length >= 2,
+    enabled: poiEnabled,
     staleTime: 10 * 60_000,
   });
   const { data: restAreasData } = useQuery({
     queryKey: ["hazard-map-rest-areas", routeKey],
     queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "rest_area", limit: 100 } }),
-    enabled: geometry.length >= 2,
+    enabled: poiEnabled,
     staleTime: 10 * 60_000,
   });
   const { data: weighStationsData } = useQuery({
     queryKey: ["hazard-map-weigh-stations", routeKey],
     queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "weigh_station", limit: 100 } }),
-    enabled: geometry.length >= 2,
+    enabled: poiEnabled,
     staleTime: 10 * 60_000,
   });
 
