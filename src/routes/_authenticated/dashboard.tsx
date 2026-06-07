@@ -194,11 +194,8 @@ function Dashboard() {
 
 
   async function useCurrentLocation() {
-    if (geo.status === "granted" && geo.coords) {
-      await fillOriginFromCoords(geo.coords.lat, geo.coords.lon);
-      return;
-    }
-    // Trigger the permission prompt; auto-fill once coords arrive (effect below).
+    // Force a fresh desktop GPS read on every click. Reusing an existing
+    // `granted` fix can keep filling an old city after the driver has moved.
     setAwaitingCoords(true);
     geo.request();
   }

@@ -62,6 +62,7 @@ export function useGeolocation(opts: { watch?: boolean; auto?: boolean } = {}) {
       clearCachedCoords();
       setState((s) => ({
         ...s,
+        coords: null,
         status: "error",
         error: "Your browser returned an old location. Try again or enter the origin manually.",
       }));
@@ -97,7 +98,7 @@ export function useGeolocation(opts: { watch?: boolean; auto?: boolean } = {}) {
       return;
     }
     clearCachedCoords();
-    setState((s) => ({ ...s, status: "prompting", error: s.error }));
+    setState((s) => ({ ...s, coords: null, status: "prompting", error: null }));
     navigator.geolocation.getCurrentPosition(setCoords, setError, {
       enableHighAccuracy: true,
       // Force a *fresh* fix — desktop browsers will otherwise hand back a
