@@ -648,12 +648,18 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     );
     samples.forEach((s, i) => categoryResults[i].results.forEach((r) => addRaw(r, s.lat, s.lon)));
 
-    // Step 2: keyword fallback — only when category coverage is thin. Trim
-    // keyword set and stride samples so we don't exceed TomTom's QPS limit.
-    if (seen.size < 10 || data.kind === "weigh_station" || data.kind === "cat_scale") {
+    // Step 2: keyword fallback. Always run for truck_stop / weigh_station /
+    // cat_scale so we surface multiple brands (not just whichever the category
+    // search happened to return most of). For rest_area, only run when sparse.
+    if (
+      data.kind === "truck_stop" ||
+      data.kind === "weigh_station" ||
+      data.kind === "cat_scale" ||
+      seen.size < 10
+    ) {
       const stride = Math.max(1, Math.ceil(samples.length / 6));
       const kwSamples = samples.filter((_, i) => i % stride === 0);
-      const kwList = keywords.slice(0, 4);
+      const kwList = keywords.slice(0, data.kind === "truck_stop" ? 7 : 4);
       const keywordTasks: Array<() => Promise<TomTomCall>> = [];
       const keywordSamples: Array<{ lat: number; lon: number }> = [];
       for (const s of kwSamples) {
