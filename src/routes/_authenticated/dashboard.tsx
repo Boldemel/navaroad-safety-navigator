@@ -291,6 +291,7 @@ function Dashboard() {
         origin: originLabel,
         destination: result.destination.name,
         geometry: route.geometry,
+        result,
       });
       return route;
     },
@@ -379,9 +380,9 @@ function Dashboard() {
     originPlace ? { lat: originPlace.lat, lon: originPlace.lon } : null,
     destPlace ? { lat: destPlace.lat, lon: destPlace.lon } : null,
   );
-  const routeMatchesCurrentInputs = !!result && analyzedRouteKey === currentRouteKey;
-  const activeRouteForQueries = analysis.isPending || routeUnavailable || !routeMatchesCurrentInputs ? null : activeRoute;
-  const geometry = routeUnavailable || !routeMatchesCurrentInputs ? [] : (result?.geometry ?? activeRouteForQueries?.geometry ?? []);
+  const routeMatchesCurrentInputs = !!result && (analyzedRouteKey === currentRouteKey || result.routeId === activeRoute?.result?.routeId);
+  const activeRouteForQueries = analysis.isPending || routeUnavailable ? null : activeRoute;
+  const geometry = routeUnavailable ? [] : (result?.geometry ?? activeRouteForQueries?.geometry ?? []);
   const routeLabel = result
     ? `${origin || result.origin.name} → ${destination || result.destination.name}`
     : activeRouteForQueries
@@ -404,7 +405,7 @@ function Dashboard() {
   const routeRisks = result?.risks ?? [];
   const feedWeatherAlerts = feed?.weatherAlerts ?? [];
   const feedRoadAlerts = feed?.roadAlerts ?? [];
-  const usingRoute = !!result && !routeUnavailable && routeMatchesCurrentInputs;
+  const usingRoute = !!result && !routeUnavailable;
   const isWindAlert = (cat: string) => cat === "high_wind" || cat === "tornado";
   const weatherAlertsOnly = feedWeatherAlerts.filter((a) => !isWindAlert(a.category));
   const windAlertsOnly = feedWeatherAlerts.filter((a) => isWindAlert(a.category));
