@@ -57,27 +57,6 @@ export function useGeolocation(opts: { watch?: boolean; auto?: boolean } = {}) {
 
   const setCoords = useCallback((pos: GeolocationPosition) => {
     const next = coordsFromPosition(pos);
-    const age = Date.now() - new Date(next.at).getTime();
-    if (!Number.isFinite(age) || age > STALE_FIX_MS) {
-      clearCachedCoords();
-      setState((s) => ({
-        ...s,
-        coords: null,
-        status: "error",
-        error: "Your browser returned an old location. Try again or enter the origin manually.",
-      }));
-      return;
-    }
-    if (next.accuracyM != null && next.accuracyM > MAX_USABLE_ACCURACY_M) {
-      clearCachedCoords();
-      setState((s) => ({
-        ...s,
-        coords: null,
-        status: "error",
-        error: "Your browser location is too imprecise for routing. Enter your origin manually or use mobile GPS.",
-      }));
-      return;
-    }
     setState({ coords: next, status: "granted", error: null });
   }, []);
 
