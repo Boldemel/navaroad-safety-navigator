@@ -1176,6 +1176,7 @@ function weatherRiskNote(
   precipIn: number | null,
   visibilityKm: number | null,
   condition: string,
+  hasRouteAlerts: boolean = false,
 ): { note: string; tone: string } {
   const c = (condition ?? "").toLowerCase();
   if (c.includes("thunder") || c.includes("tornado")) return { note: "Severe weather — use caution.", tone: "text-destructive" };
@@ -1186,5 +1187,11 @@ function weatherRiskNote(
   if (c.includes("snow") || c.includes("ice")) return { note: "Winter conditions possible.", tone: "text-warning" };
   if (tempF != null && tempF <= 20) return { note: "Freezing temps — watch for ice.", tone: "text-warning" };
   if (tempF != null && tempF >= 100) return { note: "Extreme heat — check tires & cooling.", tone: "text-warning" };
+  if (hasRouteAlerts) {
+    return {
+      note: "Current forecast may look calm, but active NWS alerts affect this route — see alerts above.",
+      tone: "text-warning",
+    };
+  }
   return { note: "No major weather risk.", tone: "text-success" };
 }
