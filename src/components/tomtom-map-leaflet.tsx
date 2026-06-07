@@ -54,15 +54,33 @@ function colorIcon(color: string) {
   return glyphIcon(color);
 }
 
-function FitBounds({ points }: { points: Array<[number, number]> }) {
+function FitBounds({ points, enabled = true }: { points: Array<[number, number]>; enabled?: boolean }) {
   const map = useMap();
   useEffect(() => {
-    if (points.length === 0) return;
+    if (!enabled || points.length === 0) return;
     const bounds = L.latLngBounds(points);
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
-  }, [points, map]);
+  }, [points, map, enabled]);
   return null;
 }
+
+function FollowLocation({
+  center,
+  zoom,
+  trigger,
+}: {
+  center: { lat: number; lon: number } | null;
+  zoom: number;
+  trigger: number;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (!center) return;
+    map.setView([center.lat, center.lon], zoom, { animate: true });
+  }, [center?.lat, center?.lon, trigger, map, zoom]);
+  return null;
+}
+
 
 // TomTom API keys are alphanumeric ~30+ chars with no spaces. If the secret
 // contains a prompt or other text, we fall back to OpenStreetMap tiles so the
