@@ -746,7 +746,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     // Step 1: category search at every sample, throttled.
     const categoryResults = await runLimited(
       samples.map((s) => () => tomtomNearby(key, s.lat, s.lon, categorySet, radiusM)),
-      2,
+      6,
     );
     samples.forEach((s, i) => categoryResults[i].results.forEach((r) => addRaw(r, s.lat, s.lon)));
 
