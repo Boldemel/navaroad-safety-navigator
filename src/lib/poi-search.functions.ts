@@ -504,8 +504,10 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       return { connected: true, provider: "TomTom", totalFound: 0, pois: [] };
     }
 
-    // Sample every ~100 miles along the route corridor (cap 15 samples to bound API calls).
-    const samples = sampleEveryMiles(data.geometry, 100, 15);
+    // Sample every ~50 miles along the route corridor (cap 40 samples to bound API calls).
+    // On a 1,100 mi route this gives ~22 search points so brands/scales/stations
+    // are searched from origin to destination, not just at the endpoints.
+    const samples = sampleEveryMiles(data.geometry, 50, 40);
 
     // TomTom POI categories:
     // 7311 = Truck Stop / Travel Center, 7311003 = Truck-friendly fuel,
@@ -519,11 +521,11 @@ export const searchTruckPois = createServerFn({ method: "POST" })
 
     const keywords =
       data.kind === "truck_stop"
-        ? ["truck stop", "travel center", "Pilot", "Flying J", "Loves", "TA", "Petro", "Sapp Bros", "Road Ranger"]
+        ? ["Pilot", "Flying J", "Loves", "TA Travel Center", "Petro", "Sapp Bros", "Road Ranger", "Casey's Travel Center", "truck stop", "travel center"]
       : data.kind === "weigh_station"
         ? ["weigh station", "truck inspection", "port of entry", "inspection station", "scale house", "DOT scale", "agricultural inspection"]
       : data.kind === "cat_scale"
-        ? ["CAT scale", "CAT scales", "certified scale", "truck scale"]
+        ? ["CAT scale", "CAT scales", "certified automated truck scale", "truck scale"]
         : ["rest area", "welcome center", "safety rest area", "highway rest stop"];
 
     const radiusM = 50000; // initial provider search around each sample
