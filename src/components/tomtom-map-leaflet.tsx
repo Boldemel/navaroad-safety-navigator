@@ -15,13 +15,43 @@ const defaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = defaultIcon;
 
+// Inline SVG glyphs (lucide path data) used inside divIcon markers so the map
+// shows recognizable icons instead of plain dots.
+const ICON_SVGS: Record<string, string> = {
+  truck_stop:
+    '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  rest_area:
+    '<path d="M7 22v-7l-2-2"/><path d="M17 8 9 16"/><path d="M14 14a3 3 0 0 1 3 3"/><path d="M19 6c-2.5 0-6 1-6 6 0-5-3.5-6-6-6"/><path d="M14 8a4 4 0 1 1-8 0c0-2.2 2-4 4-4 1.1 0 2 .5 2 .5"/>',
+  weigh_station:
+    '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+  hazard:
+    '<path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  weather:
+    '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
+  driver:
+    '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  pin:
+    '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+};
+
+function glyphIcon(color: string, key?: string) {
+  const svg = key && ICON_SVGS[key];
+  if (!svg) {
+    return L.divIcon({
+      className: "",
+      html: `<div style="width:14px;height:14px;border-radius:9999px;background:${color};border:2px solid white;box-shadow:0 0 0 1px rgba(0,0,0,0.4)"></div>`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+    });
+  }
+  const html = `<div style="width:26px;height:26px;border-radius:9999px;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:white">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svg}</svg>
+  </div>`;
+  return L.divIcon({ className: "", html, iconSize: [26, 26], iconAnchor: [13, 13] });
+}
+
 function colorIcon(color: string) {
-  return L.divIcon({
-    className: "",
-    html: `<div style="width:14px;height:14px;border-radius:9999px;background:${color};border:2px solid white;box-shadow:0 0 0 1px rgba(0,0,0,0.4)"></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
-  });
+  return glyphIcon(color);
 }
 
 function FitBounds({ points }: { points: Array<[number, number]> }) {
@@ -105,7 +135,8 @@ export default function TomTomMapClient({
           <Polyline positions={routeLatLngs} pathOptions={{ color: "#3b82f6", weight: 5, opacity: 0.85 }} />
         )}
         {validMarkers.map((m) => (
-          <Marker key={m.id} position={[m.lat, m.lon]} icon={m.color ? colorIcon(m.color) : defaultIcon}>
+          <Marker key={m.id} position={[m.lat, m.lon]} icon={m.color || m.iconKey ? glyphIcon(m.color ?? "#3b82f6", m.iconKey) : defaultIcon}>
+
             <Popup>
               <div className="text-sm">
                 <div className="font-medium">{m.title}</div>

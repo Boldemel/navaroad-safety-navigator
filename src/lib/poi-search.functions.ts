@@ -441,11 +441,14 @@ async function overpassAlongRoute(
   const body = "data=" + encodeURIComponent(overpassQueryFor(kind, samples));
   let lastError: string | null = null;
   for (const url of endpoints) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 12_000);
     try {
       const r = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "Navaroad/1.0" },
         body,
+        signal: ctrl.signal,
       });
       if (!r.ok) {
         lastError = `Overpass ${r.status}`;
@@ -522,6 +525,8 @@ async function overpassAlongRoute(
       return { results: out, error: null };
     } catch (e) {
       lastError = e instanceof Error ? e.message : "Overpass request failed";
+    } finally {
+      clearTimeout(timer);
     }
   }
   return { results: [], error: lastError };
