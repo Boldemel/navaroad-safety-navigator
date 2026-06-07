@@ -1067,20 +1067,22 @@ function PoiList({
     : "";
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+    <div className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-3 min-w-0">
       <div className="flex items-center gap-2">{icon}<h3 className="font-semibold">{title}</h3></div>
-      <div className="rounded-md border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground space-y-1">
+      <div className="rounded-md border border-border bg-muted/30 p-2 text-[11px] text-muted-foreground space-y-1 break-words">
         <div><span className="font-medium text-foreground/70">Route used:</span> {routeLabel}</div>
         {result?.debug?.routeUsed && (
           <div><span className="font-medium text-foreground/70">Polyline:</span> {result.debug.routeUsed}</div>
         )}
-        <div>
-          <span className="font-medium text-foreground/70">Search points:</span> {result?.debug?.searchPointCount ?? 0}
-          {" · "}<span className="font-medium text-foreground/70">Raw:</span> {result?.debug?.rawResultsCount ?? 0}
-          {" · "}<span className="font-medium text-foreground/70">Route-filtered:</span> {result?.debug?.routeFilteredResultsCount ?? result?.debug?.filteredResultsCount ?? 0}
-          {" · "}<span className="font-medium text-foreground/70">Deduped:</span> {result?.debug?.deduplicatedResultsCount ?? result?.totalFound ?? 0}
-          {" · "}<span className="font-medium text-foreground/70">Displayed:</span> {result?.debug?.finalDisplayedCount ?? result?.pois.length ?? 0}
-          {" · "}<span className="font-medium text-foreground/70">Corridor:</span> {result?.debug?.corridorRadiusMi ?? 20} mi
+        <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+          <span><span className="font-medium text-foreground/70">Search points:</span> {result?.debug?.searchPointCount ?? 0}</span>
+          <span><span className="font-medium text-foreground/70">Raw:</span> {result?.debug?.rawResultsCount ?? 0}</span>
+          <span><span className="font-medium text-foreground/70">Route-filtered:</span> {result?.debug?.routeFilteredResultsCount ?? result?.debug?.filteredResultsCount ?? 0}</span>
+          <span><span className="font-medium text-foreground/70">Deduped:</span> {result?.debug?.deduplicatedResultsCount ?? result?.totalFound ?? 0}</span>
+          <span><span className="font-medium text-foreground/70">Displayed:</span> {result?.debug?.finalDisplayedCount ?? result?.pois.length ?? 0}</span>
+          <span><span className="font-medium text-foreground/70">Corridor:</span> {result?.debug?.corridorRadiusMi ?? 20} mi</span>
+        </div>
+      </div>
         </div>
       </div>
       {loading ? (
