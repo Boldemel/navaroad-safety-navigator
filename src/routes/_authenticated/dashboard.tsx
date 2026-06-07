@@ -659,7 +659,21 @@ function Dashboard() {
                     >
                       <Navigation2 className="size-4 mr-1" /> Open navigation
                     </Button>
-                    <Button type="button" variant="ghost" onClick={() => { stopNavigation(); clearActiveRoute(); }}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        stopNavigation();
+                        clearActiveRoute();
+                        setCachedResult(null);
+                        setAnalyzedRouteKey(null);
+                        writeCachedAnalysis(null);
+                        queryClient.removeQueries({ queryKey: ["cat-scales"] });
+                        queryClient.removeQueries({ queryKey: ["rest-areas"] });
+                        queryClient.removeQueries({ queryKey: ["truck-stops"] });
+                        queryClient.removeQueries({ queryKey: ["weigh-stations"] });
+                      }}
+                    >
                       End navigation
                     </Button>
                   </>
