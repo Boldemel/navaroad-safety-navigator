@@ -4,7 +4,6 @@ import { announceHazard } from "@/hooks/use-voice-guidance";
 import { useVoiceSettings } from "@/lib/voice/voice-settings";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Wind, AlertTriangle, Construction, Trash2, Car, ParkingCircleOff, CloudRain,
   CloudLightning, Clock, User, Cloud, Radio, MapPin, LocateFixed, Megaphone,
@@ -15,13 +14,11 @@ import { cn } from "@/lib/utils";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { useDriverNames } from "@/hooks/use-driver-names";
 import { formatDistanceToNow } from "date-fns";
-import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { getTomTomKey } from "@/lib/tomtom.functions";
 import { TomTomMap, type MapMarker } from "@/components/tomtom-map";
 import { useActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { hazardsWithin, hazardsAlongRoute, nearestHazardAlert, type HazardLike } from "@/lib/hazard-proximity";
-import { searchTruckPois, type TruckPoiResult } from "@/lib/poi-search.functions";
 import { DriveModePanel } from "@/components/drive-mode-panel";
 
 // POI marker colors (kept in sync with the legend below).
