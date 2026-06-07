@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Wind, AlertTriangle, Construction, Trash2, Car, ParkingCircleOff, CloudRain,
   CloudLightning, Clock, User, Cloud, Radio, MapPin, LocateFixed, Megaphone,
+  Truck, Scale, TreePine,
 } from "lucide-react";
 import { HAZARD_TYPES, hazardLabel, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,23 @@ import { TomTomMap, type MapMarker } from "@/components/tomtom-map";
 import { useActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { hazardsWithin, hazardsAlongRoute, nearestHazardAlert, type HazardLike } from "@/lib/hazard-proximity";
+import { searchTruckPois } from "@/lib/poi-search.functions";
+
+// POI marker colors (kept in sync with the legend below).
+const POI_COLORS = {
+  truck_stop: "#f97316",   // orange
+  rest_area: "#10b981",    // emerald
+  weigh_station: "#a855f7", // violet
+} as const;
+
+function samplePoiGeometry(geom: Array<[number, number]>, maxPoints: number) {
+  if (geom.length <= maxPoints) return geom;
+  const sampled: Array<[number, number]> = [];
+  for (let i = 0; i < maxPoints; i++) {
+    sampled.push(geom[Math.floor((i / (maxPoints - 1)) * (geom.length - 1))]);
+  }
+  return sampled;
+}
 
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
@@ -71,8 +89,12 @@ type Marker = {
 function HazardMap() {
   const [showApi, setShowApi] = useState(true);
   const [showDriver, setShowDriver] = useState(true);
+  const [showTruckStops, setShowTruckStops] = useState(true);
+  const [showRestAreas, setShowRestAreas] = useState(true);
+  const [showWeighStations, setShowWeighStations] = useState(true);
   const [typeFilters, setTypeFilters] = useState<Set<string>>(new Set(HAZARD_TYPES.map((h) => h.value)));
   useRealtimeInvalidate(["hazard_reports"], [["map-hazards"], ["driver-names"]]);
+  const poiFn = useServerFn(searchTruckPois);
 
   const { data: drivers = {} } = useDriverNames();
   const feedFn = useServerFn(getSafetyFeed);
@@ -109,6 +131,29 @@ function HazardMap() {
       return data;
     },
   });
+
+  // Truck-friendly POIs along the active route. Same source as the Dashboard.
+  const poiGeometry = useMemo(() => samplePoiGeometry(geometry, 1000), [geometry]);
+  const routeKey = activeRoute?.savedAt ?? "none";
+  const { data: truckStopsData } = useQuery({
+    queryKey: ["hazard-map-truck-stops", routeKey],
+    queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "truck_stop", limit: 100 } }),
+    enabled: geometry.length >= 2,
+    staleTime: 10 * 60_000,
+  });
+  const { data: restAreasData } = useQuery({
+    queryKey: ["hazard-map-rest-areas", routeKey],
+    queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "rest_area", limit: 100 } }),
+    enabled: geometry.length >= 2,
+    staleTime: 10 * 60_000,
+  });
+  const { data: weighStationsData } = useQuery({
+    queryKey: ["hazard-map-weigh-stations", routeKey],
+    queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "weigh_station", limit: 100 } }),
+    enabled: geometry.length >= 2,
+    staleTime: 10 * 60_000,
+  });
+
 
   const apiMarkers: Marker[] = useMemo(() => {
     const weather: Marker[] = (feed?.weatherAlerts ?? []).map((a) => ({
@@ -232,6 +277,33 @@ function HazardMap() {
         >
           <User className="size-3.5" /> Driver reports ({driverMarkers.length})
         </button>
+        <button
+          onClick={() => setShowTruckStops((v) => !v)}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition",
+            showTruckStops ? "border-[color:var(--legend-truck,#f97316)]/50 bg-orange-500/15 text-orange-500" : "border-border bg-card text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Truck className="size-3.5" /> Truck stops ({truckStopsData?.pois.length ?? 0})
+        </button>
+        <button
+          onClick={() => setShowRestAreas((v) => !v)}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition",
+            showRestAreas ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-500" : "border-border bg-card text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <TreePine className="size-3.5" /> Rest areas ({restAreasData?.pois.length ?? 0})
+        </button>
+        <button
+          onClick={() => setShowWeighStations((v) => !v)}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition",
+            showWeighStations ? "border-violet-500/50 bg-violet-500/15 text-violet-500" : "border-border bg-card text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Scale className="size-3.5" /> Weigh stations ({weighStationsData?.pois.length ?? 0})
+        </button>
       </div>
 
       {showDriver && (
@@ -306,31 +378,81 @@ function HazardMap() {
         </div>
       )}
 
-      <div className="relative aspect-[16/8] overflow-hidden">
-        <TomTomMap
-          tomtomKey={tomtom?.key ?? null}
-          showTraffic
-          height="100%"
-          routeGeometry={focusPoint ? [] : geometry}
-          currentLocation={focusPoint ? null : here}
-          markers={focusPoint
-            ? [{ id: "focus", lat: focusPoint.lat, lon: focusPoint.lon, title: focusLabel ?? "Selected location", description: focusDetails, color: "#22c55e" }]
-            : allVisible
-              .filter((m): m is Marker & { lat: number; lon: number } => m.lat != null && m.lon != null)
-              .map<MapMarker>((m) => ({
-                id: m.layer + m.id,
-                lat: m.lat,
-                lon: m.lon,
-                title: m.title,
-                description: `${m.source} · ${m.location}`,
-                color:
-                  m.layer === "driver"
-                    ? "#f59e0b"
-                    : m.severity === "critical" || m.severity === "high"
-                      ? "#ef4444"
-                      : "#3b82f6",
-              }))}
-        />
+      <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+        <div className="relative aspect-[16/8] overflow-hidden">
+          <TomTomMap
+            tomtomKey={tomtom?.key ?? null}
+            showTraffic
+            height="100%"
+            routeGeometry={focusPoint ? [] : geometry}
+            currentLocation={focusPoint ? null : here}
+            markers={focusPoint
+              ? [{ id: "focus", lat: focusPoint.lat, lon: focusPoint.lon, title: focusLabel ?? "Selected location", description: focusDetails, color: "#22c55e" }]
+              : [
+                  ...allVisible
+                    .filter((m): m is Marker & { lat: number; lon: number } => m.lat != null && m.lon != null)
+                    .map<MapMarker>((m) => ({
+                      id: m.layer + m.id,
+                      lat: m.lat,
+                      lon: m.lon,
+                      title: m.title,
+                      description: `${m.source} · ${m.location}`,
+                      color:
+                        m.layer === "driver"
+                          ? "#f59e0b"
+                          : m.severity === "critical" || m.severity === "high"
+                            ? "#ef4444"
+                            : "#3b82f6",
+                    })),
+                  ...(showTruckStops ? (truckStopsData?.pois ?? []) : []).map<MapMarker>((p) => ({
+                    id: "ts-" + p.id,
+                    lat: p.lat,
+                    lon: p.lon,
+                    title: p.name,
+                    description: `Truck stop · ${p.address || `${p.city ?? ""} ${p.state ?? ""}`.trim() || p.source}`,
+                    color: POI_COLORS.truck_stop,
+                  })),
+                  ...(showRestAreas ? (restAreasData?.pois ?? []) : []).map<MapMarker>((p) => ({
+                    id: "ra-" + p.id,
+                    lat: p.lat,
+                    lon: p.lon,
+                    title: p.name,
+                    description: `Rest area · ${p.address || `${p.city ?? ""} ${p.state ?? ""}`.trim() || p.source}`,
+                    color: POI_COLORS.rest_area,
+                  })),
+                  ...(showWeighStations ? (weighStationsData?.pois ?? []) : []).map<MapMarker>((p) => ({
+                    id: "ws-" + p.id,
+                    lat: p.lat,
+                    lon: p.lon,
+                    title: p.name,
+                    description: `Weigh station · ${p.address || `${p.city ?? ""} ${p.state ?? ""}`.trim() || p.source}`,
+                    color: POI_COLORS.weigh_station,
+                  })),
+                ]}
+          />
+        </div>
+
+        {/* Map key / legend */}
+        <aside className="rounded-xl border border-border bg-card p-3 text-xs space-y-3 h-fit">
+          <div className="font-medium text-sm">Map Key</div>
+          <div className="space-y-2">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Hazards</div>
+            <LegendRow color="#ef4444" icon={<AlertTriangle className="size-3.5" />} label="High / critical alert" />
+            <LegendRow color="#3b82f6" icon={<Cloud className="size-3.5" />} label="Weather / road alert" />
+            <LegendRow color="#f59e0b" icon={<User className="size-3.5" />} label="Driver report" />
+          </div>
+          <div className="space-y-2">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Truck POIs</div>
+            <LegendRow color={POI_COLORS.truck_stop} icon={<Truck className="size-3.5" />} label="Truck stop / travel center" />
+            <LegendRow color={POI_COLORS.rest_area} icon={<TreePine className="size-3.5" />} label="Rest area / welcome center" />
+            <LegendRow color={POI_COLORS.weigh_station} icon={<Scale className="size-3.5" />} label="Weigh / inspection station" />
+          </div>
+          <div className="space-y-2">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Other</div>
+            <LegendRow color="#22c55e" icon={<MapPin className="size-3.5" />} label="Selected / focused point" />
+            <LegendRow color="#3b82f6" icon={<LocateFixed className="size-3.5" />} label="Your current location" outline />
+          </div>
+        </aside>
       </div>
 
       {activeRoute && (
@@ -445,6 +567,34 @@ function HazardMap() {
       <div className="text-xs text-muted-foreground">
         Showing {allVisible.length} hazard{allVisible.length === 1 ? "" : "s"} ({visibleApi.length} from APIs, {visibleDriver.length} from drivers)
       </div>
+    </div>
+  );
+}
+
+function LegendRow({
+  color,
+  icon,
+  label,
+  outline,
+}: {
+  color: string;
+  icon: React.ReactNode;
+  label: string;
+  outline?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className="inline-flex size-5 items-center justify-center rounded-full text-white shrink-0"
+        style={{
+          backgroundColor: outline ? "transparent" : color,
+          border: outline ? `2px solid ${color}` : `1px solid ${color}`,
+          color: outline ? color : "white",
+        }}
+      >
+        {icon}
+      </span>
+      <span className="text-foreground/90">{label}</span>
     </div>
   );
 }
