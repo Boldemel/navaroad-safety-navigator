@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { announceHazard } from "@/hooks/use-voice-guidance";
 import { useVoiceSettings } from "@/lib/voice/voice-settings";
 import { useQuery } from "@tanstack/react-query";
@@ -578,7 +578,7 @@ function LegendRow({
   outline,
 }: {
   color: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   outline?: boolean;
 }) {
