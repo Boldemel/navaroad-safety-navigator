@@ -680,9 +680,11 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       // so brands like Pilot/Flying J/Love's/TA/Petro/Sapp Bros/Road Ranger/
       // Casey's Travel Center and CAT Scales are surfaced end-to-end.
       // Cap the total number of keyword samples to keep API usage bounded.
-      const maxKwSamples = 18;
-      const stride = Math.max(1, Math.ceil(samples.length / maxKwSamples));
-      const kwSamples = samples.filter((_, i) => i % stride === 0);
+      // Use every route sample for keyword search so each brand is queried
+      // end-to-end with no gaps.
+      const maxKwSamples = samples.length;
+      const stride = 1;
+      const kwSamples = samples;
       const kwList =
         data.kind === "truck_stop" ? keywords.slice(0, 10)
         : data.kind === "cat_scale" ? keywords.slice(0, 4)
