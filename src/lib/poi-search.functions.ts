@@ -499,6 +499,7 @@ async function tomtomNearby(
   lon: number,
   categorySet: string,
   radiusM: number,
+  brandSet?: string,
 ): Promise<TomTomCall> {
   const p = new URLSearchParams({
     key,
@@ -508,6 +509,7 @@ async function tomtomNearby(
     limit: "50",
     categorySet,
   });
+  if (brandSet) p.set("brandSet", brandSet);
   const url = `https://api.tomtom.com/search/2/nearbySearch/.json?${p}`;
   try {
     const r = await fetch(url);
@@ -578,12 +580,44 @@ export const searchTruckPois = createServerFn({ method: "POST" })
 
     const keywords =
       data.kind === "truck_stop"
-        ? ["Pilot", "Flying J", "Loves", "TA Travel Center", "Petro", "Sapp Bros", "Road Ranger", "Casey's Travel Center", "truck stop", "travel center"]
+        ? [
+            "Pilot Travel Center",
+            "Flying J",
+            "Love's Travel Stop",
+            "Loves Travel Stop",
+            "TA Travel Center",
+            "TravelCenters of America",
+            "Petro Stopping Center",
+            "Sapp Bros",
+            "Road Ranger",
+            "Casey's Travel Center",
+            "truck stop",
+            "travel center",
+          ]
       : data.kind === "weigh_station"
         ? ["weigh station", "truck inspection", "port of entry", "inspection station", "scale house", "DOT scale", "agricultural inspection"]
       : data.kind === "cat_scale"
         ? ["CAT scale", "CAT scales", "certified automated truck scale", "truck scale"]
         : ["rest area", "welcome center", "safety rest area", "highway rest stop"];
+
+    // TomTom brand IDs/names for truck stops — used with categorySearch's
+    // brandSet parameter so a brand always surfaces even when keyword search
+    // is noisy.
+    const truckStopBrands = [
+      "Love's Travel Stops",
+      "Love's",
+      "Pilot",
+      "Pilot Travel Centers",
+      "Flying J",
+      "Pilot Flying J",
+      "TA",
+      "TravelCenters of America",
+      "Petro",
+      "Petro Stopping Centers",
+      "Sapp Bros",
+      "Road Ranger",
+      "Casey's General Store",
+    ];
 
     const radiusM = 50000; // initial provider search around each sample
     const corridorRadiusMi = data.kind === "truck_stop" ? 8 : data.kind === "weigh_station" ? 5 : 3;
@@ -740,6 +774,25 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       const kwResults = await runLimited(keywordTasks, 6);
       kwResults.forEach((call, i) =>
         call.results.forEach((r) => addRaw(r, keywordSamples[i].lat, keywordSamples[i].lon)),
+      );
+    }
+
+    // Step 2b: brand-filtered nearby search for truck stops. This forces
+    // TomTom to return each major brand (Love's, Pilot/Flying J, TA, Petro,
+    // etc.) end-to-end along the route, even when keyword search misses
+    // them due to noisy text matching.
+    if (data.kind === "truck_stop") {
+      const brandTasks: Array<() => Promise<TomTomCall>> = [];
+      const brandTaskSamples: Array<{ lat: number; lon: number }> = [];
+      for (const s of samples) {
+        for (const brand of truckStopBrands) {
+          brandTasks.push(() => tomtomNearby(key, s.lat, s.lon, "7311,7311003", radiusM, brand));
+          brandTaskSamples.push(s);
+        }
+      }
+      const brandResults = await runLimited(brandTasks, 6);
+      brandResults.forEach((call, i) =>
+        call.results.forEach((r) => addRaw(r, brandTaskSamples[i].lat, brandTaskSamples[i].lon)),
       );
     }
 
