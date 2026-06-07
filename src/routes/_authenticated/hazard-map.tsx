@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Wind, AlertTriangle, Construction, Trash2, Car, ParkingCircleOff, CloudRain,
   CloudLightning, Clock, User, Cloud, Radio, MapPin, LocateFixed, Megaphone,
+  Truck, Scale, TreePine,
 } from "lucide-react";
 import { HAZARD_TYPES, hazardLabel, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,23 @@ import { TomTomMap, type MapMarker } from "@/components/tomtom-map";
 import { useActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { hazardsWithin, hazardsAlongRoute, nearestHazardAlert, type HazardLike } from "@/lib/hazard-proximity";
+import { searchTruckPois } from "@/lib/poi-search.functions";
+
+// POI marker colors (kept in sync with the legend below).
+const POI_COLORS = {
+  truck_stop: "#f97316",   // orange
+  rest_area: "#10b981",    // emerald
+  weigh_station: "#a855f7", // violet
+} as const;
+
+function samplePoiGeometry(geom: Array<[number, number]>, maxPoints: number) {
+  if (geom.length <= maxPoints) return geom;
+  const sampled: Array<[number, number]> = [];
+  for (let i = 0; i < maxPoints; i++) {
+    sampled.push(geom[Math.floor((i / (maxPoints - 1)) * (geom.length - 1))]);
+  }
+  return sampled;
+}
 
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
