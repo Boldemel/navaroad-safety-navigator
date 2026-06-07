@@ -778,16 +778,9 @@ export const searchTruckPois = createServerFn({ method: "POST" })
           }
         }
         if (dupe) continue;
-        // Extract city/state from composed OSM address ("…, City, ST")
-        let osmCity: string | null = null;
-        let osmState: string | null = null;
-        if (o.address) {
-          const parts = o.address.split(",").map((s) => s.trim()).filter(Boolean);
-          if (parts.length >= 2) {
-            osmState = parts[parts.length - 1] || null;
-            osmCity = parts[parts.length - 2] || null;
-          }
-        }
+        const osmCity = o.city;
+        const osmState = o.state;
+        const osmAddress = hasSpecificAddress(o.address, o.name, osmCity, osmState) ? o.address : "";
         const id = `osm-${o.osmType}-${o.osmId}`;
         seen.set(id, {
           id,
@@ -795,7 +788,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
           brand: null,
           category: o.category,
           type: o.type,
-          address: o.address ?? "",
+          address: osmAddress ?? "",
           city: osmCity,
           state: osmState,
           lat: o.lat,
