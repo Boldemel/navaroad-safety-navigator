@@ -798,8 +798,9 @@ export const searchTruckPois = createServerFn({ method: "POST" })
           if (o.type !== "rest_area") continue;
         }
         if (data.kind === "truck_stop") {
+          const truckHay = o.name.toLowerCase();
           if (isCatScale(hay) || isNotTruckStop(hay) || isExcludedJunk(hay)) continue;
-          if (o.type !== "truck_stop" || !truckStopAllowed(hay)) continue;
+          if (o.type !== "truck_stop" || !truckStopAllowed(truckHay)) continue;
         }
         if (data.kind === "weigh_station") {
           if (isCatScale(hay) || truckStopAllowed(hay) || isExcludedJunk(hay)) continue;
