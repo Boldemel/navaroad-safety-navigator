@@ -13,7 +13,7 @@ const TRUCK_STOP_BRANDS = [
   "Sapp Bros",
   "Sapp Brothers",
   "Road Ranger",
-  "Casey's",
+  "Casey's Travel Center",
 ];
 
 const RouteGeometry = z.preprocess((value) => {
@@ -312,7 +312,7 @@ function truckStopAllowed(hay: string) {
     /\bpetro\b/.test(hay) ||
     /sapp\s*(bros|brothers)/.test(hay) ||
     /road\s*ranger/.test(hay) ||
-    /casey'?s\s*(truck|general)?/.test(hay) ||
+    (/casey'?s/.test(hay) && /travel\s*cent(er|re)/.test(hay)) ||
     /travel\s*cent(er|re)s?/.test(hay) ||
     /truck\s*plaza/.test(hay) ||
     /truck\s*stop|truckstop/.test(hay)
