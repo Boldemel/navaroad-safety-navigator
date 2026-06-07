@@ -335,24 +335,28 @@ type OsmPoi = {
   address: string | null;
 };
 
-function overpassQueryFor(kind: "rest_area" | "weigh_station", samples: Array<{ lat: number; lon: number }>): string {
+function overpassQueryFor(kind: "rest_area" | "weigh_station" | "cat_scale", samples: Array<{ lat: number; lon: number }>): string {
   const radius = 50000;
   const clauses: string[] = [];
   for (const s of samples) {
     const around = `around:${radius},${s.lat.toFixed(5)},${s.lon.toFixed(5)}`;
     if (kind === "rest_area") {
-      // Strictly rest areas + service areas. Truck parking lots are
-      // intentionally excluded because they often sit at truck-stop brands
-      // (Pilot/Love's) and would leak into the Rest Areas list.
       clauses.push(`node["highway"="rest_area"](${around});`);
       clauses.push(`way["highway"="rest_area"](${around});`);
       clauses.push(`node["highway"="services"](${around});`);
       clauses.push(`way["highway"="services"](${around});`);
-    } else {
+    } else if (kind === "weigh_station") {
       clauses.push(`node["highway"="weigh_station"](${around});`);
       clauses.push(`way["highway"="weigh_station"](${around});`);
       clauses.push(`node["amenity"="weighbridge"](${around});`);
       clauses.push(`way["amenity"="weighbridge"](${around});`);
+    } else {
+      // cat_scale — match by brand or name (CAT Scale Company tags vary)
+      clauses.push(`node["brand"~"CAT Scale",i](${around});`);
+      clauses.push(`way["brand"~"CAT Scale",i](${around});`);
+      clauses.push(`node["name"~"CAT Scale",i](${around});`);
+      clauses.push(`way["name"~"CAT Scale",i](${around});`);
+      clauses.push(`node["operator"~"CAT Scale",i](${around});`);
     }
   }
   return `[out:json][timeout:25];(${clauses.join("")});out center 400;`;
