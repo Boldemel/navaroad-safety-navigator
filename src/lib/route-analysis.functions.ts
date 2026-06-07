@@ -295,7 +295,15 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       }
       bbox = [minLon, minLat, maxLon, maxLat];
     }
-    const roadAlerts = await fetchRoadAlerts({ bbox }).catch(() => []);
+    const [roadAlerts, restAreas, truckStops, weighStations, driverReports] = routeAvailable
+      ? await Promise.all([
+          fetchRoadAlerts({ bbox }).catch(() => [] as RoadAlert[]),
+          searchTruckPoisForRoute({ geometry: r.geometry, kind: "rest_area", limit: 100 }).catch(() => emptyPoiResult()),
+          searchTruckPoisForRoute({ geometry: r.geometry, kind: "truck_stop", limit: 100 }).catch(() => emptyPoiResult()),
+          searchTruckPoisForRoute({ geometry: r.geometry, kind: "weigh_station", limit: 100 }).catch(() => emptyPoiResult()),
+          fetchRouteDriverReports(r.geometry).catch(() => []),
+        ])
+      : [[], emptyPoiResult(), emptyPoiResult(), emptyPoiResult(), [] as RouteDriverReport[]];
 
     const weatherAvailable = weatherSamples.some((w) => w.available);
 
@@ -310,11 +318,32 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       })),
       weatherAlerts,
       roadAlerts,
-      driverReportCount: 0,
+      driverReportCount: driverReports.length,
       trailerType: data.trailer,
     });
 
     const haveAnyLiveData = routeAvailable && (weatherAvailable || weatherAlerts.length > 0 || roadAlerts.length > 0);
+    const generatedAt = new Date().toISOString();
+    const routeId = routeSignature(r.geometry);
+    const mappedRisks = result.factors.map((f) => ({
+      ...f,
+      source:
+        f.type === "closure"
+          ? ("DOT" as const)
+          : f.type === "hazard"
+            ? ("Driver Report" as const)
+            : ("Weather API" as const),
+    }));
+    const roadClosures = roadAlerts.filter((a) => a.category === "road_closure");
+    const windRisks = [
+      ...mappedRisks
+        .filter((r) => r.type === "wind")
+        .map((r, i) => ({ id: `risk-wind-${i}`, severity: r.severity, message: r.message, source: r.source })),
+      ...weatherAlerts
+        .filter((a) => a.category === "high_wind" || a.category === "tornado")
+        .map((a) => ({ id: a.id, severity: a.severity, message: `${a.event} — ${a.areaDesc}`, source: "Weather API" as const })),
+    ];
+    const sharedResultCount = weatherAlerts.length + roadAlerts.length + driverReports.length + restAreas.pois.length + truckStops.pois.length + weighStations.pois.length;
 
     return {
       origin: o,
