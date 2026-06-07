@@ -708,7 +708,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     let osmRawCount = 0;
     let osmAddedCount = 0;
     let osmError: string | null = null;
-    if (data.kind === "rest_area" || data.kind === "weigh_station") {
+    if (data.kind === "rest_area" || data.kind === "weigh_station" || data.kind === "cat_scale") {
       const osm = await overpassAlongRoute(samples, data.kind);
       osmError = osm.error;
       osmRawCount = osm.results.length;
@@ -725,6 +725,9 @@ export const searchTruckPois = createServerFn({ method: "POST" })
           if (isCatScale(hay) || truckStopAllowed(hay) || isExcludedJunk(hay)) continue;
           if (o.type !== "weigh_station") continue;
         }
+        if (data.kind === "cat_scale") {
+          if (o.type !== "cat_scale") continue;
+        }
         let dupe = false;
         for (const existing of seen.values()) {
           if (distMi(existing.lat, existing.lon, o.lat, o.lon) < 0.25) {
@@ -733,6 +736,16 @@ export const searchTruckPois = createServerFn({ method: "POST" })
           }
         }
         if (dupe) continue;
+        // Extract city/state from composed OSM address ("…, City, ST")
+        let osmCity: string | null = null;
+        let osmState: string | null = null;
+        if (o.address) {
+          const parts = o.address.split(",").map((s) => s.trim()).filter(Boolean);
+          if (parts.length >= 2) {
+            osmState = parts[parts.length - 1] || null;
+            osmCity = parts[parts.length - 2] || null;
+          }
+        }
         const id = `osm-${o.osmType}-${o.osmId}`;
         seen.set(id, {
           id,
@@ -741,8 +754,8 @@ export const searchTruckPois = createServerFn({ method: "POST" })
           category: o.category,
           type: o.type,
           address: o.address ?? "",
-          city: null,
-          state: null,
+          city: osmCity,
+          state: osmState,
           lat: o.lat,
           lon: o.lon,
           distanceMi: projection.perpMi,
