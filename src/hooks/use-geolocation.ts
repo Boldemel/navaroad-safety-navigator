@@ -15,30 +15,40 @@ export type GeoState = {
 };
 
 const STORAGE_KEY = "navaroad.geo.lastCoords";
+// Hard TTL on cached coords. Anything older is ignored — otherwise a desktop
+// browser will keep showing a position from a different city for days.
+const CACHE_TTL_MS = 2 * 60 * 1000;
 
 function readCached(): GeoCoords | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as GeoCoords) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as GeoCoords;
+    const age = Date.now() - new Date(parsed.at).getTime();
+    if (!Number.isFinite(age) || age > CACHE_TTL_MS) return null;
+    return parsed;
   } catch {
     return null;
   }
 }
 
 /**
- * Browser geolocation hook. Lazy — call `request()` from a user gesture to
- * trigger the permission prompt. `watch: true` keeps an active watchPosition
- * so the dashboard / hazard map can react to the driver moving.
+ * Browser geolocation hook. By default it auto-requests a fresh fix on mount
+ * so desktop and mobile both reflect the user's *current* location instead of
+ * a stale localStorage cache. Pass `watch: true` for continuous updates.
  */
-export function useGeolocation(opts: { watch?: boolean } = {}) {
-  const { watch = false } = opts;
-  const [state, setState] = useState<GeoState>(() => ({
-    coords: readCached(),
+export function useGeolocation(opts: { watch?: boolean; auto?: boolean } = {}) {
+  const { watch = false, auto = true } = opts;
+  // Always start with null on both server and client to avoid hydration
+  // mismatches; hydrate cached coords in an effect below.
+  const [state, setState] = useState<GeoState>({
+    coords: null,
     status: "idle",
     error: null,
-  }));
+  });
   const watchId = useRef<number | null>(null);
+  const requestedRef = useRef(false);
 
   const setCoords = useCallback((pos: GeolocationPosition) => {
     const next: GeoCoords = {
@@ -73,20 +83,33 @@ export function useGeolocation(opts: { watch?: boolean } = {}) {
       setState((s) => ({ ...s, status: "unavailable", error: "Geolocation is not supported in this browser." }));
       return;
     }
-    setState((s) => ({ ...s, status: "prompting", error: null }));
+    setState((s) => ({ ...s, status: "prompting", error: s.error }));
     navigator.geolocation.getCurrentPosition(setCoords, setError, {
       enableHighAccuracy: true,
-      maximumAge: 30_000,
+      // Force a *fresh* fix — desktop browsers will otherwise hand back a
+      // hours-old cached position that's hundreds of miles off.
+      maximumAge: 0,
       timeout: 15_000,
     });
   }, [setCoords, setError]);
+
+  // Hydrate fresh-enough cached coords on mount (client only), then auto-request
+  // a current fix unless the caller opted out.
+  useEffect(() => {
+    const cached = readCached();
+    if (cached) setState((s) => ({ ...s, coords: cached }));
+    if (!auto || requestedRef.current) return;
+    if (typeof window === "undefined" || !("geolocation" in navigator)) return;
+    requestedRef.current = true;
+    request();
+  }, [auto, request]);
 
   useEffect(() => {
     if (!watch || state.status !== "granted") return;
     if (typeof window === "undefined" || !("geolocation" in navigator)) return;
     watchId.current = navigator.geolocation.watchPosition(setCoords, setError, {
       enableHighAccuracy: true,
-      maximumAge: 30_000,
+      maximumAge: 10_000,
     });
     return () => {
       if (watchId.current != null) navigator.geolocation.clearWatch(watchId.current);
