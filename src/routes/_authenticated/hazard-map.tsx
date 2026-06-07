@@ -21,7 +21,7 @@ import { TomTomMap, type MapMarker } from "@/components/tomtom-map";
 import { useActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { hazardsWithin, hazardsAlongRoute, nearestHazardAlert, type HazardLike } from "@/lib/hazard-proximity";
-import { searchTruckPois } from "@/lib/poi-search.functions";
+import { searchTruckPois, type TruckPoiResult } from "@/lib/poi-search.functions";
 
 // POI marker colors (kept in sync with the legend below).
 const POI_COLORS = {
