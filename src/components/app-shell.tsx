@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { NavigationBanner } from "@/components/navigation-banner";
+import { ProximityAlertStack } from "@/components/proximity-alert-stack";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
