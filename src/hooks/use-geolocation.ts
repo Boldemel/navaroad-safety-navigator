@@ -16,7 +16,7 @@ export type GeoState = {
 
 const STORAGE_KEY = "navaroad.geo.lastCoords";
 const STALE_FIX_MS = 60 * 1000;
-const MAX_USABLE_ACCURACY_M = 8_000;
+const MAX_USABLE_ACCURACY_M = 1_600;
 
 function clearCachedCoords() {
   if (typeof window === "undefined") return;

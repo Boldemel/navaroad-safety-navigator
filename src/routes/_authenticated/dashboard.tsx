@@ -196,6 +196,9 @@ function Dashboard() {
   async function useCurrentLocation() {
     // Force a fresh desktop GPS read on every click. Reusing an existing
     // `granted` fix can keep filling an old city after the driver has moved.
+    setOrigin("");
+    setOriginPlace(null);
+    setPendingAutoAnalyze(false);
     setAwaitingCoords(true);
     geo.request();
   }
