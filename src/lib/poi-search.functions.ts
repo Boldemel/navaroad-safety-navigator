@@ -504,8 +504,10 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       return { connected: true, provider: "TomTom", totalFound: 0, pois: [] };
     }
 
-    // Sample every ~100 miles along the route corridor (cap 15 samples to bound API calls).
-    const samples = sampleEveryMiles(data.geometry, 100, 15);
+    // Sample every ~50 miles along the route corridor (cap 40 samples to bound API calls).
+    // On a 1,100 mi route this gives ~22 search points so brands/scales/stations
+    // are searched from origin to destination, not just at the endpoints.
+    const samples = sampleEveryMiles(data.geometry, 50, 40);
 
     // TomTom POI categories:
     // 7311 = Truck Stop / Travel Center, 7311003 = Truck-friendly fuel,
@@ -519,11 +521,11 @@ export const searchTruckPois = createServerFn({ method: "POST" })
 
     const keywords =
       data.kind === "truck_stop"
-        ? ["truck stop", "travel center", "Pilot", "Flying J", "Loves", "TA", "Petro", "Sapp Bros", "Road Ranger"]
+        ? ["Pilot", "Flying J", "Loves", "TA Travel Center", "Petro", "Sapp Bros", "Road Ranger", "Casey's Travel Center", "truck stop", "travel center"]
       : data.kind === "weigh_station"
         ? ["weigh station", "truck inspection", "port of entry", "inspection station", "scale house", "DOT scale", "agricultural inspection"]
       : data.kind === "cat_scale"
-        ? ["CAT scale", "CAT scales", "certified scale", "truck scale"]
+        ? ["CAT scale", "CAT scales", "certified automated truck scale", "truck scale"]
         : ["rest area", "welcome center", "safety rest area", "highway rest stop"];
 
     const radiusM = 50000; // initial provider search around each sample
@@ -657,9 +659,17 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       data.kind === "cat_scale" ||
       seen.size < 10
     ) {
-      const stride = Math.max(1, Math.ceil(samples.length / 6));
+      // Run keyword search across the full route (not just a strided subset)
+      // so brands like Pilot/Flying J/Love's/TA/Petro/Sapp Bros/Road Ranger/
+      // Casey's Travel Center and CAT Scales are surfaced end-to-end.
+      // Cap the total number of keyword samples to keep API usage bounded.
+      const maxKwSamples = 18;
+      const stride = Math.max(1, Math.ceil(samples.length / maxKwSamples));
       const kwSamples = samples.filter((_, i) => i % stride === 0);
-      const kwList = keywords.slice(0, data.kind === "truck_stop" ? 7 : 4);
+      const kwList =
+        data.kind === "truck_stop" ? keywords.slice(0, 10)
+        : data.kind === "cat_scale" ? keywords.slice(0, 4)
+        : keywords.slice(0, 4);
       const keywordTasks: Array<() => Promise<TomTomCall>> = [];
       const keywordSamples: Array<{ lat: number; lon: number }> = [];
       for (const s of kwSamples) {
@@ -668,7 +678,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
           keywordSamples.push(s);
         }
       }
-      const kwResults = await runLimited(keywordTasks, 4);
+      const kwResults = await runLimited(keywordTasks, 6);
       kwResults.forEach((call, i) =>
         call.results.forEach((r) => addRaw(r, keywordSamples[i].lat, keywordSamples[i].lon)),
       );
