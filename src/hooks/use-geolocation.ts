@@ -45,6 +45,8 @@ export function useGeolocation(opts: { watch?: boolean } = {}) {
       lat: pos.coords.latitude,
       lon: pos.coords.longitude,
       accuracyM: pos.coords.accuracy ?? null,
+      speedMps: pos.coords.speed ?? null,
+      headingDeg: pos.coords.heading ?? null,
       at: new Date().toISOString(),
     };
     try {
