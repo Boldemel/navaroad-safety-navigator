@@ -8,6 +8,8 @@ import {
 } from "./services/weather.service";
 import { computeSafety } from "./services/safety-score.service";
 import { fetchRoadAlerts } from "./services/road-alert.service";
+import { searchTruckPoisForRoute, type TruckPoiResult } from "./poi-search.functions";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const InputSchema = z.object({
   origin: z.string().trim().min(2).max(200),
@@ -26,7 +28,21 @@ const InputSchema = z.object({
       loaded: z.boolean().optional(),
     })
     .optional(),
+  requestId: z.string().max(80).optional(),
 });
+
+export type RouteDriverReport = {
+  id: string;
+  hazard_type: string;
+  severity: "low" | "medium" | "high" | "critical";
+  location: string;
+  description: string | null;
+  reporter_id: string | null;
+  latitude: number;
+  longitude: number;
+  created_at: string;
+  distanceMi: number;
+};
 
 export type RouteAnalysis = {
   origin: { name: string; lat: number; lon: number };
@@ -61,6 +77,44 @@ export type RouteAnalysis = {
   }>;
   weatherAlertCount: number;
   roadAlertCount: number;
+  roadAlerts: Array<{
+    id: string;
+    source: "dot";
+    provider: string;
+    category: "road_closure" | "construction" | "detour" | "chain_restriction" | "incident";
+    severity: "low" | "medium" | "high" | "critical";
+    roadway: string;
+    location: string;
+    description: string;
+    recommendedAction: string;
+    lat?: number;
+    lon?: number;
+    updatedAt: string;
+  }>;
+  roadClosures: RouteAnalysis["roadAlerts"];
+  windRisks: Array<{
+    id: string;
+    severity: "low" | "medium" | "high" | "critical";
+    message: string;
+    source: "Weather API" | "DOT" | "Driver Report" | "System";
+  }>;
+  restAreas: TruckPoiResult;
+  truckStops: TruckPoiResult;
+  weighStations: TruckPoiResult;
+  driverReports: RouteDriverReport[];
+  routeId: string;
+  etaMin: number;
+  debug: {
+    routeId: string;
+    origin: string;
+    destination: string;
+    polyline: string;
+    polylinePointCount: number;
+    desktopResultCount: number;
+    mobileResultCount: number;
+    apiResponseTimestamp: string;
+    cacheStatus: "fresh";
+  };
   risks: Array<{
     type: "wind" | "precip" | "closure" | "hazard" | "temp" | "visibility" | "weather_alert";
     severity: "low" | "medium" | "high" | "critical";
