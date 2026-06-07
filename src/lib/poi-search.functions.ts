@@ -741,7 +741,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     // Step 1: category search at every sample, throttled.
     const categoryResults = await runLimited(
       samples.map((s) => () => tomtomNearby(key, s.lat, s.lon, categorySet, radiusM)),
-      4,
+      2,
     );
     samples.forEach((s, i) => categoryResults[i].results.forEach((r) => addRaw(r, s.lat, s.lon)));
 
@@ -757,11 +757,8 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       // Run keyword search across the full route (not just a strided subset)
       // so brands like Pilot/Flying J/Love's/TA/Petro/Sapp Bros/Road Ranger/
       // Casey's Travel Center and CAT Scales are surfaced end-to-end.
-      // Cap the total number of keyword samples to keep API usage bounded.
-      // Use every route sample for keyword search so each brand is queried
-      // end-to-end with no gaps.
-      const maxKwSamples = samples.length;
-      const stride = 1;
+      // Keep keyword searches targeted so repeated analyses do not get
+      // throttled and return partial, inconsistent data.
       const kwSamples = samples;
       const kwList =
         data.kind === "truck_stop" ? ["Love's Travel Stop", "TA Travel Center", "Petro Stopping Center", "truck stop", "travel center"]
@@ -782,9 +779,8 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     }
 
     // Step 3 (supplemental): OpenStreetMap Overpass for rest areas, truck
-    // parking, and weigh stations. TomTom coverage of these categories is
-    // sparse in the US; OSM has much better data. Routing/navigation/fuel
-    // remain TomTom-only.
+    // stops, parking, and weigh stations so provider throttling does not leave
+    // the route with a partial list.
     let osmRawCount = 0;
     let osmAddedCount = 0;
     let osmError: string | null = null;
