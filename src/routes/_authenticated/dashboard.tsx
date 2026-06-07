@@ -1062,13 +1062,16 @@ function PoiList({
           <ul className="divide-y divide-border max-h-80 overflow-auto">
             {result.pois.slice(0, 20).map((p) => {
               const region = [p.city, p.state].filter(Boolean).join(", ");
+              const fullAddress = [p.address, !p.address?.includes(region) ? region : null]
+                .filter(Boolean)
+                .join(" · ") || p.address || region || "Location";
               return (
                 <li key={p.id} className="py-2 flex items-start gap-3 text-sm">
                   <MapPin className="size-3.5 mt-1 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{p.name}{p.brand && p.brand !== p.name ? ` · ${p.brand}` : ""}</div>
                     <div className="text-[11px] text-muted-foreground truncate">
-                      {region || p.address}
+                      {fullAddress}
                       {p.type && <> · <span className="uppercase tracking-wider">{typeLabel(p.type)}</span></>}
                       {p.source && <> · Source: {p.source}</>}
                     </div>
