@@ -1120,19 +1120,21 @@ type GroupedAlert = {
 };
 
 function summarizeRegion(areaDescs: string[]): { region: string; count: number } {
-  const states = new Set<string>();
-  let count = 0;
+  // NWS areaDesc is semicolon-separated and typically county-level
+  // (e.g. "Dallas County, TX; Tarrant County, TX"). Show the actual
+  // affected counties/zones — not just the state — so a "Dallas, TX"
+  // flood warning shows exactly which counties are under warning.
+  const areas = new Set<string>();
   for (const desc of areaDescs) {
-    const parts = desc.split(";").map((s) => s.trim()).filter(Boolean);
-    count += parts.length || 1;
-    for (const p of parts) {
-      const m = p.match(/\b([A-Z]{2})\b\s*$/);
-      if (m) states.add(m[1]);
+    for (const p of desc.split(";").map((s) => s.trim()).filter(Boolean)) {
+      areas.add(p);
     }
   }
-  const region = states.size > 0
-    ? [...states].sort().join(", ")
-    : count > 0 ? `${count} area${count === 1 ? "" : "s"} along route` : "Region unavailable";
+  const list = [...areas];
+  const count = list.length;
+  if (count === 0) return { region: "Region unavailable", count: 0 };
+  const shown = list.slice(0, 4).join(" · ");
+  const region = count > 4 ? `${shown} +${count - 4} more` : shown;
   return { region, count };
 }
 
