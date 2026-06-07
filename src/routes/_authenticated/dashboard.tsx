@@ -368,8 +368,10 @@ function Dashboard() {
 
 
 
-  // Live safety feed scoped to the active route corridor (NWS + DOT).
-  const result = analysis.isPending ? cachedResult ?? undefined : analysis.data ?? cachedResult ?? undefined;
+  // Shared route result object. Desktop and mobile/map read this same object;
+  // route-scoped API data, POIs, driver reports, filtering, and counts are all
+  // produced by analyzeRoute in one fresh server response.
+  const result = analysis.isPending ? cachedResult ?? activeRoute?.result ?? undefined : analysis.data ?? activeRoute?.result ?? cachedResult ?? undefined;
   const routeUnavailable = result?.routeStatus === "unavailable";
   const currentRouteKey = routeInputKey(
     origin,
@@ -385,48 +387,14 @@ function Dashboard() {
     : activeRouteForQueries
       ? `${activeRouteForQueries.origin} → ${activeRouteForQueries.destination}`
       : "No active route";
-  const routeKey = routeSignature(geometry);
-  const { data: feed, isLoading: feedLoading } = useQuery({
-    queryKey: ["safety-feed", routeKey],
-    queryFn: () => feedFn({ data: { geometry } }),
-    enabled: geometry.length >= 2,
-    refetchInterval: 5 * 60_000,
-    staleTime: 60_000,
-  });
-
-  const { data: hazards = [] } = useQuery({
-    queryKey: ["dash-hazards"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hazard_reports")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Truck-friendly POIs along the active route (TomTom + OSM).
-  const poiGeometry = sampleRouteGeometry(geometry, 1000);
-  const { data: parkingStops, isLoading: parkingLoading } = useQuery({
-    queryKey: ["rest-areas", routeKey],
-    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "rest_area", limit: 100 } }),
-    enabled: geometry.length >= 2,
-    staleTime: 10 * 60_000,
-  });
-  const { data: truckStops, isLoading: truckStopsLoading } = useQuery({
-    queryKey: ["truck-stops", routeKey],
-    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "truck_stop", limit: 100 } }),
-    enabled: geometry.length >= 2,
-    staleTime: 10 * 60_000,
-  });
-  const { data: weighStations, isLoading: weighLoading } = useQuery({
-    queryKey: ["weigh-stations", routeKey],
-    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "weigh_station", limit: 100 } }),
-    enabled: geometry.length >= 2,
-    staleTime: 10 * 60_000,
-  });
+  const feed = result ? { weatherAlerts: result.weatherAlerts, roadAlerts: result.roadAlerts, providers: result.providers } : undefined;
+  const feedLoading = analysis.isPending;
+  const parkingStops = result?.restAreas;
+  const truckStops = result?.truckStops;
+  const weighStations = result?.weighStations;
+  const parkingLoading = analysis.isPending;
+  const truckStopsLoading = analysis.isPending;
+  const weighLoading = analysis.isPending;
 
 
   // Stat cards: each card uses ONLY its own category data.
