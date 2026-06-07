@@ -156,7 +156,6 @@ function HazardMap() {
   const allVisible = [...visibleApi, ...visibleDriver].sort(
     (a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt),
   );
-  const loading = feedLoading || hazardsLoading;
 
   // Proximity (25mi from current GPS) — works regardless of active route.
   const allHazardsForProximity: HazardLike[] = useMemo(
