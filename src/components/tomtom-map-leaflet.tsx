@@ -135,7 +135,8 @@ export default function TomTomMapClient({
           <Polyline positions={routeLatLngs} pathOptions={{ color: "#3b82f6", weight: 5, opacity: 0.85 }} />
         )}
         {validMarkers.map((m) => (
-          <Marker key={m.id} position={[m.lat, m.lon]} icon={m.color ? colorIcon(m.color) : defaultIcon}>
+          <Marker key={m.id} position={[m.lat, m.lon]} icon={m.color || m.iconKey ? glyphIcon(m.color ?? "#3b82f6", m.iconKey) : defaultIcon}>
+
             <Popup>
               <div className="text-sm">
                 <div className="font-medium">{m.title}</div>
