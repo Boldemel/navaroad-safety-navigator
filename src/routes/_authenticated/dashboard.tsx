@@ -1060,9 +1060,9 @@ function PoiList({
                     {fullAddress && (
                       <div className="text-[11px] text-muted-foreground truncate">{fullAddress}</div>
                     )}
-                      {p.type && <> · <span className="uppercase tracking-wider">{typeLabel(p.type)}</span></>}
-                      {p.source && <> · Source: {p.source}</>}
-                    </div>
+                    {p.type && (
+                      <div className="text-[11px] text-muted-foreground/80 uppercase tracking-wider">{typeLabel(p.type)}</div>
+                    )}
                   </div>
                   {p.distanceMi != null && (
                     <span className="text-[11px] text-muted-foreground whitespace-nowrap">{p.distanceMi < 1 ? "<1 mi" : `${Math.round(p.distanceMi)} mi from route`}</span>
