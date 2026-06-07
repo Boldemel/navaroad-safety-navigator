@@ -89,8 +89,12 @@ type Marker = {
 function HazardMap() {
   const [showApi, setShowApi] = useState(true);
   const [showDriver, setShowDriver] = useState(true);
+  const [showTruckStops, setShowTruckStops] = useState(true);
+  const [showRestAreas, setShowRestAreas] = useState(true);
+  const [showWeighStations, setShowWeighStations] = useState(true);
   const [typeFilters, setTypeFilters] = useState<Set<string>>(new Set(HAZARD_TYPES.map((h) => h.value)));
   useRealtimeInvalidate(["hazard_reports"], [["map-hazards"], ["driver-names"]]);
+  const poiFn = useServerFn(searchTruckPois);
 
   const { data: drivers = {} } = useDriverNames();
   const feedFn = useServerFn(getSafetyFeed);
