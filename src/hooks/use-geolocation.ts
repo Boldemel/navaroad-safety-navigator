@@ -16,6 +16,7 @@ export type GeoState = {
 
 const STORAGE_KEY = "navaroad.geo.lastCoords";
 const STALE_FIX_MS = 60 * 1000;
+const MAX_USABLE_ACCURACY_M = 8_000;
 
 function clearCachedCoords() {
   if (typeof window === "undefined") return;
@@ -63,6 +64,16 @@ export function useGeolocation(opts: { watch?: boolean; auto?: boolean } = {}) {
         ...s,
         status: "error",
         error: "Your browser returned an old location. Try again or enter the origin manually.",
+      }));
+      return;
+    }
+    if (next.accuracyM != null && next.accuracyM > MAX_USABLE_ACCURACY_M) {
+      clearCachedCoords();
+      setState((s) => ({
+        ...s,
+        coords: null,
+        status: "error",
+        error: "Your browser location is too imprecise for routing. Enter your origin manually or use mobile GPS.",
       }));
       return;
     }
