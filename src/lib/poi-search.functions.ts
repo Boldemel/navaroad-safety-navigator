@@ -688,6 +688,16 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       for (const o of osm.results) {
         const projection = projectOnRouteMi(data.geometry, cumMi, o.lat, o.lon);
         if (!projection || projection.perpMi > corridorRadiusMi) continue;
+        const hay = `${o.name} ${o.category}`.toLowerCase();
+        // Cross-kind validation: reject anything that belongs in another bucket.
+        if (data.kind === "rest_area") {
+          if (truckStopAllowed(hay) || isCatScale(hay) || isExcludedJunk(hay)) continue;
+          if (o.type !== "rest_area") continue;
+        }
+        if (data.kind === "weigh_station") {
+          if (isCatScale(hay) || truckStopAllowed(hay) || isExcludedJunk(hay)) continue;
+          if (o.type !== "weigh_station") continue;
+        }
         let dupe = false;
         for (const existing of seen.values()) {
           if (distMi(existing.lat, existing.lon, o.lat, o.lon) < 0.25) {
