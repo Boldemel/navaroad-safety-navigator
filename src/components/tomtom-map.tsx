@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 
+export type MapMarkerIcon = "truck_stop" | "rest_area" | "weigh_station" | "hazard" | "weather" | "driver" | "pin";
+
 export type MapMarker = {
   id: string;
   lat: number;
@@ -7,6 +9,7 @@ export type MapMarker = {
   title: string;
   description?: string;
   color?: string;
+  iconKey?: MapMarkerIcon;
 };
 
 const InnerMap = lazy(() => import("./tomtom-map-leaflet"));
