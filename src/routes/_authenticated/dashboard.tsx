@@ -410,29 +410,23 @@ function Dashboard() {
   const weighLoading = analysis.isPending;
 
 
-  // Stat cards: each card uses ONLY its own category data.
-  // Weather/wind are derived from NWS alerts on the route (feed is already
-  // route-scoped in getSafetyFeed), so wind/tornado alerts are split out of
-  // the Weather card and counted only under Wind.
-  const routeRisks = result?.risks ?? [];
+  // Stat-card counts derive from the SAME raw arrays the Hazard Map (mobile)
+  // reads off `activeRoute.result`. Do NOT layer in the synthesized `risks`
+  // array or `totalFound` — those produced different numbers than mobile.
   const feedWeatherAlerts = feed?.weatherAlerts ?? [];
   const feedRoadAlerts = feed?.roadAlerts ?? [];
   const usingRoute = !!result && !routeUnavailable;
   const isWindAlert = (cat: string) => cat === "high_wind" || cat === "tornado";
   const weatherAlertsOnly = feedWeatherAlerts.filter((a) => !isWindAlert(a.category));
   const windAlertsOnly = feedWeatherAlerts.filter((a) => isWindAlert(a.category));
-  const weatherCount = usingRoute
-    ? weatherAlertsOnly.length +
-      routeRisks.filter((r) => r.type === "precip" || r.type === "visibility" || r.type === "temp").length
-    : weatherAlertsOnly.length;
-  const windCount = usingRoute
-    ? windAlertsOnly.length + routeRisks.filter((r) => r.type === "wind").length
-    : windAlertsOnly.length;
-  const closureCount = usingRoute
-    ? routeRisks.filter((r) => r.type === "closure").length
-    : feedRoadAlerts.filter((a) => a.category === "road_closure" || a.category === "detour").length;
+  const weatherCount = weatherAlertsOnly.length;
+  const windCount = windAlertsOnly.length;
+  const closureCount = feedRoadAlerts.filter(
+    (a) => a.category === "road_closure" || a.category === "detour",
+  ).length;
   const driverCount = result?.driverReports.length ?? 0;
   const hasRouteWeatherAlerts = usingRoute && feedWeatherAlerts.length > 0;
+
 
   const score = result?.score ?? null;
   const breakdown = result?.breakdown;
