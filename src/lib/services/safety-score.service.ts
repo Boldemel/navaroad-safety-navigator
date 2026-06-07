@@ -238,14 +238,37 @@ export function computeSafety(input: ScoredFactors): SafetyResult {
       .join("; ")}.`;
   }
 
-  const recommendedAction =
-    riskLevel === "Safe"
-      ? "Safe — clear to roll. Standard pre-trip checks."
-      : riskLevel === "Caution"
-        ? "Caution — active weather alerts along this route. Monitor and adjust as needed."
-        : riskLevel === "High Risk"
-          ? "High risk — consider alternate routing or staging until hazards improve."
-          : "Extreme — delay departure until conditions improve.";
+  // Closures = reroute around them. Weather/wind = delay/stage.
+  // When both are present, closure guidance comes first.
+  const hasClosure = input.roadAlerts.some((r) => r.category === "road_closure");
+  const criticalClosure = input.roadAlerts.some(
+    (r) => r.category === "road_closure" && (r.severity === "critical" || r.severity === "high"),
+  );
+  const hasSevereWeather =
+    breakdown.weather + breakdown.wind >= 25 ||
+    input.weatherAlerts.some(
+      (a) =>
+        a.severity === "critical" ||
+        (a.severity === "high" && /warning|emergency/i.test(a.event)),
+    );
+
+  let recommendedAction: string;
+  if (criticalClosure && hasSevereWeather) {
+    recommendedAction =
+      "Reroute around the closure and monitor weather — delay departure if conditions deteriorate.";
+  } else if (criticalClosure) {
+    recommendedAction = "Road closure on route — reroute around the closure before departure.";
+  } else if (hasClosure) {
+    recommendedAction = "Incident on route — plan a reroute or expect delays.";
+  } else if (riskLevel === "Safe") {
+    recommendedAction = "Safe — clear to roll. Standard pre-trip checks.";
+  } else if (riskLevel === "Caution") {
+    recommendedAction = "Caution — active weather alerts along this route. Monitor and adjust as needed.";
+  } else if (riskLevel === "High Risk") {
+    recommendedAction = "High risk — consider alternate routing or staging until hazards improve.";
+  } else {
+    recommendedAction = "Extreme — delay departure until conditions improve.";
+  }
 
   return { score, breakdown, factors, recommendedAction, riskLevel, scoreExplanation };
 }
