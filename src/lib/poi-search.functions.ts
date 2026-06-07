@@ -893,10 +893,11 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     const deduplicatedCount = pois.length;
     const displayedPois = pois.slice(0, data.limit ?? 60);
 
-    // Backfill missing/weak addresses for displayed POIs (typically OSM rest
-    // areas and weigh stations) using TomTom reverse geocoding. Throttled to
-    // keep API usage bounded.
-    const needsAddress = displayedPois.filter((p) => !hasSpecificAddress(p.address, p.name, p.city, p.state) || !p.city || !p.state);
+    // Backfill missing addresses via TomTom reverse geocoding. Capped at 12
+    // entries and run with high concurrency so the route response stays fast.
+    const needsAddress = displayedPois
+      .filter((p) => !hasSpecificAddress(p.address, p.name, p.city, p.state) || !p.city || !p.state)
+      .slice(0, 12);
     if (needsAddress.length > 0) {
       await runLimited(
         needsAddress.map((p) => async () => {
@@ -920,7 +921,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
             // ignore reverse geocode errors; POI remains without address
           }
         }),
-        6,
+        12,
       );
     }
 
