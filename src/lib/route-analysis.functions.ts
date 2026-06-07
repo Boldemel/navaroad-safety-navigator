@@ -148,39 +148,11 @@ export type RouteAnalysis = {
     condition: string;
     available: boolean;
   }>;
-  weatherAlerts: Array<{
-    id: string;
-    category: "high_wind" | "tornado" | "winter_storm" | "flood" | "thunderstorm" | "visibility" | "severe_weather";
-    event: string;
-    severity: "low" | "medium" | "high" | "critical";
-    areaDesc: string;
-    headline: string;
-    description: string;
-    recommendedAction: string;
-    effective: string;
-    expires: string | null;
-    lat: number | null;
-    lon: number | null;
-    provider: string;
-    source: "weather_api";
-  }>;
+  weatherAlerts: RouteWeatherAlert[];
   weatherAlertCount: number;
   roadAlertCount: number;
-  roadAlerts: Array<{
-    id: string;
-    source: "dot";
-    provider: string;
-    category: "road_closure" | "construction" | "detour" | "chain_restriction" | "incident";
-    severity: "low" | "medium" | "high" | "critical";
-    roadway: string;
-    location: string;
-    description: string;
-    recommendedAction: string;
-    lat?: number;
-    lon?: number;
-    updatedAt: string;
-  }>;
-  roadClosures: RouteAnalysis["roadAlerts"];
+  roadAlerts: RoadAlert[];
+  roadClosures: RoadAlert[];
   windRisks: Array<{
     id: string;
     severity: "low" | "medium" | "high" | "critical";
