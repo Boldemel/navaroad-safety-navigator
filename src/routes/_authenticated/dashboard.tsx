@@ -892,17 +892,18 @@ function PoiDialog({
           <ul className="divide-y divide-border max-h-[60vh] overflow-auto -mx-2 px-2">
             {pois.map((p) => {
               const region = [p.city, p.state].filter(Boolean).join(", ");
-              const fullAddress = [p.address, !p.address?.includes(region) ? region : null]
-                .filter(Boolean)
-                .join(" · ") || p.address || region || "Location";
+              const hasAddress = !!(p.address && p.address.trim());
+              const fullAddress = hasAddress
+                ? [p.address, !p.address!.includes(region) ? region : null].filter(Boolean).join(" · ")
+                : region;
               return (
                 <li key={p.id} className="py-3 flex items-start gap-3">
                   <MapPin className="size-4 mt-1 text-primary shrink-0" />
                   <div className="flex-1 min-w-0 space-y-0.5">
                     <div className="font-medium truncate">{p.name}{p.brand && p.brand !== p.name ? ` · ${p.brand}` : ""}</div>
-                    <div className="text-[12px] text-muted-foreground">
-                      {fullAddress}
-                    </div>
+                    {fullAddress && (
+                      <div className="text-[12px] text-muted-foreground">{fullAddress}</div>
+                    )}
                     <div className="text-[11px] text-muted-foreground/80 flex flex-wrap items-center gap-x-2">
                       <span className="uppercase tracking-wider">{typeLabelShort(p.type)}</span>
                       {(p as { routeProgressMi?: number | null }).routeProgressMi != null && (
