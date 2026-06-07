@@ -393,12 +393,22 @@ type OsmPoi = {
   state: string | null;
 };
 
-function overpassQueryFor(kind: "rest_area" | "weigh_station" | "cat_scale", samples: Array<{ lat: number; lon: number }>): string {
+function overpassQueryFor(kind: "rest_area" | "truck_stop" | "weigh_station" | "cat_scale", samples: Array<{ lat: number; lon: number }>): string {
   const radius = 50000;
+  const truckBrandRegex = "Pilot|Flying J|Love.?s|TA Travel|TravelCenters|Petro|Sapp Bros|Sapp Brothers|Road Ranger|Casey.?s Travel";
   const clauses: string[] = [];
   for (const s of samples) {
     const around = `around:${radius},${s.lat.toFixed(5)},${s.lon.toFixed(5)}`;
-    if (kind === "rest_area") {
+    if (kind === "truck_stop") {
+      clauses.push(`node["amenity"="fuel"]["hgv"~"yes|designated",i](${around});`);
+      clauses.push(`way["amenity"="fuel"]["hgv"~"yes|designated",i](${around});`);
+      clauses.push(`node["amenity"="fuel"]["fuel:HGV_diesel"="yes"](${around});`);
+      clauses.push(`way["amenity"="fuel"]["fuel:HGV_diesel"="yes"](${around});`);
+      clauses.push(`node["brand"~"${truckBrandRegex}",i](${around});`);
+      clauses.push(`way["brand"~"${truckBrandRegex}",i](${around});`);
+      clauses.push(`node["name"~"truck stop|truckstop|truck plaza|travel cent(er|re)|${truckBrandRegex}",i](${around});`);
+      clauses.push(`way["name"~"truck stop|truckstop|truck plaza|travel cent(er|re)|${truckBrandRegex}",i](${around});`);
+    } else if (kind === "rest_area") {
       clauses.push(`node["highway"="rest_area"](${around});`);
       clauses.push(`way["highway"="rest_area"](${around});`);
       clauses.push(`node["highway"="services"](${around});`);
@@ -422,7 +432,7 @@ function overpassQueryFor(kind: "rest_area" | "weigh_station" | "cat_scale", sam
 
 async function overpassAlongRoute(
   samples: Array<{ lat: number; lon: number }>,
-  kind: "rest_area" | "weigh_station" | "cat_scale",
+  kind: "rest_area" | "truck_stop" | "weigh_station" | "cat_scale",
 ): Promise<{ results: OsmPoi[]; error: string | null }> {
   const endpoints = [
     "https://overpass-api.de/api/interpreter",
@@ -461,7 +471,11 @@ async function overpassAlongRoute(
         let type: TruckPoiType;
         let category: string;
         let name = tags.name ?? "";
-        if (kind === "weigh_station") {
+        if (kind === "truck_stop") {
+          type = "truck_stop";
+          category = "Truck stop";
+          if (!name) name = tags.brand ?? tags.operator ?? "Truck Stop";
+        } else if (kind === "weigh_station") {
           type = "weigh_station";
           category = "Weigh station";
           if (!name) name = "Weigh Station";
