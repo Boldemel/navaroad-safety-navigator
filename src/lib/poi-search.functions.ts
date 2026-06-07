@@ -574,9 +574,9 @@ async function tomtomKeyword(
 }
 
 
-export const searchTruckPois = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => Input.parse(d))
-  .handler(async ({ data }): Promise<TruckPoiResult> => {
+export type SearchTruckPoisInput = z.infer<typeof Input>;
+
+export async function searchTruckPoisForRoute(data: SearchTruckPoisInput): Promise<TruckPoiResult> {
     const key = process.env.TOMTOM_API_KEY;
     if (!key) {
       return {
@@ -953,4 +953,8 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       debug,
       pois: displayedPois,
     };
-  });
+}
+
+export const searchTruckPois = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => Input.parse(d))
+  .handler(async ({ data }): Promise<TruckPoiResult> => searchTruckPoisForRoute(data));
