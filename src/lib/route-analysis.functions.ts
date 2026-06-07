@@ -7,7 +7,7 @@ import {
   type WeatherAlert,
 } from "./services/weather.service";
 import { computeSafety } from "./services/safety-score.service";
-import { fetchRoadAlerts } from "./services/road-alert.service";
+import { fetchRoadAlerts, type RoadAlert } from "./services/road-alert.service";
 import { searchTruckPoisForRoute, type TruckPoiResult } from "./poi-search.functions";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
@@ -43,6 +43,90 @@ export type RouteDriverReport = {
   created_at: string;
   distanceMi: number;
 };
+
+type RouteWeatherAlert = WeatherAlert;
+
+function routeSignature(geom: Array<[number, number]>) {
+  if (geom.length < 2) return "none";
+  let hash = 0;
+  const max = Math.min(40, geom.length);
+  for (let i = 0; i < max; i++) {
+    const [lon, lat] = geom[Math.floor((i / Math.max(1, max - 1)) * (geom.length - 1))];
+    const part = `${lon.toFixed(4)},${lat.toFixed(4)}`;
+    for (let j = 0; j < part.length; j++) hash = (hash * 31 + part.charCodeAt(j)) >>> 0;
+  }
+  return `${geom.length}:${hash.toString(16)}`;
+}
+
+function emptyPoiResult(provider = "TomTom"): TruckPoiResult {
+  return { connected: false, provider, totalFound: 0, pois: [] };
+}
+
+function distMi(aLat: number, aLon: number, bLat: number, bLon: number) {
+  const r = 3958.8;
+  const toRad = (v: number) => (v * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLon = toRad(bLon - aLon);
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLon / 2) ** 2;
+  return r * 2 * Math.asin(Math.sqrt(s));
+}
+
+function pointToSegmentDistanceMi(lat: number, lon: number, aLat: number, aLon: number, bLat: number, bLon: number) {
+  const milesPerDegreeLat = 69;
+  const milesPerDegreeLon = 69 * Math.cos((lat * Math.PI) / 180);
+  const px = lon * milesPerDegreeLon;
+  const py = lat * milesPerDegreeLat;
+  const ax = aLon * milesPerDegreeLon;
+  const ay = aLat * milesPerDegreeLat;
+  const bx = bLon * milesPerDegreeLon;
+  const by = bLat * milesPerDegreeLat;
+  const dx = bx - ax;
+  const dy = by - ay;
+  if (dx === 0 && dy === 0) return distMi(lat, lon, aLat, aLon);
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+function distanceToRouteMi(geom: Array<[number, number]>, lat: number, lon: number) {
+  let best = Infinity;
+  for (let i = 1; i < geom.length; i++) {
+    const [aLon, aLat] = geom[i - 1];
+    const [bLon, bLat] = geom[i];
+    best = Math.min(best, pointToSegmentDistanceMi(lat, lon, aLat, aLon, bLat, bLon));
+  }
+  return Number.isFinite(best) ? best : null;
+}
+
+async function fetchRouteDriverReports(geometry: Array<[number, number]>, corridorMi = 10): Promise<RouteDriverReport[]> {
+  if (geometry.length < 2) return [];
+  const { data, error } = await supabaseAdmin
+    .from("hazard_reports")
+    .select("id,hazard_type,severity,location,description,reporter_id,latitude,longitude,created_at,status")
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error || !data) return [];
+  return data
+    .map((h) => {
+      if (h.latitude == null || h.longitude == null) return null;
+      const d = distanceToRouteMi(geometry, h.latitude, h.longitude);
+      if (d == null || d > corridorMi) return null;
+      return {
+        id: h.id,
+        hazard_type: h.hazard_type,
+        severity: (h.severity ?? "medium") as RouteDriverReport["severity"],
+        location: h.location,
+        description: h.description ?? null,
+        reporter_id: h.reporter_id ?? null,
+        latitude: h.latitude,
+        longitude: h.longitude,
+        created_at: h.created_at,
+        distanceMi: d,
+      } satisfies RouteDriverReport;
+    })
+    .filter((h): h is RouteDriverReport => h != null)
+    .sort((a, b) => a.distanceMi - b.distanceMi);
+}
 
 export type RouteAnalysis = {
   origin: { name: string; lat: number; lon: number };
