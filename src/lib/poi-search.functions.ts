@@ -288,13 +288,48 @@ type RawResult = {
   poi?: { name?: string; brands?: Array<{ name: string }>; phone?: string; categories?: string[] };
   address?: {
     freeformAddress?: string;
+    streetName?: string;
+    streetNumber?: string;
+    routeNumbers?: string[];
     municipality?: string;
+    municipalitySubdivision?: string;
+    countrySecondarySubdivision?: string;
     countrySubdivision?: string;
     countrySubdivisionName?: string;
+    postalCode?: string;
   };
   position?: { lat: number; lon: number };
   dist?: number;
 };
+
+type TomTomAddress = NonNullable<RawResult["address"]>;
+
+function hasSpecificAddress(address: string | null | undefined, name?: string | null, city?: string | null, state?: string | null) {
+  const value = (address ?? "").trim();
+  if (!value) return false;
+  const lower = value.toLowerCase();
+  const weak = ["location", "rest area", "weigh station", "service area", "source: open"];
+  if (weak.includes(lower)) return false;
+  if (name && lower === name.trim().toLowerCase()) return false;
+  if (city && lower === city.trim().toLowerCase()) return false;
+  if (state && lower === state.trim().toLowerCase()) return false;
+  if (/^\d{5}(?:-\d{4})?$/.test(value)) return false;
+  if (/\b(i[-\s]?\d+|interstate|us[-\s]?\d+|state\s+route|sr[-\s]?\d+|hwy|highway|route|road|rd\b|street|st\b|avenue|ave\b|drive|dr\b|boulevard|blvd\b|pike|parkway|turnpike|exit\s+\d+)\b/i.test(value)) return true;
+  return /\d/.test(value) && /[a-z]/i.test(value);
+}
+
+function tomtomAddressLine(address?: TomTomAddress | null) {
+  if (!address) return "";
+  const street = [address.streetNumber, address.streetName].filter(Boolean).join(" ").trim();
+  const route = address.routeNumbers?.[0]?.trim() ?? "";
+  const freeform = address.freeformAddress?.trim() ?? "";
+  const city = address.municipality ?? address.municipalitySubdivision ?? null;
+  const state = address.countrySubdivision ?? address.countrySubdivisionName ?? null;
+  for (const candidate of [street, freeform, route]) {
+    if (hasSpecificAddress(candidate, null, city, state)) return candidate;
+  }
+  return "";
+}
 
 type TomTomCall = {
   url: string;
@@ -333,6 +368,8 @@ type OsmPoi = {
   category: string;
   type: TruckPoiType;
   address: string | null;
+  city: string | null;
+  state: string | null;
 };
 
 function overpassQueryFor(kind: "rest_area" | "weigh_station" | "cat_scale", samples: Array<{ lat: number; lon: number }>): string {
@@ -424,15 +461,16 @@ async function overpassAlongRoute(
           category = "Rest area";
           if (!name) name = "Rest Area";
         }
-        // Build a real street address from OSM addr:* tags when present.
+        // Build a real street/location address from OSM addr:* tags when present.
         const streetParts = [
           [tags["addr:housenumber"], tags["addr:street"]].filter(Boolean).join(" "),
         ].filter(Boolean);
         const cityPart = tags["addr:city"] ?? tags["addr:town"] ?? tags["addr:village"] ?? null;
         const statePart = tags["addr:state"] ?? null;
+        const roadPart = tags.ref ?? tags["destination:ref"] ?? tags["addr:street"] ?? tags.highway ?? null;
         const composed =
           tags["addr:full"] ??
-          [streetParts.join(", "), cityPart, statePart].filter(Boolean).join(", ");
+          [streetParts.join(", ") || roadPart, cityPart, statePart].filter(Boolean).join(", ");
         out.push({
           osmType: el.type,
           osmId: String(el.id),
@@ -442,6 +480,8 @@ async function overpassAlongRoute(
           category,
           type,
           address: composed || null,
+          city: cityPart,
+          state: statePart,
         });
       }
       return { results: out, error: null };
@@ -546,7 +586,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         : ["rest area", "welcome center", "safety rest area", "highway rest stop"];
 
     const radiusM = 50000; // initial provider search around each sample
-    const corridorRadiusMi = 35; // final route-corridor filter for simplified route geometry
+    const corridorRadiusMi = data.kind === "truck_stop" ? 8 : data.kind === "weigh_station" ? 5 : 3;
     const seen = new Map<string, TruckPoi>();
     const cumMi = buildCumMi(data.geometry);
     let tomtomRawCount = 0;
@@ -631,8 +671,8 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         brand,
         category: cats[0] ?? type,
         type,
-        address: r.address?.freeformAddress ?? "",
-        city: r.address?.municipality ?? null,
+        address: tomtomAddressLine(r.address),
+        city: r.address?.municipality ?? r.address?.municipalitySubdivision ?? null,
         state: r.address?.countrySubdivision ?? r.address?.countrySubdivisionName ?? null,
         lat: r.position.lat,
         lon: r.position.lon,
@@ -738,16 +778,9 @@ export const searchTruckPois = createServerFn({ method: "POST" })
           }
         }
         if (dupe) continue;
-        // Extract city/state from composed OSM address ("…, City, ST")
-        let osmCity: string | null = null;
-        let osmState: string | null = null;
-        if (o.address) {
-          const parts = o.address.split(",").map((s) => s.trim()).filter(Boolean);
-          if (parts.length >= 2) {
-            osmState = parts[parts.length - 1] || null;
-            osmCity = parts[parts.length - 2] || null;
-          }
-        }
+        const osmCity = o.city;
+        const osmState = o.state;
+        const osmAddress = hasSpecificAddress(o.address, o.name, osmCity, osmState) ? o.address : "";
         const id = `osm-${o.osmType}-${o.osmId}`;
         seen.set(id, {
           id,
@@ -755,7 +788,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
           brand: null,
           category: o.category,
           type: o.type,
-          address: o.address ?? "",
+          address: osmAddress ?? "",
           city: osmCity,
           state: osmState,
           lat: o.lat,
@@ -794,13 +827,13 @@ export const searchTruckPois = createServerFn({ method: "POST" })
 
     // Sort by route progression (driving order) — closest upcoming stop first.
     // Tiebreak by perpendicular distance from the route.
-    let pois = Array.from(seen.values()).sort((a, b) => {
+    const pois = Array.from(seen.values()).sort((a, b) => {
       const pa = a.routeProgressMi ?? Infinity;
       const pb = b.routeProgressMi ?? Infinity;
       if (pa !== pb) return pa - pb;
       return (a.distanceMi ?? Infinity) - (b.distanceMi ?? Infinity);
     });
-    let provider = "TomTom";
+    const provider = "TomTom";
     let message =
       data.kind === "rest_area" && pois.length > 0
         ? "Rest areas found along the route corridor."
@@ -816,10 +849,10 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     const deduplicatedCount = pois.length;
     const displayedPois = pois.slice(0, data.limit ?? 60);
 
-    // Backfill missing addresses for displayed POIs (typically OSM rest areas
-    // and weigh stations) using TomTom reverse geocoding. Throttled to keep
-    // API usage bounded.
-    const needsAddress = displayedPois.filter((p) => !p.address || !p.address.trim() || !p.city);
+    // Backfill missing/weak addresses for displayed POIs (typically OSM rest
+    // areas and weigh stations) using TomTom reverse geocoding. Throttled to
+    // keep API usage bounded.
+    const needsAddress = displayedPois.filter((p) => !hasSpecificAddress(p.address, p.name, p.city, p.state) || !p.city || !p.state);
     if (needsAddress.length > 0) {
       await runLimited(
         needsAddress.map((p) => async () => {
@@ -828,15 +861,16 @@ export const searchTruckPois = createServerFn({ method: "POST" })
             const r = await fetch(url);
             if (!r.ok) return;
             const j = (await r.json().catch(() => null)) as {
-              addresses?: Array<{ address?: { freeformAddress?: string; municipality?: string; countrySubdivision?: string; countrySubdivisionName?: string; streetName?: string; streetNumber?: string; postalCode?: string } }>;
+              addresses?: Array<{ address?: TomTomAddress }>;
             } | null;
             const a = j?.addresses?.[0]?.address;
             if (!a) return;
-            const street = [a.streetNumber, a.streetName].filter(Boolean).join(" ");
-            if (!p.address || !p.address.trim()) {
-              p.address = street || a.freeformAddress || "";
+            const street = [a.streetNumber, a.streetName].filter(Boolean).join(" ").trim();
+            const candidate = tomtomAddressLine(a) || street;
+            if (candidate && !hasSpecificAddress(p.address, p.name, p.city, p.state)) {
+              p.address = candidate;
             }
-            if (!p.city && a.municipality) p.city = a.municipality;
+            if (!p.city && (a.municipality || a.municipalitySubdivision)) p.city = a.municipality ?? a.municipalitySubdivision ?? null;
             if (!p.state) p.state = a.countrySubdivision ?? a.countrySubdivisionName ?? null;
           } catch {
             // ignore reverse geocode errors; POI remains without address

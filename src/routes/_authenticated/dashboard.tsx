@@ -907,10 +907,10 @@ function PoiDialog({
                     <div className="text-[11px] text-muted-foreground/80 flex flex-wrap items-center gap-x-2">
                       <span className="uppercase tracking-wider">{typeLabelShort(p.type)}</span>
                       {(p as { routeProgressMi?: number | null }).routeProgressMi != null && (
-                        <span>· Mile {Math.round((p as { routeProgressMi: number }).routeProgressMi)} · {Math.round((p as { routeProgressMi: number }).routeProgressMi)} mi ahead</span>
+                        <span>· Mile {Math.round((p as { routeProgressMi: number }).routeProgressMi)} from start</span>
                       )}
                       {p.distanceMi != null && (
-                        <span>· {p.distanceMi < 1 ? "<1 mi" : `${Math.round(p.distanceMi)} mi`} from route</span>
+                        <span>· {p.distanceMi < 1 ? "<1 mi" : `${Math.round(p.distanceMi)} mi`} off route</span>
                       )}
                     </div>
                   </div>
@@ -997,6 +997,7 @@ function PoiList({
           state?: string | null;
           type?: string;
           distanceMi?: number | null;
+          routeProgressMi?: number | null;
           source?: string;
         }>;
       }
@@ -1065,9 +1066,10 @@ function PoiList({
                       <div className="text-[11px] text-muted-foreground/80 uppercase tracking-wider">{typeLabel(p.type)}</div>
                     )}
                   </div>
-                  {p.distanceMi != null && (
-                    <span className="text-[11px] text-muted-foreground whitespace-nowrap">{p.distanceMi < 1 ? "<1 mi" : `${Math.round(p.distanceMi)} mi from route`}</span>
-                  )}
+                  <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                    {p.routeProgressMi != null ? `Mile ${Math.round(p.routeProgressMi)}` : "Route mile —"}
+                    {p.distanceMi != null ? ` · ${p.distanceMi < 1 ? "<1 mi" : `${Math.round(p.distanceMi)} mi`} off route` : ""}
+                  </span>
                 </li>
               );
             })}
