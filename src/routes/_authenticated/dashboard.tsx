@@ -779,14 +779,6 @@ function Dashboard() {
             result={weighStations}
             emptyHint="No weigh stations detected near this route."
           />
-          <PoiList
-            icon={<Scale className="size-4 text-primary" />}
-            title="CAT Scales on this Route"
-            routeLabel={routeLabel}
-            loading={catScalesLoading}
-            result={catScales}
-            emptyHint="No CAT scales detected near this route."
-          />
         </div>
       )}
 
