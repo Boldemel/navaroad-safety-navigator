@@ -326,28 +326,30 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       routeStatus: !routeAvailable ? "unavailable" : r.truckRestrictionsVerified ? "ok" : "fallback",
       routeMessage: !routeAvailable ? ROUTE_NOT_CALCULATED_MESSAGE : r.warning,
       weather: weatherSamples,
-      weatherAlerts: weatherAlerts.map((a) => ({
-        id: a.id,
-        event: a.event,
-        severity: a.severity,
-        areaDesc: a.areaDesc,
-        headline: a.headline,
-        recommendedAction: a.recommendedAction,
-        effective: a.effective,
-        provider: a.provider,
-        source: "weather_api" as const,
-      })),
+      weatherAlerts,
       weatherAlertCount: weatherAlerts.length,
       roadAlertCount: roadAlerts.length,
-      risks: result.factors.map((f) => ({
-        ...f,
-        source:
-          f.type === "closure"
-            ? ("DOT" as const)
-            : f.type === "hazard"
-              ? ("Driver Report" as const)
-              : ("Weather API" as const),
-      })),
+      roadAlerts,
+      roadClosures,
+      windRisks,
+      restAreas,
+      truckStops,
+      weighStations,
+      driverReports,
+      routeId,
+      etaMin: r.durationMin,
+      debug: {
+        routeId,
+        origin: o.name,
+        destination: d2.name,
+        polyline: r.geometry.slice(0, 12).map(([lon, lat]) => `${lat.toFixed(4)},${lon.toFixed(4)}`).join(" → ") + (r.geometry.length > 12 ? " …" : ""),
+        polylinePointCount: r.geometry.length,
+        desktopResultCount: sharedResultCount,
+        mobileResultCount: sharedResultCount,
+        apiResponseTimestamp: generatedAt,
+        cacheStatus: "fresh",
+      },
+      risks: mappedRisks,
       breakdown: result.breakdown,
       score: haveAnyLiveData ? result.score : null,
       riskLevel: haveAnyLiveData ? result.riskLevel : null,
@@ -361,7 +363,7 @@ export const analyzeRoute = createServerFn({ method: "POST" })
         : routeAvailable
           ? "Connect live weather and road data to calculate route safety."
           : ROUTE_NOT_CALCULATED_MESSAGE,
-      generatedAt: new Date().toISOString(),
+      generatedAt,
       dataAvailability: {
         weather: weatherAvailable,
         weatherAlerts: weatherAlerts.length > 0,
