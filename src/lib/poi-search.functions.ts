@@ -648,12 +648,18 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     );
     samples.forEach((s, i) => categoryResults[i].results.forEach((r) => addRaw(r, s.lat, s.lon)));
 
-    // Step 2: keyword fallback — only when category coverage is thin. Trim
-    // keyword set and stride samples so we don't exceed TomTom's QPS limit.
-    if (seen.size < 10 || data.kind === "weigh_station" || data.kind === "cat_scale") {
+    // Step 2: keyword fallback. Always run for truck_stop / weigh_station /
+    // cat_scale so we surface multiple brands (not just whichever the category
+    // search happened to return most of). For rest_area, only run when sparse.
+    if (
+      data.kind === "truck_stop" ||
+      data.kind === "weigh_station" ||
+      data.kind === "cat_scale" ||
+      seen.size < 10
+    ) {
       const stride = Math.max(1, Math.ceil(samples.length / 6));
       const kwSamples = samples.filter((_, i) => i % stride === 0);
-      const kwList = keywords.slice(0, 4);
+      const kwList = keywords.slice(0, data.kind === "truck_stop" ? 7 : 4);
       const keywordTasks: Array<() => Promise<TomTomCall>> = [];
       const keywordSamples: Array<{ lat: number; lon: number }> = [];
       for (const s of kwSamples) {
@@ -682,6 +688,16 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       for (const o of osm.results) {
         const projection = projectOnRouteMi(data.geometry, cumMi, o.lat, o.lon);
         if (!projection || projection.perpMi > corridorRadiusMi) continue;
+        const hay = `${o.name} ${o.category}`.toLowerCase();
+        // Cross-kind validation: reject anything that belongs in another bucket.
+        if (data.kind === "rest_area") {
+          if (truckStopAllowed(hay) || isCatScale(hay) || isExcludedJunk(hay)) continue;
+          if (o.type !== "rest_area") continue;
+        }
+        if (data.kind === "weigh_station") {
+          if (isCatScale(hay) || truckStopAllowed(hay) || isExcludedJunk(hay)) continue;
+          if (o.type !== "weigh_station") continue;
+        }
         let dupe = false;
         for (const existing of seen.values()) {
           if (distMi(existing.lat, existing.lon, o.lat, o.lon) < 0.25) {

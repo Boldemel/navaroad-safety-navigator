@@ -396,22 +396,29 @@ function Dashboard() {
   });
 
 
-  // Stat cards: prefer the analyzed route when present, else fall back to the
-  // live national feed. This keeps Wind/Weather Risk specific to the path.
+  // Stat cards: each card uses ONLY its own category data.
+  // Weather/wind are derived from NWS alerts on the route (feed is already
+  // route-scoped in getSafetyFeed), so wind/tornado alerts are split out of
+  // the Weather card and counted only under Wind.
   const routeRisks = result?.risks ?? [];
   const feedWeatherAlerts = feed?.weatherAlerts ?? [];
   const feedRoadAlerts = feed?.roadAlerts ?? [];
   const usingRoute = !!result && !routeUnavailable && routeMatchesCurrentInputs;
+  const isWindAlert = (cat: string) => cat === "high_wind" || cat === "tornado";
+  const weatherAlertsOnly = feedWeatherAlerts.filter((a) => !isWindAlert(a.category));
+  const windAlertsOnly = feedWeatherAlerts.filter((a) => isWindAlert(a.category));
   const weatherCount = usingRoute
-    ? routeRisks.filter((r) => r.type === "precip" || r.type === "visibility" || r.type === "temp" || r.type === "weather_alert").length
-    : feedWeatherAlerts.length;
+    ? weatherAlertsOnly.length +
+      routeRisks.filter((r) => r.type === "precip" || r.type === "visibility" || r.type === "temp").length
+    : weatherAlertsOnly.length;
   const windCount = usingRoute
-    ? routeRisks.filter((r) => r.type === "wind").length + feedWeatherAlerts.filter((a) => result && result.weatherAlerts.some((x) => x.id === a.id) && (a.category === "high_wind" || a.category === "tornado")).length
-    : feedWeatherAlerts.filter((a) => a.category === "high_wind" || a.category === "tornado").length;
+    ? windAlertsOnly.length + routeRisks.filter((r) => r.type === "wind").length
+    : windAlertsOnly.length;
   const closureCount = usingRoute
     ? routeRisks.filter((r) => r.type === "closure").length
     : feedRoadAlerts.filter((a) => a.category === "road_closure" || a.category === "detour").length;
   const driverCount = hazards.length;
+  const hasRouteWeatherAlerts = usingRoute && feedWeatherAlerts.length > 0;
 
   const score = result?.score ?? null;
   const breakdown = result?.breakdown;
@@ -552,7 +559,7 @@ function Dashboard() {
                   const windMph = w.windKph != null ? Math.round(w.windKph * 0.621371) : null;
                   const gustMph = w.gustKph != null ? Math.round(w.gustKph * 0.621371) : null;
                   const precipIn = w.precipMm != null ? Math.round(w.precipMm * 0.03937 * 100) / 100 : null;
-                  const risk = weatherRiskNote(tempF, windMph, gustMph, precipIn, w.visibilityKm, w.condition);
+                  const risk = weatherRiskNote(tempF, windMph, gustMph, precipIn, w.visibilityKm, w.condition, hasRouteWeatherAlerts);
                   return (
                     <div key={w.label} className="rounded-md border border-border bg-background p-3 text-xs space-y-1">
                       <div className="font-medium text-sm text-foreground">{w.label}</div>
@@ -605,6 +612,8 @@ function Dashboard() {
                     </li>
                   ))}
                 </ul>
+              ) : result.weatherAlerts.length > 0 ? (
+                <p className="text-sm text-warning">Forecast is calm, but active NWS alerts affect this route — see alerts above.</p>
               ) : (
                 result.dataAvailability.weather && <p className="text-sm text-success">No major weather or road risks detected on this route.</p>
               )}
@@ -1169,6 +1178,7 @@ function weatherRiskNote(
   precipIn: number | null,
   visibilityKm: number | null,
   condition: string,
+  hasRouteAlerts: boolean = false,
 ): { note: string; tone: string } {
   const c = (condition ?? "").toLowerCase();
   if (c.includes("thunder") || c.includes("tornado")) return { note: "Severe weather — use caution.", tone: "text-destructive" };
@@ -1179,5 +1189,11 @@ function weatherRiskNote(
   if (c.includes("snow") || c.includes("ice")) return { note: "Winter conditions possible.", tone: "text-warning" };
   if (tempF != null && tempF <= 20) return { note: "Freezing temps — watch for ice.", tone: "text-warning" };
   if (tempF != null && tempF >= 100) return { note: "Extreme heat — check tires & cooling.", tone: "text-warning" };
+  if (hasRouteAlerts) {
+    return {
+      note: "Current forecast may look calm, but active NWS alerts affect this route — see alerts above.",
+      tone: "text-warning",
+    };
+  }
   return { note: "No major weather risk.", tone: "text-success" };
 }
