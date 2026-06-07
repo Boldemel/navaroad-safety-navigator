@@ -781,25 +781,6 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       );
     }
 
-    // Step 2b: brand-filtered nearby search for truck stops. This forces
-    // TomTom to return each major brand (Love's, Pilot/Flying J, TA, Petro,
-    // etc.) end-to-end along the route, even when keyword search misses
-    // them due to noisy text matching.
-    if (data.kind === "truck_stop") {
-      const brandTasks: Array<() => Promise<TomTomCall>> = [];
-      const brandTaskSamples: Array<{ lat: number; lon: number }> = [];
-      for (const s of samples) {
-        for (const brand of truckStopBrands) {
-          brandTasks.push(() => tomtomNearby(key, s.lat, s.lon, "7311,7311003", radiusM, brand));
-          brandTaskSamples.push(s);
-        }
-      }
-      const brandResults = await runLimited(brandTasks, 6);
-      brandResults.forEach((call, i) =>
-        call.results.forEach((r) => addRaw(r, brandTaskSamples[i].lat, brandTaskSamples[i].lon)),
-      );
-    }
-
     // Step 3 (supplemental): OpenStreetMap Overpass for rest areas, truck
     // parking, and weigh stations. TomTom coverage of these categories is
     // sparse in the US; OSM has much better data. Routing/navigation/fuel
@@ -807,7 +788,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
     let osmRawCount = 0;
     let osmAddedCount = 0;
     let osmError: string | null = null;
-    if (data.kind === "rest_area" || data.kind === "weigh_station" || data.kind === "cat_scale") {
+    if (data.kind === "rest_area" || data.kind === "truck_stop" || data.kind === "weigh_station" || data.kind === "cat_scale") {
       const osm = await overpassAlongRoute(samples, data.kind);
       osmError = osm.error;
       osmRawCount = osm.results.length;
@@ -819,6 +800,10 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         if (data.kind === "rest_area") {
           if (truckStopAllowed(hay) || isCatScale(hay) || isExcludedJunk(hay)) continue;
           if (o.type !== "rest_area") continue;
+        }
+        if (data.kind === "truck_stop") {
+          if (isCatScale(hay) || isNotTruckStop(hay) || isExcludedJunk(hay)) continue;
+          if (o.type !== "truck_stop" || !truckStopAllowed(hay)) continue;
         }
         if (data.kind === "weigh_station") {
           if (isCatScale(hay) || truckStopAllowed(hay) || isExcludedJunk(hay)) continue;
