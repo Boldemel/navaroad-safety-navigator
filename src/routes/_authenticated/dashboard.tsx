@@ -194,11 +194,11 @@ function Dashboard() {
 
 
   async function useCurrentLocation() {
-    if (geo.status === "granted" && geo.coords) {
-      await fillOriginFromCoords(geo.coords.lat, geo.coords.lon);
-      return;
-    }
-    // Trigger the permission prompt; auto-fill once coords arrive (effect below).
+    // Force a fresh desktop GPS read on every click. Reusing an existing
+    // `granted` fix can keep filling an old city after the driver has moved.
+    setOrigin("");
+    setOriginPlace(null);
+    setPendingAutoAnalyze(false);
     setAwaitingCoords(true);
     geo.request();
   }
@@ -492,6 +492,9 @@ function Dashboard() {
               )}
               {geo.status === "unavailable" && (
                 <p className="text-[11px] text-muted-foreground">Geolocation not supported in this browser.</p>
+              )}
+              {geo.status === "error" && geo.error && (
+                <p className="text-[11px] text-destructive">{geo.error}</p>
               )}
             </div>
 
