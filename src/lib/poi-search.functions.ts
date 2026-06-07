@@ -764,7 +764,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       const stride = 1;
       const kwSamples = samples;
       const kwList =
-        data.kind === "truck_stop" ? keywords.slice(0, 10)
+        data.kind === "truck_stop" ? ["Love's Travel Stop", "TA Travel Center", "Petro Stopping Center", "truck stop", "travel center"]
         : data.kind === "cat_scale" ? keywords.slice(0, 4)
         : keywords.slice(0, 4);
       const keywordTasks: Array<() => Promise<TomTomCall>> = [];
@@ -775,7 +775,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
           keywordSamples.push(s);
         }
       }
-      const kwResults = await runLimited(keywordTasks, 6);
+      const kwResults = await runLimited(keywordTasks, 2);
       kwResults.forEach((call, i) =>
         call.results.forEach((r) => addRaw(r, keywordSamples[i].lat, keywordSamples[i].lon)),
       );
