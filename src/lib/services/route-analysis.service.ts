@@ -209,12 +209,25 @@ export function sampleRoute(
   count: number,
 ): Array<{ lat: number; lon: number }> {
   if (geometry.length === 0 || count <= 0) return [];
-  if (geometry.length <= count) return geometry.map(([lon, lat]) => ({ lat, lon }));
+  if (geometry.length === 1) {
+    const [lon, lat] = geometry[0];
+    return Array.from({ length: count }, () => ({ lat, lon }));
+  }
+  if (count === 1) {
+    const [lon, lat] = geometry[Math.floor(geometry.length / 2)];
+    return [{ lat, lon }];
+  }
   const out: Array<{ lat: number; lon: number }> = [];
+  const lastIdx = geometry.length - 1;
   for (let i = 0; i < count; i++) {
-    const idx = Math.floor((i / (count - 1)) * (geometry.length - 1));
-    const [lon, lat] = geometry[idx];
-    out.push({ lat, lon });
+    const t = (i / (count - 1)) * lastIdx;
+    const lo = Math.floor(t);
+    const hi = Math.min(lo + 1, lastIdx);
+    const frac = t - lo;
+    const [lon1, lat1] = geometry[lo];
+    const [lon2, lat2] = geometry[hi];
+    out.push({ lat: lat1 + (lat2 - lat1) * frac, lon: lon1 + (lon2 - lon1) * frac });
   }
   return out;
 }
+

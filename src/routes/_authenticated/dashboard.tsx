@@ -388,12 +388,6 @@ function Dashboard() {
     enabled: geometry.length >= 2,
     staleTime: 10 * 60_000,
   });
-  const { data: catScales, isLoading: catScalesLoading } = useQuery({
-    queryKey: ["cat-scales", routeKey],
-    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "cat_scale", limit: 100 } }),
-    enabled: geometry.length >= 2,
-    staleTime: 10 * 60_000,
-  });
 
 
   // Stat cards: each card uses ONLY its own category data.
@@ -754,7 +748,7 @@ function Dashboard() {
           <StatCard icon={<ParkingCircle className="size-5" />} label="Rest Areas" count={usingRoute ? parkingStops?.totalFound ?? 0 : 0} sub={parkingStops && !parkingStops.connected ? "Not connected yet" : usingRoute ? "Rest areas & welcome centers · route-filtered" : "Analyze a route to find rest areas"} accent="primary" loading={parkingLoading} onClick={usingRoute && (parkingStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Rest Areas on this Route", result: parkingStops ?? null }) : undefined} />
           <StatCard icon={<Truck className="size-5" />} label="Truck Stops" count={usingRoute ? truckStops?.totalFound ?? 0 : 0} sub={truckStops && !truckStops.connected ? "Not connected yet" : usingRoute ? "Pilot · Flying J · Love's · TA · Petro · verified plazas" : "Analyze a route to find truck stops"} accent="primary" loading={truckStopsLoading} onClick={usingRoute && (truckStops?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Truck Stops on this Route", result: truckStops ?? null }) : undefined} />
           <StatCard icon={<Scale className="size-5" />} label="Weigh Stations" count={usingRoute ? weighStations?.totalFound ?? 0 : 0} sub={weighStations && !weighStations.connected ? "Not connected yet" : usingRoute ? `State weigh, port of entry, inspection · ${weighStations?.provider ?? "TomTom"}` : "Analyze a route to find weigh stations"} accent="warning" loading={weighLoading} onClick={usingRoute && (weighStations?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "Weigh Stations on this Route", result: weighStations ?? null }) : undefined} />
-          <StatCard icon={<Scale className="size-5" />} label="CAT Scales" count={usingRoute ? catScales?.totalFound ?? 0 : 0} sub={catScales && !catScales.connected ? "Not connected yet" : usingRoute ? `Certified commercial scales · ${catScales?.provider ?? "TomTom"}` : "Analyze a route to find CAT scales"} accent="primary" loading={catScalesLoading} onClick={usingRoute && (catScales?.totalFound ?? 0) > 0 ? () => setPoiDialog({ title: "CAT Scales on this Route", result: catScales ?? null }) : undefined} />
+          
           <StatCard icon={<Users className="size-5" />} label="Driver Reports" count={driverCount} sub="Community layer · live" accent="warning" />
         </div>
       </div>
@@ -784,14 +778,6 @@ function Dashboard() {
             loading={weighLoading}
             result={weighStations}
             emptyHint="No weigh stations detected near this route."
-          />
-          <PoiList
-            icon={<Scale className="size-4 text-primary" />}
-            title="CAT Scales on this Route"
-            routeLabel={routeLabel}
-            loading={catScalesLoading}
-            result={catScales}
-            emptyHint="No CAT scales detected near this route."
           />
         </div>
       )}
@@ -906,17 +892,18 @@ function PoiDialog({
           <ul className="divide-y divide-border max-h-[60vh] overflow-auto -mx-2 px-2">
             {pois.map((p) => {
               const region = [p.city, p.state].filter(Boolean).join(", ");
-              const fullAddress = [p.address, !p.address?.includes(region) ? region : null]
-                .filter(Boolean)
-                .join(" · ") || p.address || region || "Location";
+              const hasAddress = !!(p.address && p.address.trim());
+              const fullAddress = hasAddress
+                ? [p.address, !p.address!.includes(region) ? region : null].filter(Boolean).join(" · ")
+                : region;
               return (
                 <li key={p.id} className="py-3 flex items-start gap-3">
                   <MapPin className="size-4 mt-1 text-primary shrink-0" />
                   <div className="flex-1 min-w-0 space-y-0.5">
                     <div className="font-medium truncate">{p.name}{p.brand && p.brand !== p.name ? ` · ${p.brand}` : ""}</div>
-                    <div className="text-[12px] text-muted-foreground">
-                      {fullAddress}
-                    </div>
+                    {fullAddress && (
+                      <div className="text-[12px] text-muted-foreground">{fullAddress}</div>
+                    )}
                     <div className="text-[11px] text-muted-foreground/80 flex flex-wrap items-center gap-x-2">
                       <span className="uppercase tracking-wider">{typeLabelShort(p.type)}</span>
                       {(p as { routeProgressMi?: number | null }).routeProgressMi != null && (
@@ -1062,19 +1049,21 @@ function PoiList({
           <ul className="divide-y divide-border max-h-80 overflow-auto">
             {result.pois.slice(0, 20).map((p) => {
               const region = [p.city, p.state].filter(Boolean).join(", ");
-              const fullAddress = [p.address, !p.address?.includes(region) ? region : null]
-                .filter(Boolean)
-                .join(" · ") || p.address || region || "Location";
+              const hasAddress = !!(p.address && p.address.trim());
+              const fullAddress = hasAddress
+                ? [p.address, !p.address!.includes(region) ? region : null].filter(Boolean).join(" · ")
+                : region;
               return (
                 <li key={p.id} className="py-2 flex items-start gap-3 text-sm">
                   <MapPin className="size-3.5 mt-1 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{p.name}{p.brand && p.brand !== p.name ? ` · ${p.brand}` : ""}</div>
-                    <div className="text-[11px] text-muted-foreground truncate">
-                      {fullAddress}
-                      {p.type && <> · <span className="uppercase tracking-wider">{typeLabel(p.type)}</span></>}
-                      {p.source && <> · Source: {p.source}</>}
-                    </div>
+                    {fullAddress && (
+                      <div className="text-[11px] text-muted-foreground truncate">{fullAddress}</div>
+                    )}
+                    {p.type && (
+                      <div className="text-[11px] text-muted-foreground/80 uppercase tracking-wider">{typeLabel(p.type)}</div>
+                    )}
                   </div>
                   {p.distanceMi != null && (
                     <span className="text-[11px] text-muted-foreground whitespace-nowrap">{p.distanceMi < 1 ? "<1 mi" : `${Math.round(p.distanceMi)} mi from route`}</span>
