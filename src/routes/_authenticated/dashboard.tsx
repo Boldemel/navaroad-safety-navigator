@@ -381,7 +381,7 @@ function Dashboard() {
 
 
   // Live safety feed scoped to the active route corridor (NWS + DOT).
-  const result = analysis.isPending ? undefined : analysis.data;
+  const result = analysis.isPending ? cachedResult ?? undefined : analysis.data ?? cachedResult ?? undefined;
   const routeUnavailable = result?.routeStatus === "unavailable";
   const currentRouteKey = routeInputKey(
     origin,
