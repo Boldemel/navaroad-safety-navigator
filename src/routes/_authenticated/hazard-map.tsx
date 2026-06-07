@@ -4,7 +4,6 @@ import { announceHazard } from "@/hooks/use-voice-guidance";
 import { useVoiceSettings } from "@/lib/voice/voice-settings";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Wind, AlertTriangle, Construction, Trash2, Car, ParkingCircleOff, CloudRain,
   CloudLightning, Clock, User, Cloud, Radio, MapPin, LocateFixed, Megaphone,
@@ -15,13 +14,11 @@ import { cn } from "@/lib/utils";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { useDriverNames } from "@/hooks/use-driver-names";
 import { formatDistanceToNow } from "date-fns";
-import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { getTomTomKey } from "@/lib/tomtom.functions";
 import { TomTomMap, type MapMarker } from "@/components/tomtom-map";
 import { useActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { hazardsWithin, hazardsAlongRoute, nearestHazardAlert, type HazardLike } from "@/lib/hazard-proximity";
-import { searchTruckPois, type TruckPoiResult } from "@/lib/poi-search.functions";
 import { DriveModePanel } from "@/components/drive-mode-panel";
 
 // POI marker colors (kept in sync with the legend below).
@@ -39,39 +36,6 @@ function samplePoiGeometry(geom: Array<[number, number]>, maxPoints: number) {
   }
   return sampled;
 }
-
-// LocalStorage-backed cache for POIs so the map shows the last-seen icons
-// immediately on revisit while fresh results load in the background.
-type PoiKind = "truck_stop" | "rest_area" | "weigh_station";
-type CachedPois = TruckPoiResult;
-const POI_CACHE_PREFIX = "navaroad.poiCache.";
-function poiCacheKey(kind: PoiKind, routeKey: string) {
-  return `${POI_CACHE_PREFIX}${kind}.${routeKey}`;
-}
-type PoiCacheEntry = { at: number; data: CachedPois };
-function readPoiCache(kind: PoiKind, routeKey: string): CachedPois | undefined {
-  if (typeof window === "undefined" || routeKey === "none") return undefined;
-  try {
-    const raw = window.localStorage.getItem(poiCacheKey(kind, routeKey));
-    if (!raw) return undefined;
-    return (JSON.parse(raw) as PoiCacheEntry).data;
-  } catch { return undefined; }
-}
-function readPoiCacheAt(kind: PoiKind, routeKey: string): number | undefined {
-  if (typeof window === "undefined" || routeKey === "none") return undefined;
-  try {
-    const raw = window.localStorage.getItem(poiCacheKey(kind, routeKey));
-    if (!raw) return undefined;
-    return (JSON.parse(raw) as PoiCacheEntry).at;
-  } catch { return undefined; }
-}
-function writePoiCache(kind: PoiKind, routeKey: string, data: CachedPois) {
-  if (typeof window === "undefined" || routeKey === "none") return;
-  try {
-    window.localStorage.setItem(poiCacheKey(kind, routeKey), JSON.stringify({ at: Date.now(), data } satisfies PoiCacheEntry));
-  } catch { /* ignore quota */ }
-}
-
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
   component: HazardMap,
@@ -130,12 +94,11 @@ function HazardMap() {
   const [follow, setFollow] = useState(false);
   const [recenterToken, setRecenterToken] = useState(0);
   useRealtimeInvalidate(["hazard_reports"], [["map-hazards"], ["driver-names"]]);
-  const poiFn = useServerFn(searchTruckPois);
 
   const { data: drivers = {} } = useDriverNames();
-  const feedFn = useServerFn(getSafetyFeed);
   const tomtomKeyFn = useServerFn(getTomTomKey);
   const activeRoute = useActiveRoute();
+  const result = activeRoute?.result ?? null;
   const geometry = activeRoute?.geometry ?? [];
   const geo = useGeolocation({ watch: true });
   const { focusLat, focusLon, focusLabel, focusDetails } = Route.useSearch();
@@ -151,68 +114,12 @@ function HazardMap() {
     staleTime: Infinity,
   });
 
-  const { data: feed, isLoading: feedLoading } = useQuery({
-    queryKey: ["safety-feed", activeRoute?.savedAt ?? "none"],
-    queryFn: () => feedFn({ data: { geometry } }),
-    enabled: geometry.length >= 2,
-    refetchInterval: 5 * 60_000,
-    staleTime: 60_000,
-  });
-
-  const { data: hazards = [], isLoading: hazardsLoading } = useQuery({
-    queryKey: ["map-hazards"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("hazard_reports").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Truck-friendly POIs along the active route, or around current GPS as a
-  // fallback so the map isn't empty when no route has been analyzed yet.
-  const poiGeometry = useMemo(() => {
-    if (geometry.length >= 2) return samplePoiGeometry(geometry, 1000);
-    if (geo.coords) {
-      // Build a tiny 2-point "route" centered on the driver so the same
-      // server fn (which expects a geometry) can search nearby POIs.
-      const { lat, lon } = geo.coords;
-      const d = 0.25; // ~17 mi box
-      return [
-        [lon - d, lat - d] as [number, number],
-        [lon + d, lat + d] as [number, number],
-      ];
-    }
-    return [];
-  }, [geometry, geo.coords?.lat, geo.coords?.lon]);
-  const poiEnabled = poiGeometry.length >= 2;
-  const routeKey = activeRoute?.savedAt ?? (geo.coords ? `here-${geo.coords.lat.toFixed(2)}-${geo.coords.lon.toFixed(2)}` : "none");
-  const { data: truckStopsData } = useQuery({
-    queryKey: ["hazard-map-truck-stops", routeKey],
-    queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "truck_stop", limit: 100 } }),
-    enabled: poiEnabled,
-    staleTime: 10 * 60_000,
-    initialData: () => readPoiCache("truck_stop", routeKey),
-    initialDataUpdatedAt: () => readPoiCacheAt("truck_stop", routeKey),
-  });
-  const { data: restAreasData } = useQuery({
-    queryKey: ["hazard-map-rest-areas", routeKey],
-    queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "rest_area", limit: 100 } }),
-    enabled: poiEnabled,
-    staleTime: 10 * 60_000,
-    initialData: () => readPoiCache("rest_area", routeKey),
-    initialDataUpdatedAt: () => readPoiCacheAt("rest_area", routeKey),
-  });
-  const { data: weighStationsData } = useQuery({
-    queryKey: ["hazard-map-weigh-stations", routeKey],
-    queryFn: () => poiFn({ data: { geometry: poiGeometry, kind: "weigh_station", limit: 100 } }),
-    enabled: poiEnabled,
-    staleTime: 10 * 60_000,
-    initialData: () => readPoiCache("weigh_station", routeKey),
-    initialDataUpdatedAt: () => readPoiCacheAt("weigh_station", routeKey),
-  });
-  useEffect(() => { if (truckStopsData) writePoiCache("truck_stop", routeKey, truckStopsData); }, [truckStopsData, routeKey]);
-  useEffect(() => { if (restAreasData) writePoiCache("rest_area", routeKey, restAreasData); }, [restAreasData, routeKey]);
-  useEffect(() => { if (weighStationsData) writePoiCache("weigh_station", routeKey, weighStationsData); }, [weighStationsData, routeKey]);
+  const feed = result ? { weatherAlerts: result.weatherAlerts, roadAlerts: result.roadAlerts, generatedAt: result.generatedAt } : null;
+  const truckStopsData = result?.truckStops;
+  const restAreasData = result?.restAreas;
+  const weighStationsData = result?.weighStations;
+  const hazards = result?.driverReports ?? [];
+  const loading = false;
 
 
 
@@ -249,7 +156,6 @@ function HazardMap() {
   const allVisible = [...visibleApi, ...visibleDriver].sort(
     (a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt),
   );
-  const loading = feedLoading || hazardsLoading;
 
   // Proximity (25mi from current GPS) — works regardless of active route.
   const allHazardsForProximity: HazardLike[] = useMemo(

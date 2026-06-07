@@ -19,7 +19,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { analyzeRoute, type RouteAnalysis } from "@/lib/route-analysis.functions";
-import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { useActiveRoute, saveActiveRoute, clearActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { reverseGeocode } from "@/lib/geo.functions";
@@ -28,7 +27,7 @@ import { startNavigation, useNavigationSession, stopNavigation } from "@/hooks/u
 import { AddressAutocomplete, type SelectedPlace, type FavoriteSuggestion } from "@/components/address-autocomplete";
 import { useFavoriteLocations } from "@/components/favorite-locations-card";
 import { favoriteCategoryLabel } from "@/lib/favorite-locations";
-import { searchTruckPois } from "@/lib/poi-search.functions";
+import type { TruckPoiResult } from "@/lib/poi-search.functions";
 
 // Persist the last analysis so navigating away (e.g. to the Hazard Map) and
 // back to the Dashboard doesn't reset the route, score, and stat cards to zero.
@@ -70,7 +69,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function Dashboard() {
   // Hydrate from the last analysis so route data survives navigation away/back.
-  const cached = typeof window !== "undefined" ? readCachedAnalysis() : null;
+  const cached = null as CachedAnalysis | null;
   const [origin, setOrigin] = useState(cached?.origin ?? "");
   const [destination, setDestination] = useState(cached?.destination ?? "");
   const [originPlace, setOriginPlace] = useState<SelectedPlace | null>(cached?.originPlace ?? null);
@@ -81,10 +80,8 @@ function Dashboard() {
   useRealtimeInvalidate(["hazard_reports"], [["dash-hazards"]]);
 
   const analyzeFn = useServerFn(analyzeRoute);
-  const feedFn = useServerFn(getSafetyFeed);
   const reverseGeocodeFn = useServerFn(reverseGeocode);
   const truckRouteFn = useServerFn(getTruckRoute);
-  const searchPoisFn = useServerFn(searchTruckPois);
   const activeRoute = useActiveRoute();
   const queryClient = useQueryClient();
   const geo = useGeolocation();
@@ -240,20 +237,11 @@ function Dashboard() {
     },
     onSuccess: (data, vars) => {
       if (data.geometry.length >= 2) {
-        saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry });
+        saveActiveRoute({ origin: vars.origin, destination: vars.destination, geometry: data.geometry, result: data, input: vars });
         const key = routeInputKey(vars.origin, vars.destination, vars.originCoords ?? null, vars.destinationCoords ?? null);
         setAnalyzedRouteKey(key);
         setCachedResult(data);
-        writeCachedAnalysis({
-          result: data,
-          origin: vars.origin,
-          destination: vars.destination,
-          originPlace,
-          destPlace,
-          truck: vars.truck,
-          trailer: vars.trailer,
-          analyzedRouteKey: key,
-        });
+        writeCachedAnalysis(null);
       } else {
         clearActiveRoute();
         setAnalyzedRouteKey(null);
@@ -303,6 +291,7 @@ function Dashboard() {
         origin: originLabel,
         destination: result.destination.name,
         geometry: route.geometry,
+        result,
       });
       return route;
     },
@@ -348,7 +337,7 @@ function Dashboard() {
       if (routeAnalysis.geometry.length < 2) {
         throw new Error(routeAnalysis.routeMessage ?? "Route could not be calculated. Please check the address or try another destination.");
       }
-      saveActiveRoute({ origin: originLabel, destination: destinationLabel, geometry: routeAnalysis.geometry });
+      saveActiveRoute({ origin: originLabel, destination: destinationLabel, geometry: routeAnalysis.geometry, result: routeAnalysis });
       const route = await truckRouteFn({
         data: { originLat, originLon, destLat: p.lat, destLon: p.lon, truck: true },
       });
@@ -362,7 +351,7 @@ function Dashboard() {
         trafficDurationMin: route.durationTrafficMin,
         truck: true,
       });
-      saveActiveRoute({ origin: originLabel, destination: destinationLabel, geometry: route.geometry });
+      saveActiveRoute({ origin: originLabel, destination: destinationLabel, geometry: route.geometry, result: routeAnalysis });
       return route;
     },
     onMutate: (p) => {
@@ -380,8 +369,10 @@ function Dashboard() {
 
 
 
-  // Live safety feed scoped to the active route corridor (NWS + DOT).
-  const result = analysis.isPending ? cachedResult ?? undefined : analysis.data ?? cachedResult ?? undefined;
+  // Shared route result object. Desktop and mobile/map read this same object;
+  // route-scoped API data, POIs, driver reports, filtering, and counts are all
+  // produced by analyzeRoute in one fresh server response.
+  const result = analysis.isPending ? cachedResult ?? activeRoute?.result ?? undefined : analysis.data ?? activeRoute?.result ?? cachedResult ?? undefined;
   const routeUnavailable = result?.routeStatus === "unavailable";
   const currentRouteKey = routeInputKey(
     origin,
@@ -389,56 +380,22 @@ function Dashboard() {
     originPlace ? { lat: originPlace.lat, lon: originPlace.lon } : null,
     destPlace ? { lat: destPlace.lat, lon: destPlace.lon } : null,
   );
-  const routeMatchesCurrentInputs = !!result && analyzedRouteKey === currentRouteKey;
-  const activeRouteForQueries = analysis.isPending || routeUnavailable || !routeMatchesCurrentInputs ? null : activeRoute;
-  const geometry = routeUnavailable || !routeMatchesCurrentInputs ? [] : (result?.geometry ?? activeRouteForQueries?.geometry ?? []);
+  const routeMatchesCurrentInputs = !!result && (analyzedRouteKey === currentRouteKey || result.routeId === activeRoute?.result?.routeId);
+  const activeRouteForQueries = analysis.isPending || routeUnavailable ? null : activeRoute;
+  const geometry = routeUnavailable ? [] : (result?.geometry ?? activeRouteForQueries?.geometry ?? []);
   const routeLabel = result
     ? `${origin || result.origin.name} → ${destination || result.destination.name}`
     : activeRouteForQueries
       ? `${activeRouteForQueries.origin} → ${activeRouteForQueries.destination}`
       : "No active route";
-  const routeKey = routeSignature(geometry);
-  const { data: feed, isLoading: feedLoading } = useQuery({
-    queryKey: ["safety-feed", routeKey],
-    queryFn: () => feedFn({ data: { geometry } }),
-    enabled: geometry.length >= 2,
-    refetchInterval: 5 * 60_000,
-    staleTime: 60_000,
-  });
-
-  const { data: hazards = [] } = useQuery({
-    queryKey: ["dash-hazards"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hazard_reports")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Truck-friendly POIs along the active route (TomTom + OSM).
-  const poiGeometry = sampleRouteGeometry(geometry, 1000);
-  const { data: parkingStops, isLoading: parkingLoading } = useQuery({
-    queryKey: ["rest-areas", routeKey],
-    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "rest_area", limit: 100 } }),
-    enabled: geometry.length >= 2,
-    staleTime: 10 * 60_000,
-  });
-  const { data: truckStops, isLoading: truckStopsLoading } = useQuery({
-    queryKey: ["truck-stops", routeKey],
-    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "truck_stop", limit: 100 } }),
-    enabled: geometry.length >= 2,
-    staleTime: 10 * 60_000,
-  });
-  const { data: weighStations, isLoading: weighLoading } = useQuery({
-    queryKey: ["weigh-stations", routeKey],
-    queryFn: () => searchPoisFn({ data: { geometry: poiGeometry, kind: "weigh_station", limit: 100 } }),
-    enabled: geometry.length >= 2,
-    staleTime: 10 * 60_000,
-  });
+  const feed = result ? { weatherAlerts: result.weatherAlerts, roadAlerts: result.roadAlerts, providers: result.providers } : undefined;
+  const feedLoading = analysis.isPending;
+  const parkingStops = result?.restAreas;
+  const truckStops = result?.truckStops;
+  const weighStations = result?.weighStations;
+  const parkingLoading = analysis.isPending;
+  const truckStopsLoading = analysis.isPending;
+  const weighLoading = analysis.isPending;
 
 
   // Stat cards: each card uses ONLY its own category data.
@@ -448,7 +405,7 @@ function Dashboard() {
   const routeRisks = result?.risks ?? [];
   const feedWeatherAlerts = feed?.weatherAlerts ?? [];
   const feedRoadAlerts = feed?.roadAlerts ?? [];
-  const usingRoute = !!result && !routeUnavailable && routeMatchesCurrentInputs;
+  const usingRoute = !!result && !routeUnavailable;
   const isWindAlert = (cat: string) => cat === "high_wind" || cat === "tornado";
   const weatherAlertsOnly = feedWeatherAlerts.filter((a) => !isWindAlert(a.category));
   const windAlertsOnly = feedWeatherAlerts.filter((a) => isWindAlert(a.category));
@@ -462,7 +419,7 @@ function Dashboard() {
   const closureCount = usingRoute
     ? routeRisks.filter((r) => r.type === "closure").length
     : feedRoadAlerts.filter((a) => a.category === "road_closure" || a.category === "detour").length;
-  const driverCount = hazards.length;
+  const driverCount = result?.driverReports.length ?? 0;
   const hasRouteWeatherAlerts = usingRoute && feedWeatherAlerts.length > 0;
 
   const score = result?.score ?? null;
@@ -890,7 +847,7 @@ function Dashboard() {
   );
 }
 
-type PoiDialogResult = NonNullable<Awaited<ReturnType<typeof searchTruckPois>>>;
+type PoiDialogResult = TruckPoiResult;
 type PoiItem = PoiDialogResult["pois"][number];
 
 function typeLabelShort(t?: string) {

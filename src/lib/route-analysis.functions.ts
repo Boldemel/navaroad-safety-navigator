@@ -7,7 +7,9 @@ import {
   type WeatherAlert,
 } from "./services/weather.service";
 import { computeSafety } from "./services/safety-score.service";
-import { fetchRoadAlerts } from "./services/road-alert.service";
+import { fetchRoadAlerts, type RoadAlert } from "./services/road-alert.service";
+import { searchTruckPoisForRoute, type TruckPoiResult } from "./poi-search.functions";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const InputSchema = z.object({
   origin: z.string().trim().min(2).max(200),
@@ -26,7 +28,105 @@ const InputSchema = z.object({
       loaded: z.boolean().optional(),
     })
     .optional(),
+  requestId: z.string().max(80).optional(),
 });
+
+export type RouteDriverReport = {
+  id: string;
+  hazard_type: string;
+  severity: "low" | "medium" | "high" | "critical";
+  location: string;
+  description: string | null;
+  reporter_id: string | null;
+  latitude: number;
+  longitude: number;
+  created_at: string;
+  distanceMi: number;
+};
+
+type RouteWeatherAlert = WeatherAlert;
+
+function routeSignature(geom: Array<[number, number]>) {
+  if (geom.length < 2) return "none";
+  let hash = 0;
+  const max = Math.min(40, geom.length);
+  for (let i = 0; i < max; i++) {
+    const [lon, lat] = geom[Math.floor((i / Math.max(1, max - 1)) * (geom.length - 1))];
+    const part = `${lon.toFixed(4)},${lat.toFixed(4)}`;
+    for (let j = 0; j < part.length; j++) hash = (hash * 31 + part.charCodeAt(j)) >>> 0;
+  }
+  return `${geom.length}:${hash.toString(16)}`;
+}
+
+function emptyPoiResult(provider = "TomTom"): TruckPoiResult {
+  return { connected: false, provider, totalFound: 0, pois: [] };
+}
+
+function distMi(aLat: number, aLon: number, bLat: number, bLon: number) {
+  const r = 3958.8;
+  const toRad = (v: number) => (v * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLon = toRad(bLon - aLon);
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLon / 2) ** 2;
+  return r * 2 * Math.asin(Math.sqrt(s));
+}
+
+function pointToSegmentDistanceMi(lat: number, lon: number, aLat: number, aLon: number, bLat: number, bLon: number) {
+  const milesPerDegreeLat = 69;
+  const milesPerDegreeLon = 69 * Math.cos((lat * Math.PI) / 180);
+  const px = lon * milesPerDegreeLon;
+  const py = lat * milesPerDegreeLat;
+  const ax = aLon * milesPerDegreeLon;
+  const ay = aLat * milesPerDegreeLat;
+  const bx = bLon * milesPerDegreeLon;
+  const by = bLat * milesPerDegreeLat;
+  const dx = bx - ax;
+  const dy = by - ay;
+  if (dx === 0 && dy === 0) return distMi(lat, lon, aLat, aLon);
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+function distanceToRouteMi(geom: Array<[number, number]>, lat: number, lon: number) {
+  let best = Infinity;
+  for (let i = 1; i < geom.length; i++) {
+    const [aLon, aLat] = geom[i - 1];
+    const [bLon, bLat] = geom[i];
+    best = Math.min(best, pointToSegmentDistanceMi(lat, lon, aLat, aLon, bLat, bLon));
+  }
+  return Number.isFinite(best) ? best : null;
+}
+
+async function fetchRouteDriverReports(geometry: Array<[number, number]>, corridorMi = 10): Promise<RouteDriverReport[]> {
+  if (geometry.length < 2) return [];
+  const { data, error } = await supabaseAdmin
+    .from("hazard_reports")
+    .select("id,hazard_type,severity,location,description,reporter_id,latitude,longitude,created_at,status")
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error || !data) return [];
+  return data
+    .map((h) => {
+      if (h.latitude == null || h.longitude == null) return null;
+      const d = distanceToRouteMi(geometry, h.latitude, h.longitude);
+      if (d == null || d > corridorMi) return null;
+      return {
+        id: h.id,
+        hazard_type: h.hazard_type,
+        severity: (h.severity ?? "medium") as RouteDriverReport["severity"],
+        location: h.location,
+        description: h.description ?? null,
+        reporter_id: h.reporter_id ?? null,
+        latitude: h.latitude,
+        longitude: h.longitude,
+        created_at: h.created_at,
+        distanceMi: d,
+      } satisfies RouteDriverReport;
+    })
+    .filter((h): h is RouteDriverReport => h != null)
+    .sort((a, b) => a.distanceMi - b.distanceMi);
+}
 
 export type RouteAnalysis = {
   origin: { name: string; lat: number; lon: number };
@@ -48,19 +148,34 @@ export type RouteAnalysis = {
     condition: string;
     available: boolean;
   }>;
-  weatherAlerts: Array<{
-    id: string;
-    event: string;
-    severity: "low" | "medium" | "high" | "critical";
-    areaDesc: string;
-    headline: string;
-    recommendedAction: string;
-    effective: string;
-    provider: string;
-    source: "weather_api";
-  }>;
+  weatherAlerts: RouteWeatherAlert[];
   weatherAlertCount: number;
   roadAlertCount: number;
+  roadAlerts: RoadAlert[];
+  roadClosures: RoadAlert[];
+  windRisks: Array<{
+    id: string;
+    severity: "low" | "medium" | "high" | "critical";
+    message: string;
+    source: "Weather API" | "DOT" | "Driver Report" | "System";
+  }>;
+  restAreas: TruckPoiResult;
+  truckStops: TruckPoiResult;
+  weighStations: TruckPoiResult;
+  driverReports: RouteDriverReport[];
+  routeId: string;
+  etaMin: number;
+  debug: {
+    routeId: string;
+    origin: string;
+    destination: string;
+    polyline: string;
+    polylinePointCount: number;
+    desktopResultCount: number;
+    mobileResultCount: number;
+    apiResponseTimestamp: string;
+    cacheStatus: "fresh";
+  };
   risks: Array<{
     type: "wind" | "precip" | "closure" | "hazard" | "temp" | "visibility" | "weather_alert";
     severity: "low" | "medium" | "high" | "critical";
@@ -152,7 +267,15 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       }
       bbox = [minLon, minLat, maxLon, maxLat];
     }
-    const roadAlerts = await fetchRoadAlerts({ bbox }).catch(() => []);
+    const [roadAlerts, restAreas, truckStops, weighStations, driverReports] = routeAvailable
+      ? await Promise.all([
+          fetchRoadAlerts({ bbox }).catch(() => [] as RoadAlert[]),
+          searchTruckPoisForRoute({ geometry: r.geometry, kind: "rest_area", limit: 100 }).catch(() => emptyPoiResult()),
+          searchTruckPoisForRoute({ geometry: r.geometry, kind: "truck_stop", limit: 100 }).catch(() => emptyPoiResult()),
+          searchTruckPoisForRoute({ geometry: r.geometry, kind: "weigh_station", limit: 100 }).catch(() => emptyPoiResult()),
+          fetchRouteDriverReports(r.geometry).catch(() => []),
+        ])
+      : [[], emptyPoiResult(), emptyPoiResult(), emptyPoiResult(), [] as RouteDriverReport[]];
 
     const weatherAvailable = weatherSamples.some((w) => w.available);
 
@@ -167,11 +290,32 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       })),
       weatherAlerts,
       roadAlerts,
-      driverReportCount: 0,
+      driverReportCount: driverReports.length,
       trailerType: data.trailer,
     });
 
     const haveAnyLiveData = routeAvailable && (weatherAvailable || weatherAlerts.length > 0 || roadAlerts.length > 0);
+    const generatedAt = new Date().toISOString();
+    const routeId = routeSignature(r.geometry);
+    const mappedRisks = result.factors.map((f) => ({
+      ...f,
+      source:
+        f.type === "closure"
+          ? ("DOT" as const)
+          : f.type === "hazard"
+            ? ("Driver Report" as const)
+            : ("Weather API" as const),
+    }));
+    const roadClosures = roadAlerts.filter((a) => a.category === "road_closure");
+    const windRisks = [
+      ...mappedRisks
+        .filter((r) => r.type === "wind")
+        .map((r, i) => ({ id: `risk-wind-${i}`, severity: r.severity, message: r.message, source: r.source })),
+      ...weatherAlerts
+        .filter((a) => a.category === "high_wind" || a.category === "tornado")
+        .map((a) => ({ id: a.id, severity: a.severity, message: `${a.event} — ${a.areaDesc}`, source: "Weather API" as const })),
+    ];
+    const sharedResultCount = weatherAlerts.length + roadAlerts.length + driverReports.length + restAreas.pois.length + truckStops.pois.length + weighStations.pois.length;
 
     return {
       origin: o,
@@ -182,28 +326,30 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       routeStatus: !routeAvailable ? "unavailable" : r.truckRestrictionsVerified ? "ok" : "fallback",
       routeMessage: !routeAvailable ? ROUTE_NOT_CALCULATED_MESSAGE : r.warning,
       weather: weatherSamples,
-      weatherAlerts: weatherAlerts.map((a) => ({
-        id: a.id,
-        event: a.event,
-        severity: a.severity,
-        areaDesc: a.areaDesc,
-        headline: a.headline,
-        recommendedAction: a.recommendedAction,
-        effective: a.effective,
-        provider: a.provider,
-        source: "weather_api" as const,
-      })),
+      weatherAlerts,
       weatherAlertCount: weatherAlerts.length,
       roadAlertCount: roadAlerts.length,
-      risks: result.factors.map((f) => ({
-        ...f,
-        source:
-          f.type === "closure"
-            ? ("DOT" as const)
-            : f.type === "hazard"
-              ? ("Driver Report" as const)
-              : ("Weather API" as const),
-      })),
+      roadAlerts,
+      roadClosures,
+      windRisks,
+      restAreas,
+      truckStops,
+      weighStations,
+      driverReports,
+      routeId,
+      etaMin: r.durationMin,
+      debug: {
+        routeId,
+        origin: o.name,
+        destination: d2.name,
+        polyline: r.geometry.slice(0, 12).map(([lon, lat]) => `${lat.toFixed(4)},${lon.toFixed(4)}`).join(" → ") + (r.geometry.length > 12 ? " …" : ""),
+        polylinePointCount: r.geometry.length,
+        desktopResultCount: sharedResultCount,
+        mobileResultCount: sharedResultCount,
+        apiResponseTimestamp: generatedAt,
+        cacheStatus: "fresh",
+      },
+      risks: mappedRisks,
       breakdown: result.breakdown,
       score: haveAnyLiveData ? result.score : null,
       riskLevel: haveAnyLiveData ? result.riskLevel : null,
@@ -217,7 +363,7 @@ export const analyzeRoute = createServerFn({ method: "POST" })
         : routeAvailable
           ? "Connect live weather and road data to calculate route safety."
           : ROUTE_NOT_CALCULATED_MESSAGE,
-      generatedAt: new Date().toISOString(),
+      generatedAt,
       dataAvailability: {
         weather: weatherAvailable,
         weatherAlerts: weatherAlerts.length > 0,

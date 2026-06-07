@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import type { RouteAnalysis } from "@/lib/route-analysis.functions";
 
 const KEY = "navaroad.activeRoute";
 const EVT = "navaroad:active-route";
@@ -7,6 +8,15 @@ export type ActiveRoute = {
   origin: string;
   destination: string;
   geometry: Array<[number, number]>;
+  result?: RouteAnalysis;
+  input?: {
+    origin: string;
+    destination: string;
+    truck?: string;
+    trailer?: string;
+    originCoords?: { lat: number; lon: number };
+    destinationCoords?: { lat: number; lon: number };
+  };
   savedAt: string;
 };
 
