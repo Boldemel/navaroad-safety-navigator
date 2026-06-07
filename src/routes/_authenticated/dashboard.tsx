@@ -490,6 +490,9 @@ function Dashboard() {
               {geo.status === "unavailable" && (
                 <p className="text-[11px] text-muted-foreground">Geolocation not supported in this browser.</p>
               )}
+              {geo.status === "error" && geo.error && (
+                <p className="text-[11px] text-destructive">{geo.error}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
