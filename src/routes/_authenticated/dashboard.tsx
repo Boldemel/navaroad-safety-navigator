@@ -92,6 +92,18 @@ function Dashboard() {
   const [poiDialog, setPoiDialog] = useState<{ title: string; result: PoiDialogResult | null } | null>(null);
   const [analyzedRouteKey, setAnalyzedRouteKey] = useState<string | null>(cached?.analyzedRouteKey ?? null);
 
+  // When the active route is cleared (End navigation from anywhere), wipe the
+  // dashboard's cached result too so route cards and counts reset instead of
+  // sticking on stale numbers.
+  useEffect(() => {
+    if (activeRoute === null) {
+      setCachedResult(null);
+      setAnalyzedRouteKey(null);
+      writeCachedAnalysis(null);
+    }
+  }, [activeRoute]);
+
+
 
   function routeInputKey(
     originText: string,
