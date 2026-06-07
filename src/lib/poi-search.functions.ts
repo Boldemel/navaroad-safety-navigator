@@ -546,13 +546,7 @@ async function tomtomNearby(
   });
   if (brandSet) p.set("brandSet", brandSet);
   const url = `https://api.tomtom.com/search/2/nearbySearch/.json?${p}`;
-  try {
-    const r = await fetch(url);
-    const j = (await r.json().catch(() => null)) as { results?: RawResult[] } | null;
-    return { url, status: r.status, error: r.ok ? null : tomtomError(j), results: r.ok ? j?.results ?? [] : [] };
-  } catch {
-    return { url, status: 0, error: "TomTom request failed", results: [] };
-  }
+  return tomtomRequest(url);
 }
 
 async function tomtomKeyword(
@@ -571,13 +565,7 @@ async function tomtomKeyword(
     idxSet: "POI",
   });
   const url = `https://api.tomtom.com/search/2/poiSearch/${encodeURIComponent(query)}.json?${p}`;
-  try {
-    const r = await fetch(url);
-    const j = (await r.json().catch(() => null)) as { results?: RawResult[] } | null;
-    return { url, status: r.status, error: r.ok ? null : tomtomError(j), results: r.ok ? j?.results ?? [] : [] };
-  } catch {
-    return { url, status: 0, error: "TomTom request failed", results: [] };
-  }
+  return tomtomRequest(url);
 }
 
 
