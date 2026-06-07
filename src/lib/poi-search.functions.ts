@@ -861,7 +861,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
             const r = await fetch(url);
             if (!r.ok) return;
             const j = (await r.json().catch(() => null)) as {
-              addresses?: Array<{ address?: { freeformAddress?: string; municipality?: string; countrySubdivision?: string; countrySubdivisionName?: string; streetName?: string; streetNumber?: string; postalCode?: string } }>;
+              addresses?: Array<{ address?: TomTomAddress }>;
             } | null;
             const a = j?.addresses?.[0]?.address;
             if (!a) return;
