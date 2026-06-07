@@ -586,10 +586,10 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       return { connected: true, provider: "TomTom", totalFound: 0, pois: [] };
     }
 
-    // Sample every ~50 miles along the route corridor (cap 40 samples to bound API calls).
-    // On a 1,100 mi route this gives ~22 search points so brands/scales/stations
-    // are searched from origin to destination, not just at the endpoints.
-    const samples = sampleEveryMiles(data.geometry, 50, 40);
+    // Sample the full corridor without flooding the POI provider. Prior runs
+    // fired hundreds of truck-stop requests at once, hit rate limits, and then
+    // displayed partial results, which caused inconsistent counts between runs.
+    const samples = sampleEveryMiles(data.geometry, 75, 24);
 
     // TomTom POI categories:
     // 7311 = Truck Stop / Travel Center, 7311003 = Truck-friendly fuel,
@@ -622,25 +622,6 @@ export const searchTruckPois = createServerFn({ method: "POST" })
       : data.kind === "cat_scale"
         ? ["CAT scale", "CAT scales", "certified automated truck scale", "truck scale"]
         : ["rest area", "welcome center", "safety rest area", "highway rest stop"];
-
-    // TomTom brand IDs/names for truck stops — used with categorySearch's
-    // brandSet parameter so a brand always surfaces even when keyword search
-    // is noisy.
-    const truckStopBrands = [
-      "Love's Travel Stops",
-      "Love's",
-      "Pilot",
-      "Pilot Travel Centers",
-      "Flying J",
-      "Pilot Flying J",
-      "TA",
-      "TravelCenters of America",
-      "Petro",
-      "Petro Stopping Centers",
-      "Sapp Bros",
-      "Road Ranger",
-      "Casey's General Store",
-    ];
 
     const radiusM = 50000; // initial provider search around each sample
     const corridorRadiusMi = data.kind === "truck_stop" ? 8 : data.kind === "weigh_station" ? 5 : 3;
