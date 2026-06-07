@@ -402,7 +402,7 @@ function HazardMap() {
             routeGeometry={focusPoint ? [] : geometry}
             currentLocation={focusPoint ? null : here}
             markers={focusPoint
-              ? [{ id: "focus", lat: focusPoint.lat, lon: focusPoint.lon, title: focusLabel ?? "Selected location", description: focusDetails, color: "#22c55e" }]
+              ? [{ id: "focus", lat: focusPoint.lat, lon: focusPoint.lon, title: focusLabel ?? "Selected location", description: focusDetails, color: "#22c55e", iconKey: "pin" }]
               : [
                   ...allVisible
                     .filter((m): m is Marker & { lat: number; lon: number } => m.lat != null && m.lon != null)
@@ -418,6 +418,12 @@ function HazardMap() {
                           : m.severity === "critical" || m.severity === "high"
                             ? "#ef4444"
                             : "#3b82f6",
+                      iconKey:
+                        m.layer === "driver"
+                          ? "driver"
+                          : m.severity === "critical" || m.severity === "high"
+                            ? "hazard"
+                            : "weather",
                     })),
                   ...(showTruckStops ? (truckStopsData?.pois ?? []) : []).map<MapMarker>((p) => ({
                     id: "ts-" + p.id,
@@ -426,6 +432,7 @@ function HazardMap() {
                     title: p.name,
                     description: `Truck stop · ${p.address || `${p.city ?? ""} ${p.state ?? ""}`.trim() || p.source}`,
                     color: POI_COLORS.truck_stop,
+                    iconKey: "truck_stop",
                   })),
                   ...(showRestAreas ? (restAreasData?.pois ?? []) : []).map<MapMarker>((p) => ({
                     id: "ra-" + p.id,
@@ -434,6 +441,7 @@ function HazardMap() {
                     title: p.name,
                     description: `Rest area · ${p.address || `${p.city ?? ""} ${p.state ?? ""}`.trim() || p.source}`,
                     color: POI_COLORS.rest_area,
+                    iconKey: "rest_area",
                   })),
                   ...(showWeighStations ? (weighStationsData?.pois ?? []) : []).map<MapMarker>((p) => ({
                     id: "ws-" + p.id,
@@ -442,6 +450,7 @@ function HazardMap() {
                     title: p.name,
                     description: `Weigh station · ${p.address || `${p.city ?? ""} ${p.state ?? ""}`.trim() || p.source}`,
                     color: POI_COLORS.weigh_station,
+                    iconKey: "weigh_station",
                   })),
                 ]}
           />
