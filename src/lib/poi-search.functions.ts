@@ -499,6 +499,7 @@ async function tomtomNearby(
   lon: number,
   categorySet: string,
   radiusM: number,
+  brandSet?: string,
 ): Promise<TomTomCall> {
   const p = new URLSearchParams({
     key,
@@ -508,6 +509,7 @@ async function tomtomNearby(
     limit: "50",
     categorySet,
   });
+  if (brandSet) p.set("brandSet", brandSet);
   const url = `https://api.tomtom.com/search/2/nearbySearch/.json?${p}`;
   try {
     const r = await fetch(url);
