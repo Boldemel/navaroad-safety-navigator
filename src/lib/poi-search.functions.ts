@@ -586,7 +586,7 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         : ["rest area", "welcome center", "safety rest area", "highway rest stop"];
 
     const radiusM = 50000; // initial provider search around each sample
-    const corridorRadiusMi = 35; // final route-corridor filter for simplified route geometry
+    const corridorRadiusMi = data.kind === "truck_stop" ? 8 : data.kind === "weigh_station" ? 5 : 3;
     const seen = new Map<string, TruckPoi>();
     const cumMi = buildCumMi(data.geometry);
     let tomtomRawCount = 0;
@@ -671,8 +671,8 @@ export const searchTruckPois = createServerFn({ method: "POST" })
         brand,
         category: cats[0] ?? type,
         type,
-        address: r.address?.freeformAddress ?? "",
-        city: r.address?.municipality ?? null,
+        address: tomtomAddressLine(r.address),
+        city: r.address?.municipality ?? r.address?.municipalitySubdivision ?? null,
         state: r.address?.countrySubdivision ?? r.address?.countrySubdivisionName ?? null,
         lat: r.position.lat,
         lon: r.position.lon,
