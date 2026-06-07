@@ -42,7 +42,7 @@ function samplePoiGeometry(geom: Array<[number, number]>, maxPoints: number) {
 // LocalStorage-backed cache for POIs so the map shows the last-seen icons
 // immediately on revisit while fresh results load in the background.
 type PoiKind = "truck_stop" | "rest_area" | "weigh_station";
-type CachedPois = Awaited<ReturnType<typeof searchTruckPois>>;
+type CachedPois = TruckPoiResult;
 const POI_CACHE_PREFIX = "navaroad.poiCache.";
 function poiCacheKey(kind: PoiKind, routeKey: string) {
   return `${POI_CACHE_PREFIX}${kind}.${routeKey}`;
