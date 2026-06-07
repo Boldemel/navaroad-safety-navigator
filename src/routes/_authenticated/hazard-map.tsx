@@ -463,7 +463,7 @@ function HazardMap() {
       />
 
       <div className="grid gap-3 md:grid-cols-[1fr_220px]">
-        <div className="relative aspect-[16/8] overflow-hidden">
+        <div className="relative h-[60vh] min-h-[320px] md:h-auto md:aspect-[16/8] overflow-hidden rounded-xl border border-border">
           <TomTomMap
             tomtomKey={tomtom?.key ?? null}
             showTraffic
