@@ -66,12 +66,17 @@ export type RouteAnalysis = {
   }>;
   weatherAlerts: Array<{
     id: string;
+    category: "high_wind" | "tornado" | "winter_storm" | "flood" | "thunderstorm" | "visibility" | "severe_weather";
     event: string;
     severity: "low" | "medium" | "high" | "critical";
     areaDesc: string;
     headline: string;
+    description: string;
     recommendedAction: string;
     effective: string;
+    expires: string | null;
+    lat: number | null;
+    lon: number | null;
     provider: string;
     source: "weather_api";
   }>;
