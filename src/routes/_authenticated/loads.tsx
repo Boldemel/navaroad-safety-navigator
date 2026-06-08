@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppShell } from "@/components/app-shell";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listLoads, createLoad, updateLoad, deleteLoad, type Load } from "@/lib/loads.functions";
@@ -67,7 +67,6 @@ function LoadsPage() {
   });
 
   return (
-    <AppShell>
       <div className="container max-w-3xl py-6 space-y-5">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
@@ -121,7 +120,6 @@ function LoadsPage() {
           )
         )}
       </div>
-    </AppShell>
   );
 }
 

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppShell } from "@/components/app-shell";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listInspections, createInspection, deleteInspection, type InspectionDefect } from "@/lib/inspections.functions";
@@ -45,7 +45,6 @@ function InspectionsPage() {
   });
 
   return (
-    <AppShell>
       <div className="container max-w-3xl py-6 space-y-5">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
@@ -115,7 +114,6 @@ function InspectionsPage() {
           </div>
         )}
       </div>
-    </AppShell>
   );
 }
 
