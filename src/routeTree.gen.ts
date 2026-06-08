@@ -20,11 +20,14 @@ import { Route as AuthenticatedReportRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedParkingRouteImport } from './routes/_authenticated/parking'
 import { Route as AuthenticatedMaintenanceRouteImport } from './routes/_authenticated/maintenance'
+import { Route as AuthenticatedLogbookRouteImport } from './routes/_authenticated/logbook'
 import { Route as AuthenticatedLoadsRouteImport } from './routes/_authenticated/loads'
 import { Route as AuthenticatedInspectionsRouteImport } from './routes/_authenticated/inspections'
 import { Route as AuthenticatedIftaRouteImport } from './routes/_authenticated/ifta'
 import { Route as AuthenticatedHosRouteImport } from './routes/_authenticated/hos'
 import { Route as AuthenticatedHazardMapRouteImport } from './routes/_authenticated/hazard-map'
+import { Route as AuthenticatedFuelRouteImport } from './routes/_authenticated/fuel'
+import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticated/expenses'
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
@@ -87,6 +90,11 @@ const AuthenticatedMaintenanceRoute =
     path: '/maintenance',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedLogbookRoute = AuthenticatedLogbookRouteImport.update({
+  id: '/logbook',
+  path: '/logbook',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedLoadsRoute = AuthenticatedLoadsRouteImport.update({
   id: '/loads',
   path: '/loads',
@@ -111,6 +119,16 @@ const AuthenticatedHosRoute = AuthenticatedHosRouteImport.update({
 const AuthenticatedHazardMapRoute = AuthenticatedHazardMapRouteImport.update({
   id: '/hazard-map',
   path: '/hazard-map',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFuelRoute = AuthenticatedFuelRouteImport.update({
+  id: '/fuel',
+  path: '/fuel',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedExpensesRoute = AuthenticatedExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDocumentsRoute = AuthenticatedDocumentsRouteImport.update({
@@ -155,11 +173,14 @@ export interface FileRoutesByFullPath {
   '/alerts': typeof AuthenticatedAlertsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
+  '/expenses': typeof AuthenticatedExpensesRoute
+  '/fuel': typeof AuthenticatedFuelRoute
   '/hazard-map': typeof AuthenticatedHazardMapRoute
   '/hos': typeof AuthenticatedHosRoute
   '/ifta': typeof AuthenticatedIftaRoute
   '/inspections': typeof AuthenticatedInspectionsRoute
   '/loads': typeof AuthenticatedLoadsRoute
+  '/logbook': typeof AuthenticatedLogbookRoute
   '/maintenance': typeof AuthenticatedMaintenanceRoute
   '/parking': typeof AuthenticatedParkingRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -178,11 +199,14 @@ export interface FileRoutesByTo {
   '/alerts': typeof AuthenticatedAlertsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
+  '/expenses': typeof AuthenticatedExpensesRoute
+  '/fuel': typeof AuthenticatedFuelRoute
   '/hazard-map': typeof AuthenticatedHazardMapRoute
   '/hos': typeof AuthenticatedHosRoute
   '/ifta': typeof AuthenticatedIftaRoute
   '/inspections': typeof AuthenticatedInspectionsRoute
   '/loads': typeof AuthenticatedLoadsRoute
+  '/logbook': typeof AuthenticatedLogbookRoute
   '/maintenance': typeof AuthenticatedMaintenanceRoute
   '/parking': typeof AuthenticatedParkingRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -203,11 +227,14 @@ export interface FileRoutesById {
   '/_authenticated/alerts': typeof AuthenticatedAlertsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
+  '/_authenticated/expenses': typeof AuthenticatedExpensesRoute
+  '/_authenticated/fuel': typeof AuthenticatedFuelRoute
   '/_authenticated/hazard-map': typeof AuthenticatedHazardMapRoute
   '/_authenticated/hos': typeof AuthenticatedHosRoute
   '/_authenticated/ifta': typeof AuthenticatedIftaRoute
   '/_authenticated/inspections': typeof AuthenticatedInspectionsRoute
   '/_authenticated/loads': typeof AuthenticatedLoadsRoute
+  '/_authenticated/logbook': typeof AuthenticatedLogbookRoute
   '/_authenticated/maintenance': typeof AuthenticatedMaintenanceRoute
   '/_authenticated/parking': typeof AuthenticatedParkingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
@@ -228,11 +255,14 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/dashboard'
     | '/documents'
+    | '/expenses'
+    | '/fuel'
     | '/hazard-map'
     | '/hos'
     | '/ifta'
     | '/inspections'
     | '/loads'
+    | '/logbook'
     | '/maintenance'
     | '/parking'
     | '/profile'
@@ -251,11 +281,14 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/dashboard'
     | '/documents'
+    | '/expenses'
+    | '/fuel'
     | '/hazard-map'
     | '/hos'
     | '/ifta'
     | '/inspections'
     | '/loads'
+    | '/logbook'
     | '/maintenance'
     | '/parking'
     | '/profile'
@@ -275,11 +308,14 @@ export interface FileRouteTypes {
     | '/_authenticated/alerts'
     | '/_authenticated/dashboard'
     | '/_authenticated/documents'
+    | '/_authenticated/expenses'
+    | '/_authenticated/fuel'
     | '/_authenticated/hazard-map'
     | '/_authenticated/hos'
     | '/_authenticated/ifta'
     | '/_authenticated/inspections'
     | '/_authenticated/loads'
+    | '/_authenticated/logbook'
     | '/_authenticated/maintenance'
     | '/_authenticated/parking'
     | '/_authenticated/profile'
@@ -378,6 +414,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMaintenanceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/logbook': {
+      id: '/_authenticated/logbook'
+      path: '/logbook'
+      fullPath: '/logbook'
+      preLoaderRoute: typeof AuthenticatedLogbookRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/loads': {
       id: '/_authenticated/loads'
       path: '/loads'
@@ -411,6 +454,20 @@ declare module '@tanstack/react-router' {
       path: '/hazard-map'
       fullPath: '/hazard-map'
       preLoaderRoute: typeof AuthenticatedHazardMapRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fuel': {
+      id: '/_authenticated/fuel'
+      path: '/fuel'
+      fullPath: '/fuel'
+      preLoaderRoute: typeof AuthenticatedFuelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/expenses': {
+      id: '/_authenticated/expenses'
+      path: '/expenses'
+      fullPath: '/expenses'
+      preLoaderRoute: typeof AuthenticatedExpensesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/documents': {
@@ -462,11 +519,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAlertsRoute: typeof AuthenticatedAlertsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
+  AuthenticatedExpensesRoute: typeof AuthenticatedExpensesRoute
+  AuthenticatedFuelRoute: typeof AuthenticatedFuelRoute
   AuthenticatedHazardMapRoute: typeof AuthenticatedHazardMapRoute
   AuthenticatedHosRoute: typeof AuthenticatedHosRoute
   AuthenticatedIftaRoute: typeof AuthenticatedIftaRoute
   AuthenticatedInspectionsRoute: typeof AuthenticatedInspectionsRoute
   AuthenticatedLoadsRoute: typeof AuthenticatedLoadsRoute
+  AuthenticatedLogbookRoute: typeof AuthenticatedLogbookRoute
   AuthenticatedMaintenanceRoute: typeof AuthenticatedMaintenanceRoute
   AuthenticatedParkingRoute: typeof AuthenticatedParkingRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
@@ -481,11 +541,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAlertsRoute: AuthenticatedAlertsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
+  AuthenticatedExpensesRoute: AuthenticatedExpensesRoute,
+  AuthenticatedFuelRoute: AuthenticatedFuelRoute,
   AuthenticatedHazardMapRoute: AuthenticatedHazardMapRoute,
   AuthenticatedHosRoute: AuthenticatedHosRoute,
   AuthenticatedIftaRoute: AuthenticatedIftaRoute,
   AuthenticatedInspectionsRoute: AuthenticatedInspectionsRoute,
   AuthenticatedLoadsRoute: AuthenticatedLoadsRoute,
+  AuthenticatedLogbookRoute: AuthenticatedLogbookRoute,
   AuthenticatedMaintenanceRoute: AuthenticatedMaintenanceRoute,
   AuthenticatedParkingRoute: AuthenticatedParkingRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
