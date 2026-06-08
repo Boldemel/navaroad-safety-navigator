@@ -23,8 +23,12 @@ export const Route = createFileRoute("/_authenticated/profile")({
 });
 
 function Profile() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const deleteAccountFn = useServerFn(deleteOwnAccount);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [email, setEmail] = useState("");
   const [form, setForm] = useState({
     driver_name: "",
@@ -32,6 +36,21 @@ function Profile() {
     notify_push: true,
     notify_sms: false,
   });
+
+  async function deleteAccount() {
+    setDeleting(true);
+    try {
+      await deleteAccountFn({});
+      await queryClient.cancelQueries();
+      queryClient.clear();
+      await supabase.auth.signOut();
+      toast.success("Your account has been deleted.");
+      router.navigate({ to: "/", replace: true });
+    } catch (e) {
+      setDeleting(false);
+      toast.error(e instanceof Error ? e.message : "Could not delete account.");
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -99,6 +118,40 @@ function Profile() {
       <TruckProfileCard />
       <FavoriteLocationsCard />
       <VoiceSettingsCard />
+
+      <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 space-y-3">
+        <div>
+          <div className="font-medium text-destructive">Delete account</div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Permanently removes your profile, saved routes, favorites, and sign-in credentials.
+            Hazard reports you submitted stay visible to the community but are detached from your account.
+            This cannot be undone.
+          </p>
+        </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" size="sm" disabled={deleting}>
+              <Trash2 className="size-4 mr-1.5" />
+              {deleting ? "Deleting…" : "Delete my account"}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete your Navaroad account?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This permanently deletes your profile, saved routes, favorites, truck profile, and sign-in.
+                You'll be signed out immediately. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={deleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Yes, delete everything
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }
