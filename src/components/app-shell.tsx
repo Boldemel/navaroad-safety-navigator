@@ -1,5 +1,5 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Map, AlertTriangle, Bell, User, LogOut, Truck, Shield, Users, FileWarning } from "lucide-react";
+import { LayoutDashboard, Map, AlertTriangle, Bell, User, LogOut, Truck, Shield, Users, FileWarning, Clock, BookOpen } from "lucide-react";
 import { ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,8 +13,18 @@ const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/hazard-map", label: "Hazard Map", icon: Map },
   { to: "/report", label: "Report Hazard", icon: AlertTriangle },
+  { to: "/hos", label: "Hours of Service", icon: Clock },
+  { to: "/trips", label: "Trip History", icon: BookOpen },
   { to: "/alerts", label: "Alerts", icon: Bell },
   { to: "/profile", label: "Profile", icon: User },
+];
+
+const mobileNav = [
+  { to: "/dashboard", label: "Dash", icon: LayoutDashboard },
+  { to: "/hazard-map", label: "Map", icon: Map },
+  { to: "/hos", label: "HOS", icon: Clock },
+  { to: "/trips", label: "Trips", icon: BookOpen },
+  { to: "/profile", label: "Me", icon: User },
 ];
 
 const adminNav = [
@@ -118,7 +128,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* Mobile bottom nav */}
         <nav className="md:hidden sticky bottom-0 grid grid-cols-5 border-t border-border bg-sidebar">
-          {nav.map((n) => {
+          {mobileNav.map((n) => {
             const active = pathname === n.to;
             return (
               <Link

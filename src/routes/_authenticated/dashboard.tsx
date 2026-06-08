@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import { consumePendingRoute, saveRoute } from "@/lib/saved-routes";
 import { toast } from "sonner";
+import { FuelCostCard } from "@/components/fuel-cost-card";
+import { estimateFuel } from "@/lib/fuel-estimator";
+import { logTrip } from "@/lib/trip-logs.functions";
 
 import { TRUCK_TYPES, TRAILER_TYPES, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
@@ -662,6 +665,15 @@ function Dashboard() {
                   </div>
                 </div>
               )}
+              <FuelCostCard distanceMi={Math.round(result.distanceKm * 0.621371)} truck={truck} />
+              <LogTripButton
+                origin={origin}
+                destination={destination}
+                truck={truck}
+                trailer={trailer}
+                result={result}
+              />
+
               <div className="text-xs text-muted-foreground">
                 Data as of {new Date(result.generatedAt).toLocaleString()} ·
                 {" "}Weather: {result.dataAvailability.weather ? `live (${result.providers.weather})` : "not connected"} ·
@@ -1350,4 +1362,54 @@ function weatherRiskNote(
     };
   }
   return { note: "No major weather risk.", tone: "text-success" };
+}
+
+function LogTripButton({ origin, destination, truck, trailer, result }: {
+  origin: string;
+  destination: string;
+  truck: string;
+  trailer: string;
+  result: RouteAnalysis;
+}) {
+  const logTripFn = useServerFn(logTrip);
+  const [logged, setLogged] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const distanceMi = Math.round(result.distanceKm * 0.621371);
+  const { cost } = estimateFuel(distanceMi, truck, 3.85);
+  async function save() {
+    if (!origin.trim() || !destination.trim()) return;
+    setBusy(true);
+    try {
+      await logTripFn({ data: {
+        origin: origin.trim(),
+        destination: destination.trim(),
+        distanceMi,
+        durationMin: result.durationMin,
+        truckType: truck || null,
+        trailerType: trailer || null,
+        safetyScore: result.score ?? null,
+        hazardCount: result.roadAlertCount + result.weatherAlertCount,
+        weatherAlerts: result.weatherAlertCount,
+        fuelCost: Number(cost.toFixed(2)),
+        notes: null,
+        startedAt: null,
+      }});
+      setLogged(true);
+      toast.success("Trip logged to your history.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not log trip.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={save}
+      disabled={busy || logged}
+      className="text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline"
+    >
+      {logged ? "✓ Trip logged" : busy ? "Logging…" : "Log this trip to history →"}
+    </button>
+  );
 }
