@@ -2,12 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { announceHazard } from "@/hooks/use-voice-guidance";
 import { useVoiceSettings } from "@/lib/voice/voice-settings";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Wind, AlertTriangle, Construction, Trash2, Car, ParkingCircleOff, CloudRain,
   CloudLightning, Clock, User, Cloud, Radio, MapPin, LocateFixed, Megaphone,
-  Truck, Scale, TreePine,
+  Truck, Scale, TreePine, ThumbsUp, ThumbsDown,
 } from "lucide-react";
 import { HAZARD_TYPES, hazardLabel, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,8 @@ import { useActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { hazardsWithin, hazardsAlongRoute, nearestHazardAlert, type HazardLike } from "@/lib/hazard-proximity";
 import { DriveModePanel } from "@/components/drive-mode-panel";
+import { voteOnHazard, removeMyHazardVote } from "@/lib/hazards";
+import { supabase } from "@/integrations/supabase/client";
 
 // POI marker colors (kept in sync with the legend below).
 const POI_COLORS = {
@@ -81,6 +83,8 @@ type Marker = {
   reporter_id?: string | null;
   lat?: number | null;
   lon?: number | null;
+  confirmCount?: number;
+  disputeCount?: number;
 };
 
 function HazardMap() {
@@ -94,6 +98,41 @@ function HazardMap() {
   const [follow, setFollow] = useState(false);
   const [recenterToken, setRecenterToken] = useState(0);
   useRealtimeInvalidate(["hazard_reports"], [["map-hazards"], ["driver-names"]]);
+  useRealtimeInvalidate(["hazard_votes"], [["my-hazard-votes"]]);
+
+  const qc = useQueryClient();
+  const voteFn = useServerFn(voteOnHazard);
+  const removeVoteFn = useServerFn(removeMyHazardVote);
+  const { data: myVotes = {} } = useQuery({
+    queryKey: ["my-hazard-votes"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return {} as Record<string, "confirm" | "dispute">;
+      const { data, error } = await supabase
+        .from("hazard_votes")
+        .select("hazard_id, vote")
+        .eq("user_id", u.user.id);
+      if (error) return {} as Record<string, "confirm" | "dispute">;
+      const map: Record<string, "confirm" | "dispute"> = {};
+      for (const v of data ?? []) map[v.hazard_id] = v.vote as "confirm" | "dispute";
+      return map;
+    },
+    staleTime: 30_000,
+  });
+  const vote = useMutation({
+    mutationFn: async ({ hazardId, choice }: { hazardId: string; choice: "confirm" | "dispute" }) => {
+      if (myVotes[hazardId] === choice) {
+        await removeVoteFn({ data: { hazardId } });
+      } else {
+        await voteFn({ data: { hazardId, vote: choice } });
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["my-hazard-votes"] });
+      qc.invalidateQueries({ queryKey: ["map-hazards"] });
+      qc.invalidateQueries({ queryKey: ["route-analysis"] });
+    },
+  });
 
   const { data: drivers = {} } = useDriverNames();
   const tomtomKeyFn = useServerFn(getTomTomKey);
@@ -147,6 +186,8 @@ function HazardMap() {
         location: h.location, description: h.description ?? "", updatedAt: h.created_at,
         reporter_id: h.reporter_id,
         lat: h.latitude ?? null, lon: h.longitude ?? null,
+        confirmCount: h.confirm_count ?? 0,
+        disputeCount: h.dispute_count ?? 0,
       })),
     [hazards],
   );
@@ -557,9 +598,39 @@ function HazardMap() {
                 </div>
                 {m.description && <p className="mt-1 text-sm line-clamp-3">{m.description}</p>}
                 {m.layer === "driver" && (
-                  <div className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
-                    <User className="size-3" /> Reported by {driver ?? "a driver"}
-                  </div>
+                  <>
+                    <div className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
+                      <User className="size-3" /> Reported by {driver ?? "a driver"}
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={vote.isPending}
+                        onClick={() => vote.mutate({ hazardId: m.id, choice: "confirm" })}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition disabled:opacity-50",
+                          myVotes[m.id] === "confirm"
+                            ? "border-success/50 bg-success/15 text-success"
+                            : "border-border bg-card text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        <ThumbsUp className="size-3.5" /> Still there ({m.confirmCount ?? 0})
+                      </button>
+                      <button
+                        type="button"
+                        disabled={vote.isPending}
+                        onClick={() => vote.mutate({ hazardId: m.id, choice: "dispute" })}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition disabled:opacity-50",
+                          myVotes[m.id] === "dispute"
+                            ? "border-destructive/50 bg-destructive/15 text-destructive"
+                            : "border-border bg-card text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        <ThumbsDown className="size-3.5" /> Cleared ({m.disputeCount ?? 0})
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             </div>

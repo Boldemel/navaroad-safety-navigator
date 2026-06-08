@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +11,7 @@ import { HAZARD_TYPES, SEVERITIES } from "@/lib/navaroad";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { geocodeAddress } from "@/lib/geocode.functions";
+import { submitHazard } from "@/lib/hazards";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { LocateFixed } from "lucide-react";
 
@@ -23,22 +23,17 @@ function ReportHazard() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const geocodeFn = useServerFn(geocodeAddress);
+  const submitFn = useServerFn(submitHazard);
   const geo = useGeolocation();
   const [hazardType, setHazardType] = useState("accident");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
   const [severity, setSeverity] = useState("medium");
   const [submitted, setSubmitted] = useState(false);
+  const [wasDeduped, setWasDeduped] = useState(false);
 
   const submit = useMutation({
     mutationFn: async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) throw new Error("You must be signed in to report a hazard.");
-
-      // Try to attach lat/lon so the report can show up on the map and in
-      // proximity alerts. Prefer the user's current GPS fix (most accurate),
-      // otherwise forward-geocode the free-form location text. If both fail
-      // we still submit — the report stays text-only.
       let latitude: number | null = null;
       let longitude: number | null = null;
       if (geo.coords) {
@@ -55,20 +50,18 @@ function ReportHazard() {
           /* non-fatal */
         }
       }
-
-      const { error } = await supabase.from("hazard_reports").insert({
-        hazard_type: hazardType,
-        location,
-        description,
-        severity,
-        reporter_id: u.user.id,
-        latitude,
-        longitude,
+      return submitFn({
+        data: { hazard_type: hazardType, location, description, severity, latitude, longitude },
       });
-      if (error) throw error;
     },
-    onSuccess: () => {
-      toast.success("Hazard reported. Thanks for keeping drivers safe.");
+    onSuccess: (res) => {
+      if (res.deduped) {
+        toast.success("A matching hazard was already reported nearby — we confirmed it on your behalf.");
+        setWasDeduped(true);
+      } else {
+        toast.success("Hazard reported. Thanks for keeping drivers safe.");
+        setWasDeduped(false);
+      }
       qc.invalidateQueries({ queryKey: ["dash-hazards"] });
       qc.invalidateQueries({ queryKey: ["map-hazards"] });
       qc.invalidateQueries({ queryKey: ["alerts-hazards"] });
@@ -83,6 +76,7 @@ function ReportHazard() {
     setDescription("");
     setSeverity("medium");
     setSubmitted(false);
+    setWasDeduped(false);
     submit.reset();
   }
 
@@ -97,9 +91,11 @@ function ReportHazard() {
         <div className="rounded-xl border border-success/30 bg-success/10 p-6 text-center space-y-4">
           <CheckCircle2 className="size-12 text-success mx-auto" />
           <div>
-            <h2 className="text-lg font-semibold">Report submitted</h2>
+            <h2 className="text-lg font-semibold">{wasDeduped ? "Report merged" : "Report submitted"}</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Your hazard is now visible to other Navaroad drivers on the map and Alerts Center.
+              {wasDeduped
+                ? "We found a matching hazard nearby and counted yours as a confirmation."
+                : "Your hazard is now visible to other Navaroad drivers on the map and Alerts Center."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2 justify-center">

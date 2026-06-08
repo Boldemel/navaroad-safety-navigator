@@ -42,6 +42,8 @@ export type RouteDriverReport = {
   longitude: number;
   created_at: string;
   distanceMi: number;
+  confirm_count: number;
+  dispute_count: number;
 };
 
 type RouteWeatherAlert = WeatherAlert;
@@ -101,8 +103,9 @@ async function fetchRouteDriverReports(geometry: Array<[number, number]>, corrid
   if (geometry.length < 2) return [];
   const { data, error } = await supabaseAdmin
     .from("hazard_reports")
-    .select("id,hazard_type,severity,location,description,reporter_id,latitude,longitude,created_at,status")
+    .select("id,hazard_type,severity,location,description,reporter_id,latitude,longitude,created_at,status,expires_at,confirm_count,dispute_count")
     .eq("status", "active")
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
     .order("created_at", { ascending: false })
     .limit(200);
   if (error || !data) return [];
@@ -122,6 +125,8 @@ async function fetchRouteDriverReports(geometry: Array<[number, number]>, corrid
         longitude: h.longitude,
         created_at: h.created_at,
         distanceMi: d,
+        confirm_count: h.confirm_count ?? 0,
+        dispute_count: h.dispute_count ?? 0,
       } satisfies RouteDriverReport;
     })
     .filter((h): h is RouteDriverReport => h != null)
