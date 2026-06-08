@@ -129,8 +129,18 @@ function ReportHazard() {
           </div>
 
           <div className="space-y-1.5">
-            <Label>Location</Label>
+            <div className="flex items-center justify-between">
+              <Label>Location</Label>
+              {geo.coords && (
+                <span className="text-xs text-success inline-flex items-center gap-1">
+                  <LocateFixed className="size-3" /> Will tag with your GPS location
+                </span>
+              )}
+            </div>
             <Input required value={location} onChange={(e) => setLocation(e.target.value)} placeholder="I-80 EB, MP 215, WY" />
+            <p className="text-xs text-muted-foreground">
+              We'll attach coordinates so this report appears on the map and triggers nearby-driver alerts.
+            </p>
           </div>
 
           <div className="space-y-1.5">
