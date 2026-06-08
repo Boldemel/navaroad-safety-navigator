@@ -46,8 +46,17 @@ export function FavoriteLocationsCard() {
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) { setSaving(false); return; }
+    const { data: cm } = await supabase
+      .from("company_members")
+      .select("company_id")
+      .eq("user_id", u.user.id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (!cm?.company_id) { setSaving(false); return toast.error("No company found."); }
     const { error } = await supabase.from("favorite_locations").insert({
       user_id: u.user.id,
+      company_id: cm.company_id,
       label: label.trim(),
       category,
       address: place.label,
