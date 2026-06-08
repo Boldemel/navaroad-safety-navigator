@@ -140,7 +140,7 @@ function HazardMap() {
     },
   });
 
-  const { data: drivers = {} } = useDriverNames();
+  // Driver reputation/name for each hazard reporter shown on this page.
   const { data: weighStatuses } = useWeighStationStatuses();
   const reportWeigh = useReportWeighStationStatus();
   const tomtomKeyFn = useServerFn(getTomTomKey);
