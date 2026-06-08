@@ -71,7 +71,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <NotificationBell />
         </div>
         <nav className="flex-1 p-3 space-y-1">
-          {nav.map((n) => {
+          {visibleNav.map((n) => {
             const active = pathname === n.to || pathname.startsWith(n.to + "/");
             return (
               <Link
@@ -144,7 +144,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* Mobile bottom nav */}
         <nav className="md:hidden sticky bottom-0 grid grid-cols-5 border-t border-border bg-sidebar">
-          {mobileNav.map((n) => {
+          {visibleMobileNav.map((n) => {
             const active = pathname === n.to;
             return (
               <Link
