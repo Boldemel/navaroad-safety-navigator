@@ -79,6 +79,13 @@ function Dashboard() {
   const [truck, setTruck] = useState(cached?.truck ?? "Sleeper");
   const [trailer, setTrailer] = useState(cached?.trailer ?? "Dry Van");
   const [cachedResult, setCachedResult] = useState<RouteAnalysis | null>(cached?.result ?? null);
+  type Stop = { id: string; text: string; place: SelectedPlace | null };
+  const [stops, setStops] = useState<Stop[]>([]);
+  const stopWaypoints = stops
+    .filter((s) => s.place || s.text.trim().length >= 2)
+    .map((s) => s.place
+      ? { label: s.place.label, lat: s.place.lat, lon: s.place.lon }
+      : { label: s.text.trim() });
   useRealtimeInvalidate(["hazard_reports"], [["dash-hazards"]]);
 
   const analyzeFn = useServerFn(analyzeRoute);
@@ -476,6 +483,7 @@ function Dashboard() {
       origin, destination, truck, trailer, truckProfile,
       ...(originPlace ? { originCoords: { lat: originPlace.lat, lon: originPlace.lon } } : {}),
       ...(destPlace ? { destinationCoords: { lat: destPlace.lat, lon: destPlace.lon } } : {}),
+      ...(stopWaypoints.length ? { waypoints: stopWaypoints } : {}),
     });
   }
 
