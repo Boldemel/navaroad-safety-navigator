@@ -677,8 +677,11 @@ function HazardMap() {
                 {m.photoUrl && <HazardPhoto path={m.photoUrl} className="mt-2 size-24" />}
                 {m.layer === "driver" && (
                   <>
-                    <div className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
-                      <User className="size-3" /> Reported by {driver ?? "a driver"}
+                    <div className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1">
+                        <User className="size-3" /> Reported by {driver ?? "a driver"}
+                      </span>
+                      <ReporterTrustBadge profile={reporter} />
                     </div>
                     <div className="mt-2 flex items-center gap-2">
                       <button
