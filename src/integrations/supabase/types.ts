@@ -94,42 +94,86 @@ export type Database = {
       }
       hazard_reports: {
         Row: {
+          confirm_count: number
           created_at: string
           description: string | null
+          dispute_count: number
+          expires_at: string | null
           hazard_type: string
           id: string
           latitude: number | null
           location: string
           longitude: number | null
+          photo_url: string | null
           reporter_id: string | null
           severity: string
           status: string
         }
         Insert: {
+          confirm_count?: number
           created_at?: string
           description?: string | null
+          dispute_count?: number
+          expires_at?: string | null
           hazard_type: string
           id?: string
           latitude?: number | null
           location: string
           longitude?: number | null
+          photo_url?: string | null
           reporter_id?: string | null
           severity?: string
           status?: string
         }
         Update: {
+          confirm_count?: number
           created_at?: string
           description?: string | null
+          dispute_count?: number
+          expires_at?: string | null
           hazard_type?: string
           id?: string
           latitude?: number | null
           location?: string
           longitude?: number | null
+          photo_url?: string | null
           reporter_id?: string | null
           severity?: string
           status?: string
         }
         Relationships: []
+      }
+      hazard_votes: {
+        Row: {
+          created_at: string
+          hazard_id: string
+          id: string
+          user_id: string
+          vote: string
+        }
+        Insert: {
+          created_at?: string
+          hazard_id: string
+          id?: string
+          user_id: string
+          vote: string
+        }
+        Update: {
+          created_at?: string
+          hazard_id?: string
+          id?: string
+          user_id?: string
+          vote?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hazard_votes_hazard_id_fkey"
+            columns: ["hazard_id"]
+            isOneToOne: false
+            referencedRelation: "hazard_reports"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
