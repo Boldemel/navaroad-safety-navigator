@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { User, Trash2 } from "lucide-react";
 import { VoiceSettingsCard } from "@/components/voice-settings-card";
 import { TruckProfileCard } from "@/components/truck-profile-card";
+import { TruckRegistrationCard } from "@/components/truck-registration-card";
 import { FavoriteLocationsCard } from "@/components/favorite-locations-card";
 import { SavedRoutesCard } from "@/components/saved-routes-card";
 import { deleteOwnAccount } from "@/lib/account.functions";
@@ -134,6 +135,7 @@ function Profile() {
       </form>
 
       <TruckProfileCard />
+      <TruckRegistrationCard />
       <FavoriteLocationsCard />
       <SavedRoutesCard />
       <VoiceSettingsCard />
