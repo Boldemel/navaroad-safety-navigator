@@ -94,21 +94,6 @@ const AuthenticatedHosRoute = AuthenticatedHosRouteImport.update({
   path: '/hos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedInspectionsRoute = AuthenticatedInspectionsRouteImport.update({
-  id: '/inspections',
-  path: '/inspections',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedLoadsRoute = AuthenticatedLoadsRouteImport.update({
-  id: '/loads',
-  path: '/loads',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedParkingRoute = AuthenticatedParkingRouteImport.update({
-  id: '/parking',
-  path: '/parking',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedHazardMapRoute = AuthenticatedHazardMapRouteImport.update({
   id: '/hazard-map',
   path: '/hazard-map',
@@ -340,27 +325,6 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/parking': {
-      id: '/_authenticated/parking'
-      path: '/parking'
-      fullPath: '/parking'
-      preLoaderRoute: typeof AuthenticatedParkingRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/loads': {
-      id: '/_authenticated/loads'
-      path: '/loads'
-      fullPath: '/loads'
-      preLoaderRoute: typeof AuthenticatedLoadsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/inspections': {
-      id: '/_authenticated/inspections'
-      path: '/inspections'
-      fullPath: '/inspections'
-      preLoaderRoute: typeof AuthenticatedInspectionsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/parking': {
