@@ -18,6 +18,16 @@ const InputSchema = z.object({
   trailer: z.string().max(60).optional(),
   originCoords: z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) }).optional(),
   destinationCoords: z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) }).optional(),
+  waypoints: z
+    .array(
+      z.object({
+        label: z.string().trim().min(1).max(200),
+        lat: z.number().min(-90).max(90).optional(),
+        lon: z.number().min(-180).max(180).optional(),
+      }),
+    )
+    .max(8)
+    .optional(),
   truckProfile: z
     .object({
       heightIn: z.number().min(0).max(300).nullable().optional(),
