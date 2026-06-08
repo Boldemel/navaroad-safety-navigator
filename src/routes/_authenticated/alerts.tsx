@@ -263,6 +263,7 @@ function AlertsCenter() {
                 <MapPin className="size-3.5" /> {it.location}
               </div>
               {it.message && <p className="mt-2 text-sm line-clamp-3">{it.message}</p>}
+              {it.photoUrl && <HazardPhoto path={it.photoUrl} className="mt-2 size-24" />}
               {it.source === "driver" && (
                 <div className="text-xs text-muted-foreground mt-2 inline-flex items-center gap-1">
                   <User className="size-3" /> Reported by {driver ?? "a driver"}
