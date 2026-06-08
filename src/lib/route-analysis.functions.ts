@@ -496,5 +496,6 @@ export const analyzeRoute = createServerFn({ method: "POST" })
         weatherAlerts: "NWS",
         road: roadAlerts.length > 0 ? (roadAlerts[0]?.provider ?? "configured") : (process.env.TOMTOM_API_KEY ? "TomTom (no incidents on route)" : "not_connected"),
       },
+      stateMileage,
     };
   });
