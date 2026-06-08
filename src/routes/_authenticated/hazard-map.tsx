@@ -23,12 +23,16 @@ import { DriveModePanel } from "@/components/drive-mode-panel";
 import { voteOnHazard, removeMyHazardVote } from "@/lib/hazards";
 import { supabase } from "@/integrations/supabase/client";
 import { HazardPhoto } from "@/components/hazard-photo";
+import { useWeighStationStatuses, useReportWeighStationStatus } from "@/lib/weigh-stations";
+import { toast } from "sonner";
 
 // POI marker colors (kept in sync with the legend below).
 const POI_COLORS = {
   truck_stop: "#f97316",   // orange
   rest_area: "#10b981",    // emerald
-  weigh_station: "#a855f7", // violet
+  weigh_station: "#a855f7", // violet (unknown / default)
+  weigh_station_open: "#ef4444", // red — open, prepare to pull in
+  weigh_station_closed: "#22c55e", // green — closed, pass freely
 } as const;
 
 function samplePoiGeometry(geom: Array<[number, number]>, maxPoints: number) {
@@ -137,6 +141,8 @@ function HazardMap() {
   });
 
   const { data: drivers = {} } = useDriverNames();
+  const { data: weighStatuses } = useWeighStationStatuses();
+  const reportWeigh = useReportWeighStationStatus();
   const tomtomKeyFn = useServerFn(getTomTomKey);
   const activeRoute = useActiveRoute();
   const result = activeRoute?.result ?? null;
@@ -466,15 +472,24 @@ function HazardMap() {
                     color: POI_COLORS.rest_area,
                     iconKey: "rest_area",
                   })),
-                  ...(showWeighStations ? (weighStationsData?.pois ?? []) : []).map<MapMarker>((p) => ({
-                    id: "ws-" + p.id,
-                    lat: p.lat,
-                    lon: p.lon,
-                    title: p.name,
-                    description: `Weigh station · ${p.address || `${p.city ?? ""} ${p.state ?? ""}`.trim() || p.source}`,
-                    color: POI_COLORS.weigh_station,
-                    iconKey: "weigh_station",
-                  })),
+                  ...(showWeighStations ? (weighStationsData?.pois ?? []) : []).map<MapMarker>((p) => {
+                    const st = weighStatuses?.get("ws-" + p.id);
+                    const color = st?.status === "open" ? POI_COLORS.weigh_station_open
+                      : st?.status === "closed" ? POI_COLORS.weigh_station_closed
+                      : POI_COLORS.weigh_station;
+                    const stTxt = st?.status === "open" ? " · OPEN now"
+                      : st?.status === "closed" ? " · CLOSED now"
+                      : "";
+                    return {
+                      id: "ws-" + p.id,
+                      lat: p.lat,
+                      lon: p.lon,
+                      title: p.name,
+                      description: `Weigh station${stTxt} · ${p.address || `${p.city ?? ""} ${p.state ?? ""}`.trim() || p.source}`,
+                      color,
+                      iconKey: "weigh_station",
+                    };
+                  }),
                 ]}
           />
         </div>
@@ -492,7 +507,9 @@ function HazardMap() {
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Truck POIs</div>
             <LegendRow color={POI_COLORS.truck_stop} icon={<Truck className="size-3.5" />} label="Truck stop / travel center" />
             <LegendRow color={POI_COLORS.rest_area} icon={<TreePine className="size-3.5" />} label="Rest area / welcome center" />
-            <LegendRow color={POI_COLORS.weigh_station} icon={<Scale className="size-3.5" />} label="Weigh / inspection station" />
+            <LegendRow color={POI_COLORS.weigh_station} icon={<Scale className="size-3.5" />} label="Weigh station (status unknown)" />
+            <LegendRow color={POI_COLORS.weigh_station_open} icon={<Scale className="size-3.5" />} label="Weigh station — reported OPEN" />
+            <LegendRow color={POI_COLORS.weigh_station_closed} icon={<Scale className="size-3.5" />} label="Weigh station — reported CLOSED" />
           </div>
           <div className="space-y-2">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Other</div>
@@ -501,6 +518,61 @@ function HazardMap() {
           </div>
         </aside>
       </div>
+
+      {showWeighStations && (weighStationsData?.pois?.length ?? 0) > 0 && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="text-sm font-medium mb-2 inline-flex items-center gap-2">
+            <Scale className="size-4" style={{ color: POI_COLORS.weigh_station }} />
+            Weigh station status
+            <span className="text-xs text-muted-foreground font-normal">— tap Open / Closed to help other drivers (expires after 8h)</span>
+          </div>
+          <ul className="space-y-2">
+            {(weighStationsData?.pois ?? []).slice(0, 10).map((p) => {
+              const stId = "ws-" + p.id;
+              const st = weighStatuses?.get(stId);
+              const color = st?.status === "open" ? POI_COLORS.weigh_station_open
+                : st?.status === "closed" ? POI_COLORS.weigh_station_closed
+                : POI_COLORS.weigh_station;
+              return (
+                <li key={stId} className="flex items-center gap-2 text-sm flex-wrap">
+                  <span className="inline-block size-2.5 rounded-full" style={{ backgroundColor: color }} />
+                  <span className="flex-1 min-w-0 truncate">{p.name}</span>
+                  {st ? (
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {st.status === "open" ? "OPEN" : "CLOSED"} · {formatDistanceToNow(new Date(st.created_at), { addSuffix: true })}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No recent reports</span>
+                  )}
+                  <button
+                    type="button"
+                    disabled={reportWeigh.isPending}
+                    onClick={() => reportWeigh.mutate(
+                      { stationId: stId, stationName: p.name, lat: p.lat, lon: p.lon, status: "open" },
+                      { onSuccess: () => toast.success("Reported as open"), onError: (e) => toast.error(e instanceof Error ? e.message : "Failed") },
+                    )}
+                    className="rounded-md border border-red-500/40 bg-red-500/10 text-red-500 px-2 py-1 text-xs hover:bg-red-500/20"
+                  >
+                    Open
+                  </button>
+                  <button
+                    type="button"
+                    disabled={reportWeigh.isPending}
+                    onClick={() => reportWeigh.mutate(
+                      { stationId: stId, stationName: p.name, lat: p.lat, lon: p.lon, status: "closed" },
+                      { onSuccess: () => toast.success("Reported as closed"), onError: (e) => toast.error(e instanceof Error ? e.message : "Failed") },
+                    )}
+                    className="rounded-md border border-green-500/40 bg-green-500/10 text-green-500 px-2 py-1 text-xs hover:bg-green-500/20"
+                  >
+                    Closed
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
 
       {activeRoute && (
         <div className="rounded-xl border border-border bg-card p-4">
