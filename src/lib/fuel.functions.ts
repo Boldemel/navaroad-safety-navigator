@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getUserCompanyId } from "./get-company";
 
 export type FuelPurchase = {
   id: string;
@@ -57,7 +58,8 @@ export const createFuel = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: z.infer<typeof Schema>) => Schema.parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("fuel_purchases").insert({ user_id: context.userId, ...row(data) });
+    const companyId = await getUserCompanyId(context.supabase, context.userId);
+    const { error } = await context.supabase.from("fuel_purchases").insert({ user_id: context.userId, company_id: companyId, ...row(data) });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
