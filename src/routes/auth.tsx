@@ -28,6 +28,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [resetMode, setResetMode] = useState(false);
+  const [pendingConfirmEmail, setPendingConfirmEmail] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -41,7 +42,12 @@ function AuthPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      if (/confirm/i.test(error.message)) {
+        setPendingConfirmEmail(email);
+      }
+      return toast.error(error.message);
+    }
     navigate({ to: "/dashboard", replace: true });
   }
 
@@ -59,12 +65,26 @@ function AuthPage() {
     setLoading(false);
     if (error) return toast.error(error.message);
     if (!data.session) {
-      // Email confirmation required.
-      toast.success("Check your inbox to confirm your email, then sign in.");
+      // Email confirmation required — show inline state.
+      setPendingConfirmEmail(email);
+      toast.success("Check your inbox to confirm your email.");
       return;
     }
     toast.success("Account created. You're signed in.");
     navigate({ to: "/dashboard", replace: true });
+  }
+
+  async function resendConfirmation() {
+    if (!pendingConfirmEmail) return;
+    setLoading(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: pendingConfirmEmail,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Confirmation email re-sent.");
   }
 
   async function signInWithGoogle() {
@@ -120,7 +140,30 @@ function AuthPage() {
             Navaroad
           </Link>
 
-          {resetMode ? (
+          {pendingConfirmEmail ? (
+            <div className="space-y-4">
+              <div>
+                <h1 className="text-2xl font-semibold">Confirm your email</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  We sent a confirmation link to <span className="text-foreground font-medium">{pendingConfirmEmail}</span>.
+                  Click the link, then come back to sign in.
+                </p>
+              </div>
+              <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                Didn't get it? Check your spam folder, or resend below. Links expire after a short time.
+              </div>
+              <Button type="button" className="w-full" disabled={loading} onClick={resendConfirmation}>
+                {loading ? "Sending…" : "Resend confirmation email"}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setPendingConfirmEmail(null)}
+                className="text-sm text-muted-foreground hover:text-foreground w-full text-center"
+              >
+                Back to sign in
+              </button>
+            </div>
+          ) : resetMode ? (
             <form onSubmit={resetPassword} className="space-y-4">
               <div>
                 <h1 className="text-2xl font-semibold">Reset password</h1>
@@ -192,6 +235,11 @@ function AuthPage() {
                     <Input id="u-pw" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>Create account</Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    By creating an account you agree to our{" "}
+                    <Link to="/terms" className="text-primary hover:underline">Terms</Link> and{" "}
+                    <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+                  </p>
                 </form>
               </TabsContent>
             </Tabs>
