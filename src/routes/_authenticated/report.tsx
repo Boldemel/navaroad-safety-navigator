@@ -9,12 +9,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HAZARD_TYPES, SEVERITIES } from "@/lib/navaroad";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, Camera, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Camera, X, Map as MapIcon } from "lucide-react";
 import { geocodeAddress } from "@/lib/geocode.functions";
 import { submitHazard } from "@/lib/hazards";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { LocateFixed } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { PageTabs } from "@/components/page-tabs";
+
+const HAZARD_TABS = [
+  { to: "/hazard-map", label: "Hazard Map", icon: MapIcon },
+  { to: "/report", label: "Report Hazard", icon: AlertTriangle },
+];
 
 export const Route = createFileRoute("/_authenticated/report")({
   component: ReportHazard,
@@ -120,9 +126,12 @@ function ReportHazard() {
 
   return (
     <div className="p-4 md:p-8 max-w-2xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Report a Hazard</h1>
-        <p className="text-muted-foreground text-sm">Help other drivers avoid what you just saw.</p>
+      <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Report a Hazard</h1>
+          <p className="text-muted-foreground text-sm">Help other drivers avoid what you just saw.</p>
+        </div>
+        <PageTabs tabs={HAZARD_TABS} />
       </div>
 
       {submitted ? (
