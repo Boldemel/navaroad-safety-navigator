@@ -10,8 +10,8 @@ import { OfflineBanner } from "@/components/offline-banner";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 
 const nav = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/hazard-map", label: "Hazard Map", icon: Map },
+  { to: "/dashboard", label: "Route Analysis", icon: LayoutDashboard },
+  { to: "/hazard-map", label: "Hazards and Alerts", icon: Map },
   { to: "/parking", label: "Parking & Stops", icon: ParkingCircle },
   { to: "/loads", label: "Loads", icon: Package },
   { to: "/inspections", label: "Inspections", icon: ClipboardCheck },
@@ -22,12 +22,11 @@ const nav = [
   { to: "/ifta", label: "IFTA Mileage", icon: MapPinned },
   { to: "/logbook", label: "Logbook & HOS", icon: ClipboardList },
   { to: "/trips", label: "Trip History", icon: BookOpen },
-  { to: "/alerts", label: "Alerts", icon: Bell },
   { to: "/profile", label: "Profile", icon: User },
 ];
 
 const mobileNav = [
-  { to: "/dashboard", label: "Dash", icon: LayoutDashboard },
+  { to: "/dashboard", label: "Route", icon: LayoutDashboard },
   { to: "/parking", label: "Stops", icon: ParkingCircle },
   { to: "/loads", label: "Loads", icon: Package },
   { to: "/logbook", label: "HOS", icon: ClipboardList },

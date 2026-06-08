@@ -7,13 +7,14 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   Wind, AlertTriangle, Construction, Trash2, Car, ParkingCircleOff, CloudRain,
   CloudLightning, Clock, User, Cloud, Radio, MapPin, LocateFixed, Megaphone,
-  Truck, Scale, TreePine, ThumbsUp, ThumbsDown, Map as MapIcon,
+  Truck, Scale, TreePine, ThumbsUp, ThumbsDown, Map as MapIcon, Bell,
 } from "lucide-react";
 import { PageTabs } from "@/components/page-tabs";
 
 const HAZARD_TABS = [
   { to: "/hazard-map", label: "Hazard Map", icon: MapIcon },
   { to: "/report", label: "Report Hazard", icon: AlertTriangle },
+  { to: "/alerts", label: "Alerts", icon: Bell },
 ];
 import { HAZARD_TYPES, hazardLabel, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
@@ -263,13 +264,13 @@ function HazardMap() {
     <div className="p-4 md:p-8 space-y-4 max-w-7xl mx-auto">
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Hazard Map</h1>
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Hazards and Alerts</h1>
           <p className="text-muted-foreground text-sm">
             Live NWS weather alerts, TomTom incidents, and driver reports — scoped to your route.
             {activeRoute ? (
               <> Showing alerts along <span className="text-foreground">{activeRoute.origin} → {activeRoute.destination}</span>.</>
             ) : (
-              <> Analyze a route on the Dashboard to load route-scoped hazards.</>
+              <> Analyze a route to load route-scoped hazards.</>
             )}
           </p>
         </div>
