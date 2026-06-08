@@ -10,8 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Wind, Construction, AlertTriangle, Route as RouteIcon, ShieldCheck, Loader2,
   CloudRain, Thermometer, MapPin, Radio, Users, Cloud, Lightbulb, Info, LocateFixed,
-  Navigation2, Fuel, ParkingCircle, ShieldAlert, Truck, Scale,
+  Navigation2, Fuel, ParkingCircle, ShieldAlert, Truck, Scale, Bookmark,
 } from "lucide-react";
+import { consumePendingRoute, saveRoute } from "@/lib/saved-routes";
+import { toast } from "sonner";
 
 import { TRUCK_TYPES, TRAILER_TYPES, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
@@ -102,6 +104,41 @@ function Dashboard() {
       writeCachedAnalysis(null);
     }
   }, [activeRoute]);
+
+  // Pick up a route the user chose to "Load" from their saved-routes list.
+  useEffect(() => {
+    const pending = consumePendingRoute();
+    if (!pending) return;
+    setOrigin(pending.origin);
+    setOriginPlace(null);
+    setDestination(pending.destination);
+    setDestPlace(null);
+    if (pending.truck) setTruck(pending.truck);
+    if (pending.trailer) setTrailer(pending.trailer);
+    toast.success("Saved route loaded — click Analyze Route to refresh conditions.");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [savingRoute, setSavingRoute] = useState(false);
+  async function handleSaveRoute() {
+    if (!origin.trim() || !destination.trim()) return;
+    setSavingRoute(true);
+    try {
+      await saveRoute({
+        origin: origin.trim(),
+        destination: destination.trim(),
+        truck,
+        trailer,
+        safetyScore: result?.score ?? null,
+      });
+      toast.success("Route saved to your profile.");
+      queryClient.invalidateQueries({ queryKey: ["saved-routes"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save route.");
+    } finally {
+      setSavingRoute(false);
+    }
+  }
 
 
 
@@ -699,6 +736,16 @@ function Dashboard() {
                     )}
                   </Button>
                 )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleSaveRoute}
+                  disabled={savingRoute || !origin.trim() || !destination.trim()}
+                  title="Save this route to your profile"
+                >
+                  <Bookmark className="size-4 mr-1" />
+                  {savingRoute ? "Saving…" : "Save route"}
+                </Button>
                 {geo.status === "denied" && (
                   <span className="text-[11px] text-destructive">Location access is needed for live route safety alerts.</span>
                 )}
