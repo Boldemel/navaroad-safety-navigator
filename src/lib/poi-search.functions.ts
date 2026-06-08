@@ -602,7 +602,7 @@ export async function searchTruckPoisForRoute(data: SearchTruckPoisInput): Promi
     // Sample the full corridor without flooding the POI provider. Prior runs
     // fired hundreds of truck-stop requests at once, hit rate limits, and then
     // displayed partial results, which caused inconsistent counts between runs.
-    const samples = sampleEveryMiles(data.geometry, 75, 24);
+    const samples = sampleEveryMiles(data.geometry, 120, 10);
 
     // TomTom POI categories:
     // 7311 = Truck Stop / Travel Center, 7311003 = Truck-friendly fuel,
