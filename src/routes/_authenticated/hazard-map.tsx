@@ -23,12 +23,16 @@ import { DriveModePanel } from "@/components/drive-mode-panel";
 import { voteOnHazard, removeMyHazardVote } from "@/lib/hazards";
 import { supabase } from "@/integrations/supabase/client";
 import { HazardPhoto } from "@/components/hazard-photo";
+import { useWeighStationStatuses, useReportWeighStationStatus } from "@/lib/weigh-stations";
+import { toast } from "sonner";
 
 // POI marker colors (kept in sync with the legend below).
 const POI_COLORS = {
   truck_stop: "#f97316",   // orange
   rest_area: "#10b981",    // emerald
-  weigh_station: "#a855f7", // violet
+  weigh_station: "#a855f7", // violet (unknown / default)
+  weigh_station_open: "#ef4444", // red — open, prepare to pull in
+  weigh_station_closed: "#22c55e", // green — closed, pass freely
 } as const;
 
 function samplePoiGeometry(geom: Array<[number, number]>, maxPoints: number) {
@@ -466,15 +470,24 @@ function HazardMap() {
                     color: POI_COLORS.rest_area,
                     iconKey: "rest_area",
                   })),
-                  ...(showWeighStations ? (weighStationsData?.pois ?? []) : []).map<MapMarker>((p) => ({
-                    id: "ws-" + p.id,
-                    lat: p.lat,
-                    lon: p.lon,
-                    title: p.name,
-                    description: `Weigh station · ${p.address || `${p.city ?? ""} ${p.state ?? ""}`.trim() || p.source}`,
-                    color: POI_COLORS.weigh_station,
-                    iconKey: "weigh_station",
-                  })),
+                  ...(showWeighStations ? (weighStationsData?.pois ?? []) : []).map<MapMarker>((p) => {
+                    const st = weighStatuses?.get("ws-" + p.id);
+                    const color = st?.status === "open" ? POI_COLORS.weigh_station_open
+                      : st?.status === "closed" ? POI_COLORS.weigh_station_closed
+                      : POI_COLORS.weigh_station;
+                    const stTxt = st?.status === "open" ? " · OPEN now"
+                      : st?.status === "closed" ? " · CLOSED now"
+                      : "";
+                    return {
+                      id: "ws-" + p.id,
+                      lat: p.lat,
+                      lon: p.lon,
+                      title: p.name,
+                      description: `Weigh station${stTxt} · ${p.address || `${p.city ?? ""} ${p.state ?? ""}`.trim() || p.source}`,
+                      color,
+                      iconKey: "weigh_station",
+                    };
+                  }),
                 ]}
           />
         </div>
