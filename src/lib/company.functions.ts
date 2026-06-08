@@ -10,10 +10,6 @@ import {
   type CompanySummary,
 } from "./company.shared";
 
-export type { CompanyRole, AppPermission, CompanyMember, CompanySummary };
-export { ROLES, PERMISSIONS };
-
-
 /** Returns the user's primary (first) company. */
 export const getMyCompany = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
