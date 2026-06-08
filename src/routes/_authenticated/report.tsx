@@ -32,6 +32,40 @@ function ReportHazard() {
   const [severity, setSeverity] = useState("medium");
   const [submitted, setSubmitted] = useState(false);
   const [wasDeduped, setWasDeduped] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function onPickPhoto(f: File | null) {
+    if (!f) {
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      return;
+    }
+    if (!f.type.startsWith("image/")) {
+      toast.error("Please choose an image file.");
+      return;
+    }
+    if (f.size > 8 * 1024 * 1024) {
+      toast.error("Photo must be under 8 MB.");
+      return;
+    }
+    setPhotoFile(f);
+    setPhotoPreview(URL.createObjectURL(f));
+  }
+
+  async function uploadPhoto(): Promise<string | null> {
+    if (!photoFile) return null;
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) throw new Error("Not signed in");
+    const ext = (photoFile.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+    const path = `${u.user.id}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage
+      .from("hazard-photos")
+      .upload(path, photoFile, { contentType: photoFile.type, upsert: false });
+    if (error) throw new Error(`Photo upload failed: ${error.message}`);
+    return path;
+  }
 
   const submit = useMutation({
     mutationFn: async () => {
@@ -51,8 +85,9 @@ function ReportHazard() {
           /* non-fatal */
         }
       }
+      const photo_url = await uploadPhoto();
       return submitFn({
-        data: { hazard_type: hazardType, location, description, severity, latitude, longitude },
+        data: { hazard_type: hazardType, location, description, severity, latitude, longitude, photo_url },
       });
     },
     onSuccess: (res) => {
@@ -78,6 +113,8 @@ function ReportHazard() {
     setSeverity("medium");
     setSubmitted(false);
     setWasDeduped(false);
+    setPhotoFile(null);
+    setPhotoPreview(null);
     submit.reset();
   }
 
