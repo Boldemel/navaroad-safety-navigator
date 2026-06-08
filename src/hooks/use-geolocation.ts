@@ -78,12 +78,26 @@ export function useGeolocation(opts: { watch?: boolean; auto?: boolean } = {}) {
     }
     clearCachedCoords();
     setState((s) => ({ ...s, coords: null, status: "prompting", error: null }));
-    navigator.geolocation.getCurrentPosition(setCoords, setError, {
+
+    const tryLowAccuracy = (origErr: GeolocationPositionError) => {
+      // If permission was denied, don't retry — surface the error.
+      if (origErr.code === origErr.PERMISSION_DENIED) {
+        setError(origErr);
+        return;
+      }
+      // High-accuracy GPS often times out indoors or on desktop. Fall back to
+      // the coarse network/IP-based fix so we still get a usable position.
+      navigator.geolocation.getCurrentPosition(setCoords, setError, {
+        enableHighAccuracy: false,
+        maximumAge: 60_000,
+        timeout: 15_000,
+      });
+    };
+
+    navigator.geolocation.getCurrentPosition(setCoords, tryLowAccuracy, {
       enableHighAccuracy: true,
-      // Force a *fresh* fix — desktop browsers will otherwise hand back a
-      // hours-old cached position that's hundreds of miles off.
       maximumAge: 0,
-      timeout: 15_000,
+      timeout: 10_000,
     });
   }, [setCoords, setError]);
 
