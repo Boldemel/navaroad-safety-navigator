@@ -339,9 +339,11 @@ export type Database = {
           expense_date: string
           fuel_purchase_id: string | null
           id: string
+          load_id: string | null
           notes: string | null
           receipt_url: string | null
           state_code: string | null
+          trip_log_id: string | null
           updated_at: string
           user_id: string
           vendor: string | null
@@ -354,9 +356,11 @@ export type Database = {
           expense_date?: string
           fuel_purchase_id?: string | null
           id?: string
+          load_id?: string | null
           notes?: string | null
           receipt_url?: string | null
           state_code?: string | null
+          trip_log_id?: string | null
           updated_at?: string
           user_id: string
           vendor?: string | null
@@ -369,9 +373,11 @@ export type Database = {
           expense_date?: string
           fuel_purchase_id?: string | null
           id?: string
+          load_id?: string | null
           notes?: string | null
           receipt_url?: string | null
           state_code?: string | null
+          trip_log_id?: string | null
           updated_at?: string
           user_id?: string
           vendor?: string | null
@@ -389,6 +395,20 @@ export type Database = {
             columns: ["fuel_purchase_id"]
             isOneToOne: false
             referencedRelation: "fuel_purchases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "loads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_trip_log_id_fkey"
+            columns: ["trip_log_id"]
+            isOneToOne: false
+            referencedRelation: "trip_logs"
             referencedColumns: ["id"]
           },
         ]
@@ -453,15 +473,19 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
+          driver_id: string | null
           gallons: number
           id: string
+          load_id: string | null
           notes: string | null
           odometer: number | null
           price_per_gallon: number
           purchase_date: string
+          receipt_url: string | null
           state_code: string
           station_name: string | null
           total_cost_usd: number
+          trip_log_id: string | null
           updated_at: string
           user_id: string
           vehicle_unit: string | null
@@ -469,15 +493,19 @@ export type Database = {
         Insert: {
           company_id: string
           created_at?: string
+          driver_id?: string | null
           gallons?: number
           id?: string
+          load_id?: string | null
           notes?: string | null
           odometer?: number | null
           price_per_gallon?: number
           purchase_date?: string
+          receipt_url?: string | null
           state_code: string
           station_name?: string | null
           total_cost_usd?: number
+          trip_log_id?: string | null
           updated_at?: string
           user_id: string
           vehicle_unit?: string | null
@@ -485,15 +513,19 @@ export type Database = {
         Update: {
           company_id?: string
           created_at?: string
+          driver_id?: string | null
           gallons?: number
           id?: string
+          load_id?: string | null
           notes?: string | null
           odometer?: number | null
           price_per_gallon?: number
           purchase_date?: string
+          receipt_url?: string | null
           state_code?: string
           station_name?: string | null
           total_cost_usd?: number
+          trip_log_id?: string | null
           updated_at?: string
           user_id?: string
           vehicle_unit?: string | null
@@ -504,6 +536,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_purchases_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "loads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_purchases_trip_log_id_fkey"
+            columns: ["trip_log_id"]
+            isOneToOne: false
+            referencedRelation: "trip_logs"
             referencedColumns: ["id"]
           },
         ]
