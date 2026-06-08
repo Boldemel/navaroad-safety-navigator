@@ -407,6 +407,27 @@ export type Database = {
             foreignKeyName: "expenses_load_id_fkey"
             columns: ["load_id"]
             isOneToOne: false
+            referencedRelation: "load_cost_allocation"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "expenses_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "load_miles"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "expenses_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "load_profitability"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "expenses_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
             referencedRelation: "loads"
             referencedColumns: ["id"]
           },
@@ -550,6 +571,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_purchases_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "load_cost_allocation"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "fuel_purchases_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "load_miles"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "fuel_purchases_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "load_profitability"
+            referencedColumns: ["load_id"]
           },
           {
             foreignKeyName: "fuel_purchases_load_id_fkey"
@@ -721,6 +763,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fuel_purchases"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ifta_entries_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "load_cost_allocation"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "ifta_entries_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "load_miles"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "ifta_entries_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "load_profitability"
+            referencedColumns: ["load_id"]
           },
           {
             foreignKeyName: "ifta_entries_load_id_fkey"
@@ -1305,6 +1368,27 @@ export type Database = {
             foreignKeyName: "settlements_load_id_fkey"
             columns: ["load_id"]
             isOneToOne: false
+            referencedRelation: "load_cost_allocation"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "settlements_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "load_miles"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "settlements_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "load_profitability"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "settlements_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
             referencedRelation: "loads"
             referencedColumns: ["id"]
           },
@@ -1392,6 +1476,27 @@ export type Database = {
             foreignKeyName: "trip_logs_load_id_fkey"
             columns: ["load_id"]
             isOneToOne: false
+            referencedRelation: "load_cost_allocation"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "trip_logs_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "load_miles"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "trip_logs_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "load_profitability"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "trip_logs_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
             referencedRelation: "loads"
             referencedColumns: ["id"]
           },
@@ -1456,7 +1561,154 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      company_profitability: {
+        Row: {
+          company_id: string | null
+          cost_per_mile: number | null
+          day: string | null
+          driver_pay_usd: number | null
+          fuel_cost_usd: number | null
+          gross_revenue_usd: number | null
+          maintenance_cost_usd: number | null
+          miles: number | null
+          net_profit_usd: number | null
+          other_expenses_usd: number | null
+          profit_margin: number | null
+          profit_per_mile: number | null
+          revenue_per_mile: number | null
+          total_expenses_usd: number | null
+        }
+        Relationships: []
+      }
+      driver_profitability: {
+        Row: {
+          company_id: string | null
+          driver_id: string | null
+          expenses_usd: number | null
+          fuel_cost_usd: number | null
+          loads_completed: number | null
+          miles: number | null
+          net_profit_usd: number | null
+          revenue_per_mile: number | null
+          revenue_usd: number | null
+        }
+        Relationships: []
+      }
+      load_cost_allocation: {
+        Row: {
+          allocated_unassigned_usd: number | null
+          company_id: string | null
+          fuel_cost_usd: number | null
+          load_id: string | null
+          maintenance_cost_usd: number | null
+          miles: number | null
+          other_expenses_usd: number | null
+          scale_tickets_usd: number | null
+          tolls_usd: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      load_miles: {
+        Row: {
+          company_id: string | null
+          load_id: string | null
+          miles: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      load_profitability: {
+        Row: {
+          company_id: string | null
+          consignee_name: string | null
+          cost_per_mile: number | null
+          delivery_at: string | null
+          detention_usd: number | null
+          driver_id: string | null
+          driver_pay_usd: number | null
+          fuel_cost_usd: number | null
+          fuel_surcharge_usd: number | null
+          gross_revenue_usd: number | null
+          layover_usd: number | null
+          linehaul_revenue_usd: number | null
+          load_id: string | null
+          lumper_reimbursement_usd: number | null
+          maintenance_cost_usd: number | null
+          miles: number | null
+          net_profit_usd: number | null
+          other_expenses_usd: number | null
+          other_revenue_usd: number | null
+          profit_per_mile: number | null
+          revenue_per_mile: number | null
+          scale_tickets_usd: number | null
+          shipper_name: string | null
+          status: string | null
+          tolls_usd: number | null
+          total_costs_usd: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      truck_lifetime_costs: {
+        Row: {
+          company_id: string | null
+          fuel_total_usd: number | null
+          maintenance_total_usd: number | null
+          repairs_total_usd: number | null
+          tolls_total_usd: number | null
+          total_costs_usd: number | null
+          vehicle_unit: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      truck_profitability: {
+        Row: {
+          company_id: string | null
+          cost_per_mile: number | null
+          day: string | null
+          driver_pay_usd: number | null
+          fuel_cost_usd: number | null
+          maintenance_cost_usd: number | null
+          miles: number | null
+          net_profit_usd: number | null
+          profit_per_mile: number | null
+          revenue_per_mile: number | null
+          revenue_usd: number | null
+          total_expenses_usd: number | null
+          vehicle_unit: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       delete_current_user: { Args: never; Returns: undefined }
