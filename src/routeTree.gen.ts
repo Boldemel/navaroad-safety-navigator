@@ -15,8 +15,10 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedTripsRouteImport } from './routes/_authenticated/trips'
 import { Route as AuthenticatedReportRouteImport } from './routes/_authenticated/report'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedHosRouteImport } from './routes/_authenticated/hos'
 import { Route as AuthenticatedHazardMapRouteImport } from './routes/_authenticated/hazard-map'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
@@ -53,6 +55,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedTripsRoute = AuthenticatedTripsRouteImport.update({
+  id: '/trips',
+  path: '/trips',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedReportRoute = AuthenticatedReportRouteImport.update({
   id: '/report',
   path: '/report',
@@ -61,6 +68,11 @@ const AuthenticatedReportRoute = AuthenticatedReportRouteImport.update({
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHosRoute = AuthenticatedHosRouteImport.update({
+  id: '/hos',
+  path: '/hos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedHazardMapRoute = AuthenticatedHazardMapRouteImport.update({
@@ -105,8 +117,10 @@ export interface FileRoutesByFullPath {
   '/alerts': typeof AuthenticatedAlertsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/hazard-map': typeof AuthenticatedHazardMapRoute
+  '/hos': typeof AuthenticatedHosRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
+  '/trips': typeof AuthenticatedTripsRoute
   '/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/admin/moderation': typeof AuthenticatedAdminModerationRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -120,8 +134,10 @@ export interface FileRoutesByTo {
   '/alerts': typeof AuthenticatedAlertsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/hazard-map': typeof AuthenticatedHazardMapRoute
+  '/hos': typeof AuthenticatedHosRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
+  '/trips': typeof AuthenticatedTripsRoute
   '/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/admin/moderation': typeof AuthenticatedAdminModerationRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -137,8 +153,10 @@ export interface FileRoutesById {
   '/_authenticated/alerts': typeof AuthenticatedAlertsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/hazard-map': typeof AuthenticatedHazardMapRoute
+  '/_authenticated/hos': typeof AuthenticatedHosRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/report': typeof AuthenticatedReportRoute
+  '/_authenticated/trips': typeof AuthenticatedTripsRoute
   '/_authenticated/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/_authenticated/admin/moderation': typeof AuthenticatedAdminModerationRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -154,8 +172,10 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/dashboard'
     | '/hazard-map'
+    | '/hos'
     | '/profile'
     | '/report'
+    | '/trips'
     | '/admin/error-logs'
     | '/admin/moderation'
     | '/admin/users'
@@ -169,8 +189,10 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/dashboard'
     | '/hazard-map'
+    | '/hos'
     | '/profile'
     | '/report'
+    | '/trips'
     | '/admin/error-logs'
     | '/admin/moderation'
     | '/admin/users'
@@ -185,8 +207,10 @@ export interface FileRouteTypes {
     | '/_authenticated/alerts'
     | '/_authenticated/dashboard'
     | '/_authenticated/hazard-map'
+    | '/_authenticated/hos'
     | '/_authenticated/profile'
     | '/_authenticated/report'
+    | '/_authenticated/trips'
     | '/_authenticated/admin/error-logs'
     | '/_authenticated/admin/moderation'
     | '/_authenticated/admin/users'
@@ -245,6 +269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/trips': {
+      id: '/_authenticated/trips'
+      path: '/trips'
+      fullPath: '/trips'
+      preLoaderRoute: typeof AuthenticatedTripsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/report': {
       id: '/_authenticated/report'
       path: '/report'
@@ -257,6 +288,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hos': {
+      id: '/_authenticated/hos'
+      path: '/hos'
+      fullPath: '/hos'
+      preLoaderRoute: typeof AuthenticatedHosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/hazard-map': {
@@ -308,8 +346,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAlertsRoute: typeof AuthenticatedAlertsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHazardMapRoute: typeof AuthenticatedHazardMapRoute
+  AuthenticatedHosRoute: typeof AuthenticatedHosRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReportRoute: typeof AuthenticatedReportRoute
+  AuthenticatedTripsRoute: typeof AuthenticatedTripsRoute
   AuthenticatedAdminErrorLogsRoute: typeof AuthenticatedAdminErrorLogsRoute
   AuthenticatedAdminModerationRoute: typeof AuthenticatedAdminModerationRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
@@ -319,8 +359,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAlertsRoute: AuthenticatedAlertsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHazardMapRoute: AuthenticatedHazardMapRoute,
+  AuthenticatedHosRoute: AuthenticatedHosRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReportRoute: AuthenticatedReportRoute,
+  AuthenticatedTripsRoute: AuthenticatedTripsRoute,
   AuthenticatedAdminErrorLogsRoute: AuthenticatedAdminErrorLogsRoute,
   AuthenticatedAdminModerationRoute: AuthenticatedAdminModerationRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
