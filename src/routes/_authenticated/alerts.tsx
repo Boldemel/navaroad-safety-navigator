@@ -45,7 +45,13 @@ function AlertsCenter() {
   const { data: hazards = [], isLoading: hazardsLoading } = useQuery({
     queryKey: ["alerts-hazards"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("hazard_reports").select("*").order("created_at", { ascending: false }).limit(100);
+      const { data, error } = await supabase
+        .from("hazard_reports")
+        .select("*")
+        .eq("status", "active")
+        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+        .order("created_at", { ascending: false })
+        .limit(100);
       if (error) throw error;
       return data;
     },
