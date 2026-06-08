@@ -40,8 +40,17 @@ export async function saveRoute(input: {
 }) {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) throw new Error("Not signed in.");
+  const { data: cm } = await supabase
+    .from("company_members")
+    .select("company_id")
+    .eq("user_id", u.user.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!cm?.company_id) throw new Error("No company for user.");
   const { error } = await supabase.from("saved_routes").insert({
     user_id: u.user.id,
+    company_id: cm.company_id,
     origin: input.origin,
     destination: input.destination,
     truck_type: input.truck ?? null,
