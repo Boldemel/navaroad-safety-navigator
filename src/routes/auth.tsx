@@ -28,6 +28,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [resetMode, setResetMode] = useState(false);
+  const [pendingConfirmEmail, setPendingConfirmEmail] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -41,7 +42,12 @@ function AuthPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      if (/confirm/i.test(error.message)) {
+        setPendingConfirmEmail(email);
+      }
+      return toast.error(error.message);
+    }
     navigate({ to: "/dashboard", replace: true });
   }
 
@@ -59,12 +65,26 @@ function AuthPage() {
     setLoading(false);
     if (error) return toast.error(error.message);
     if (!data.session) {
-      // Email confirmation required.
-      toast.success("Check your inbox to confirm your email, then sign in.");
+      // Email confirmation required — show inline state.
+      setPendingConfirmEmail(email);
+      toast.success("Check your inbox to confirm your email.");
       return;
     }
     toast.success("Account created. You're signed in.");
     navigate({ to: "/dashboard", replace: true });
+  }
+
+  async function resendConfirmation() {
+    if (!pendingConfirmEmail) return;
+    setLoading(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: pendingConfirmEmail,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Confirmation email re-sent.");
   }
 
   async function signInWithGoogle() {
