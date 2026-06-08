@@ -42,6 +42,8 @@ export type RouteDriverReport = {
   longitude: number;
   created_at: string;
   distanceMi: number;
+  confirm_count: number;
+  dispute_count: number;
 };
 
 type RouteWeatherAlert = WeatherAlert;
