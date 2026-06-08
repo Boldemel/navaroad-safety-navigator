@@ -2,13 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listInspections, createInspection, deleteInspection, type InspectionDefect } from "@/lib/inspections.functions";
+import { listInspections, createInspection, deleteInspection, type Inspection, type InspectionDefect } from "@/lib/inspections.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ClipboardCheck, Plus, Trash2, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { ClipboardCheck, Plus, Trash2, AlertTriangle, CheckCircle2, Loader2, Printer } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -28,15 +28,27 @@ const CHECKLIST: { area: string; items: string[] }[] = [
   { area: "Emergency Equipment", items: ["Fire extinguisher", "Triangles", "Spare fuses"] },
 ];
 
+type Filter = "all" | "pre" | "post" | "open";
+
 function InspectionsPage() {
   const fetchAll = useServerFn(listInspections);
   const create = useServerFn(createInspection);
   const remove = useServerFn(deleteInspection);
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState<Filter>("all");
 
   const { data, isLoading } = useQuery({ queryKey: ["inspections"], queryFn: () => fetchAll() });
   const items = data?.inspections ?? [];
+
+  const filtered = useMemo(() => items.filter((i) => {
+    if (filter === "pre") return i.inspection_type === "pre";
+    if (filter === "post") return i.inspection_type === "post";
+    if (filter === "open") return i.defects_correction_required && i.defects.length > 0;
+    return true;
+  }), [items, filter]);
+
+  const openCount = items.filter((i) => i.defects_correction_required && i.defects.length > 0).length;
 
   const del = useMutation({
     mutationFn: (id: string) => remove({ data: { id } }),
@@ -48,30 +60,52 @@ function InspectionsPage() {
       <div className="container max-w-3xl py-6 space-y-5">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2"><ClipboardCheck className="size-6 text-primary" /> Vehicle Inspections</h1>
-            <p className="text-sm text-muted-foreground">DVIR · Pre/Post-trip records</p>
+            <h1 className="text-2xl font-bold flex items-center gap-2"><ClipboardCheck className="size-6 text-primary" /> DVIR / Vehicle Inspections</h1>
+            <p className="text-sm text-muted-foreground">FMCSA Pre & Post-trip Driver Vehicle Inspection Reports</p>
           </div>
-          <Button onClick={() => setOpen(true)}><Plus className="size-4 mr-2" /> New inspection</Button>
+          <Button onClick={() => setOpen(true)}><Plus className="size-4 mr-2" /> New DVIR</Button>
+        </div>
+
+        {openCount > 0 && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive flex items-center gap-2">
+            <AlertTriangle className="size-4" />
+            {openCount} DVIR{openCount === 1 ? "" : "s"} have defects flagged as needing correction.
+          </div>
+        )}
+
+        {/* Filter tabs */}
+        <div className="flex gap-1 border-b border-border overflow-x-auto">
+          {([
+            { k: "all", l: `All (${items.length})` },
+            { k: "pre", l: "Pre-trip" },
+            { k: "post", l: "Post-trip" },
+            { k: "open", l: `Open defects (${openCount})` },
+          ] as const).map(({ k, l }) => (
+            <button key={k} onClick={() => setFilter(k)} className={cn(
+              "px-3 py-2 text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-colors",
+              filter === k ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground",
+            )}>{l}</button>
+          ))}
         </div>
 
         {open && <NewInspectionForm onClose={() => setOpen(false)} onSubmit={async (payload) => {
           try {
             await create({ data: payload });
             qc.invalidateQueries({ queryKey: ["inspections"] });
-            toast.success("Inspection saved");
+            toast.success("DVIR saved");
             setOpen(false);
           } catch (e) { toast.error(e instanceof Error ? e.message : "Save failed"); }
         }} />}
 
         {isLoading ? (
           <div className="flex justify-center py-12"><Loader2 className="size-6 animate-spin text-muted-foreground" /></div>
-        ) : items.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-            No inspections yet. Tap “New inspection” to log a pre-trip or post-trip DVIR.
+            {items.length === 0 ? "No DVIRs yet. Tap “New DVIR” to log a pre-trip or post-trip inspection." : "No DVIRs match this filter."}
           </div>
         ) : (
           <div className="space-y-3">
-            {items.map((i) => {
+            {filtered.map((i) => {
               const oos = i.defects.some((d) => d.severity === "out_of_service");
               return (
                 <div key={i.id} className={cn("rounded-lg border p-4 space-y-2", oos ? "border-destructive/40 bg-destructive/5" : "border-border bg-card")}>
@@ -85,12 +119,15 @@ function InspectionsPage() {
                         {[i.vehicle_unit && `Unit ${i.vehicle_unit}`, i.trailer_unit && `Trailer ${i.trailer_unit}`, i.odometer != null && `${i.odometer.toLocaleString()} mi`].filter(Boolean).join(" · ") || "No unit details"}
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => { if (confirm("Delete this inspection?")) del.mutate(i.id); }} disabled={del.isPending}>
-                      <Trash2 className="size-4 text-muted-foreground" />
-                    </Button>
+                    <div className="flex gap-1 shrink-0">
+                      <Button variant="ghost" size="sm" onClick={() => printDvir(i)}><Printer className="size-3.5 mr-1" /> Print</Button>
+                      <Button variant="ghost" size="icon" onClick={() => { if (confirm("Delete this DVIR?")) del.mutate(i.id); }} disabled={del.isPending}>
+                        <Trash2 className="size-4 text-muted-foreground" />
+                      </Button>
+                    </div>
                   </div>
                   {i.defects.length === 0 ? (
-                    <div className="text-xs text-success flex items-center gap-1.5"><CheckCircle2 className="size-3.5" /> No defects reported</div>
+                    <div className="text-xs text-success flex items-center gap-1.5"><CheckCircle2 className="size-3.5" /> No defects reported · Vehicle satisfactory</div>
                   ) : (
                     <div className="space-y-1">
                       {i.defects.map((d) => (
@@ -104,6 +141,9 @@ function InspectionsPage() {
                           {d.note && <span className="text-muted-foreground italic">— {d.note}</span>}
                         </div>
                       ))}
+                      {i.defects_correction_required && (
+                        <div className="text-[11px] text-destructive font-medium mt-1">⚠ Correction required before driving</div>
+                      )}
                     </div>
                   )}
                   {i.notes && <div className="text-xs text-muted-foreground italic">"{i.notes}"</div>}
@@ -115,6 +155,48 @@ function InspectionsPage() {
         )}
       </div>
   );
+}
+
+/** Open a printable DVIR record in a new tab (FMCSA-style retention copy). */
+function printDvir(i: Inspection) {
+  const w = window.open("", "_blank", "width=800,height=900");
+  if (!w) { toast.error("Pop-up blocked"); return; }
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+  const defectRows = i.defects.length === 0
+    ? `<tr><td colspan="3" style="text-align:center;padding:12px;color:#0a7a23"><strong>NO DEFECTS — Vehicle condition satisfactory</strong></td></tr>`
+    : i.defects.map((d) => `<tr><td>${esc(d.area)} — ${esc(d.item)}</td><td style="text-transform:capitalize;font-weight:600">${esc(d.severity.replace("_", " "))}</td><td>${esc(d.note ?? "")}</td></tr>`).join("");
+  w.document.write(`<!DOCTYPE html><html><head><title>DVIR ${i.id.slice(0, 8)}</title>
+<style>
+body{font-family:ui-sans-serif,system-ui,sans-serif;padding:32px;color:#111;max-width:780px;margin:auto}
+h1{font-size:22px;margin:0 0 4px}
+.muted{color:#666;font-size:13px}
+table{width:100%;border-collapse:collapse;margin-top:16px;font-size:13px}
+th,td{border:1px solid #ddd;padding:8px;text-align:left;vertical-align:top}
+th{background:#f5f5f5;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;font-size:13px}
+.box{border:1px solid #ddd;padding:10px;border-radius:4px}
+.box-label{font-size:11px;text-transform:uppercase;color:#666;letter-spacing:0.5px}
+.sig{margin-top:32px;border-top:1px solid #999;padding-top:8px;font-size:12px}
+@media print{body{padding:16px}}
+</style></head><body>
+<h1>Driver Vehicle Inspection Report</h1>
+<div class="muted">${i.inspection_type === "pre" ? "Pre-Trip" : "Post-Trip"} · ${new Date(i.created_at).toLocaleString()}</div>
+<div class="grid">
+  <div class="box"><div class="box-label">Vehicle Unit</div><div>${esc(i.vehicle_unit ?? "—")}</div></div>
+  <div class="box"><div class="box-label">Trailer Unit</div><div>${esc(i.trailer_unit ?? "—")}</div></div>
+  <div class="box"><div class="box-label">Odometer</div><div>${i.odometer != null ? i.odometer.toLocaleString() + " mi" : "—"}</div></div>
+</div>
+<table><thead><tr><th style="width:45%">Defect</th><th style="width:20%">Severity</th><th>Notes</th></tr></thead><tbody>${defectRows}</tbody></table>
+${i.defects_correction_required ? `<p style="color:#b00020;font-weight:600;margin-top:12px">⚠ Defects require correction before vehicle returns to service.</p>` : ""}
+${i.notes ? `<p><strong>Notes:</strong> ${esc(i.notes)}</p>` : ""}
+<div class="sig">
+  <div>Driver signature: <strong>${esc(i.signature ?? "")}</strong></div>
+  <div style="margin-top:24px">Mechanic signature: ______________________________ &nbsp;&nbsp; Date: ______________</div>
+  <div style="margin-top:8px;color:#666;font-size:11px">FMCSA 49 CFR § 396.11 — Retain for at least 3 months</div>
+</div>
+<script>window.onload=()=>window.print()</script>
+</body></html>`);
+  w.document.close();
 }
 
 type NewPayload = {
@@ -243,7 +325,7 @@ function NewInspectionForm({ onClose, onSubmit }: { onClose: () => void; onSubmi
         <Button variant="outline" onClick={onClose}>Cancel</Button>
         <Button onClick={submit} disabled={submitting}>
           {submitting && <Loader2 className="size-4 mr-2 animate-spin" />}
-          Save inspection
+          Save DVIR
         </Button>
       </div>
     </div>
