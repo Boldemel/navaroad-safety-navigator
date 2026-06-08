@@ -7,6 +7,19 @@ export const ROUTE_NOT_CALCULATED_MESSAGE =
 export const STANDARD_ROUTE_WARNING = "Standard route shown — truck restrictions not verified yet.";
 
 export type GeoPoint = { name: string; lat: number; lon: number };
+export type TruckDimensions = {
+  heightIn?: number | null;
+  weightLbs?: number | null;
+  lengthFt?: number | null;
+  axles?: number | null;
+  hazmat?: boolean;
+  loaded?: boolean;
+};
+export type VerifiedRestrictions = {
+  clearance: boolean;
+  weight: boolean;
+  hazmat: boolean;
+};
 export type RoutedPath = {
   distanceKm: number;
   durationMin: number;
@@ -14,15 +27,20 @@ export type RoutedPath = {
   provider: "TomTom" | "OSRM" | "none";
   mode: "truck" | "standard" | "unavailable";
   truckRestrictionsVerified: boolean;
+  verifiedRestrictions: VerifiedRestrictions;
   warning?: string;
   error?: string;
 };
 
-type RouteOptions = { truckMode?: boolean; waypoints?: GeoPoint[] };
+type RouteOptions = { truckMode?: boolean; waypoints?: GeoPoint[]; truckProfile?: TruckDimensions };
 type TomTomRouteMode = "truck" | "standard";
 
 function isValidCoordinate(lat: number, lon: number) {
   return Number.isFinite(lat) && Number.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+}
+
+function noneVerified(): VerifiedRestrictions {
+  return { clearance: false, weight: false, hazmat: false };
 }
 
 function unavailableRoute(detail: string): RoutedPath {
@@ -34,6 +52,7 @@ function unavailableRoute(detail: string): RoutedPath {
     provider: "none",
     mode: "unavailable",
     truckRestrictionsVerified: false,
+    verifiedRestrictions: noneVerified(),
     error: ROUTE_NOT_CALCULATED_MESSAGE,
   };
 }
@@ -66,16 +85,53 @@ function extractTomTomError(body: string) {
   }
 }
 
-function buildTomTomRoutingUrl(key: string, o: GeoPoint, d: GeoPoint, mode: TomTomRouteMode, waypoints: GeoPoint[] = []) {
+function buildTomTomRoutingUrl(
+  key: string,
+  o: GeoPoint,
+  d: GeoPoint,
+  mode: TomTomRouteMode,
+  waypoints: GeoPoint[] = [],
+  profile?: TruckDimensions,
+) {
   const params = new URLSearchParams({
     traffic: "true",
     routeType: "fastest",
     computeTravelTimeFor: "all",
     key,
   });
-  if (mode === "truck") params.set("travelMode", "truck");
+  if (mode === "truck") {
+    params.set("travelMode", "truck");
+    params.set("vehicleCommercial", "true");
+    if (profile?.heightIn != null && profile.heightIn > 0) {
+      params.set("vehicleHeight", (profile.heightIn * 0.0254).toFixed(2));
+    }
+    if (profile?.lengthFt != null && profile.lengthFt > 0) {
+      params.set("vehicleLength", (profile.lengthFt * 0.3048).toFixed(2));
+    }
+    if (profile?.weightLbs != null && profile.weightLbs > 0) {
+      const kg = Math.round(profile.weightLbs * 0.453592);
+      params.set("vehicleWeight", String(kg));
+      if (profile.axles && profile.axles > 0) {
+        params.set("vehicleAxleWeight", String(Math.round(kg / profile.axles)));
+      }
+    }
+    if (profile?.hazmat) {
+      // No specific class supplied — use a general hazmat load type so TomTom
+      // avoids hazmat-restricted segments.
+      params.set("vehicleLoadType", "otherHazmatGeneral");
+    }
+  }
   const all = [o, ...waypoints, d].map((p) => `${p.lat},${p.lon}`).join(":");
   return `https://api.tomtom.com/routing/1/calculateRoute/${all}/json?${params.toString()}`;
+}
+
+function verifiedFor(mode: TomTomRouteMode, profile?: TruckDimensions): VerifiedRestrictions {
+  if (mode !== "truck") return noneVerified();
+  return {
+    clearance: !!(profile?.heightIn && profile.heightIn > 0),
+    weight: !!(profile?.weightLbs && profile.weightLbs > 0),
+    hazmat: !!profile?.hazmat,
+  };
 }
 
 async function tryTomTomRoute(
@@ -84,8 +140,9 @@ async function tryTomTomRoute(
   d: GeoPoint,
   mode: TomTomRouteMode,
   waypoints: GeoPoint[] = [],
+  profile?: TruckDimensions,
 ): Promise<{ ok: true; route: RoutedPath } | { ok: false; status: number; error: string; retryAsStandard: boolean }> {
-  const url = buildTomTomRoutingUrl(key, o, d, mode, waypoints);
+  const url = buildTomTomRoutingUrl(key, o, d, mode, waypoints, profile);
   console.info("TomTom Routing API URL", { mode, url: redactTomTomKey(url) });
   try {
     const res = await fetch(url);
@@ -122,6 +179,7 @@ async function tryTomTomRoute(
         provider: "TomTom",
         mode,
         truckRestrictionsVerified: mode === "truck",
+        verifiedRestrictions: verifiedFor(mode, profile),
         warning: mode === "standard" ? STANDARD_ROUTE_WARNING : undefined,
       },
     };
@@ -154,6 +212,7 @@ async function tryOsrmRoute(o: GeoPoint, d: GeoPoint, truckMode: boolean, waypoi
       provider: "OSRM",
       mode: "standard",
       truckRestrictionsVerified: false,
+      verifiedRestrictions: noneVerified(),
       warning: truckMode ? STANDARD_ROUTE_WARNING : undefined,
     };
   } catch (e) {
@@ -189,12 +248,12 @@ export async function getRoute(o: GeoPoint, d: GeoPoint, options: RouteOptions =
   let tomtomError: string | null = null;
   if (key) {
     const primaryMode: TomTomRouteMode = options.truckMode ? "truck" : "standard";
-    const primary = await tryTomTomRoute(key, o, d, primaryMode, waypoints);
+    const primary = await tryTomTomRoute(key, o, d, primaryMode, waypoints, options.truckProfile);
     if (primary.ok) return primary.route;
     tomtomError = `${primaryMode} ${primary.status}: ${primary.error}`;
 
     if (options.truckMode && primary.retryAsStandard) {
-      const standard = await tryTomTomRoute(key, o, d, "standard", waypoints);
+      const standard = await tryTomTomRoute(key, o, d, "standard", waypoints, options.truckProfile);
       if (standard.ok) return standard.route;
       tomtomError = `truck ${primary.status}: ${primary.error}; standard ${standard.status}: ${standard.error}`;
     }

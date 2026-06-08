@@ -230,6 +230,7 @@ export type RouteAnalysis = {
   truckRestrictions: {
     connected: boolean;
     message: string;
+    verified: { clearance: boolean; weight: boolean; hazmat: boolean };
     profile: {
       heightIn: number | null;
       weightLbs: number | null;
@@ -261,7 +262,11 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       ),
     );
     const validWaypoints = waypoints.filter((w): w is { name: string; lat: number; lon: number } => w != null);
-    const r = await getRoute(o, d2, { truckMode: true, waypoints: validWaypoints });
+    const r = await getRoute(o, d2, {
+      truckMode: true,
+      waypoints: validWaypoints,
+      truckProfile: data.truckProfile ?? undefined,
+    });
     const routeAvailable = r.geometry.length >= 2;
 
     const samples = sampleRoute(r.geometry, 3);
@@ -454,8 +459,11 @@ export const analyzeRoute = createServerFn({ method: "POST" })
         connected: r.truckRestrictionsVerified,
         message:
           r.truckRestrictionsVerified
-            ? "Truck route calculated with truck routing enabled. Always verify posted restrictions before departure."
+            ? (r.verifiedRestrictions.clearance || r.verifiedRestrictions.weight || r.verifiedRestrictions.hazmat
+                ? "Truck route calculated with your saved dimensions. Always verify posted restrictions before departure."
+                : "Truck route calculated, but no dimensions on profile — restrictions are not verified. Set height, weight, and hazmat in Profile › Truck Profile.")
             : (r.warning ?? "Truck restriction data not connected yet. Route not verified against bridge clearance, weight limits, or hazmat restrictions."),
+        verified: r.verifiedRestrictions,
         profile: data.truckProfile
           ? {
               heightIn: data.truckProfile.heightIn ?? null,
