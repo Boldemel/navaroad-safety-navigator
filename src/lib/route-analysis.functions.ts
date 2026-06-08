@@ -148,6 +148,7 @@ async function fetchRouteDriverReports(geometry: Array<[number, number]>, corrid
 export type RouteAnalysis = {
   origin: { name: string; lat: number; lon: number };
   destination: { name: string; lat: number; lon: number };
+  waypoints: Array<{ name: string; lat: number; lon: number }>;
   distanceKm: number;
   durationMin: number;
   geometry: Array<[number, number]>;
@@ -238,7 +239,15 @@ export const analyzeRoute = createServerFn({ method: "POST" })
         ? Promise.resolve({ name: data.destination, lat: data.destinationCoords.lat, lon: data.destinationCoords.lon })
         : geocode(data.destination),
     ]);
-    const r = await getRoute(o, d2, { truckMode: true });
+    const waypoints = await Promise.all(
+      (data.waypoints ?? []).map(async (w) =>
+        w.lat != null && w.lon != null
+          ? { name: w.label, lat: w.lat, lon: w.lon }
+          : geocode(w.label).then((g) => ({ name: w.label, lat: g.lat, lon: g.lon })).catch(() => null),
+      ),
+    );
+    const validWaypoints = waypoints.filter((w): w is { name: string; lat: number; lon: number } => w != null);
+    const r = await getRoute(o, d2, { truckMode: true, waypoints: validWaypoints });
     const routeAvailable = r.geometry.length >= 2;
 
     const samples = sampleRoute(r.geometry, 3);
@@ -337,6 +346,7 @@ export const analyzeRoute = createServerFn({ method: "POST" })
     return {
       origin: o,
       destination: d2,
+      waypoints: validWaypoints,
       distanceKm: r.distanceKm,
       durationMin: r.durationMin,
       geometry: r.geometry,
