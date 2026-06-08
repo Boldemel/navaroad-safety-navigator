@@ -141,6 +141,8 @@ function HazardMap() {
   });
 
   const { data: drivers = {} } = useDriverNames();
+  const { data: weighStatuses } = useWeighStationStatuses();
+  const reportWeigh = useReportWeighStationStatus();
   const tomtomKeyFn = useServerFn(getTomTomKey);
   const activeRoute = useActiveRoute();
   const result = activeRoute?.result ?? null;
