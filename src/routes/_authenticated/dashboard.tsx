@@ -280,6 +280,7 @@ function Dashboard() {
       origin: string; destination: string; truck: string; trailer: string;
       originCoords?: { lat: number; lon: number };
       destinationCoords?: { lat: number; lon: number };
+      waypoints?: Array<{ label: string; lat?: number; lon?: number }>;
       truckProfile?: typeof truckProfile;
     }) => analyzeFn({ data: vars }),
     onMutate: () => {
