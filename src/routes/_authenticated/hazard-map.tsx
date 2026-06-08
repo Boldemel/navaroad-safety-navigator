@@ -7,8 +7,14 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   Wind, AlertTriangle, Construction, Trash2, Car, ParkingCircleOff, CloudRain,
   CloudLightning, Clock, User, Cloud, Radio, MapPin, LocateFixed, Megaphone,
-  Truck, Scale, TreePine, ThumbsUp, ThumbsDown,
+  Truck, Scale, TreePine, ThumbsUp, ThumbsDown, Map as MapIcon,
 } from "lucide-react";
+import { PageTabs } from "@/components/page-tabs";
+
+const HAZARD_TABS = [
+  { to: "/hazard-map", label: "Hazard Map", icon: MapIcon },
+  { to: "/report", label: "Report Hazard", icon: AlertTriangle },
+];
 import { HAZARD_TYPES, hazardLabel, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
@@ -267,6 +273,7 @@ function HazardMap() {
             )}
           </p>
         </div>
+        <PageTabs tabs={HAZARD_TABS} />
         <div className="inline-flex items-center gap-2 text-xs text-muted-foreground rounded-full border border-border bg-card px-3 py-1.5">
           <Radio className={`size-3 ${loading ? "animate-pulse" : "text-success"}`} />
           {loading
