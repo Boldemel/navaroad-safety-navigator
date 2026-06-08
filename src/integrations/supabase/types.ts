@@ -347,6 +347,7 @@ export type Database = {
           trip_log_id: string | null
           updated_at: string
           user_id: string
+          vehicle_unit: string | null
           vendor: string | null
         }
         Insert: {
@@ -365,6 +366,7 @@ export type Database = {
           trip_log_id?: string | null
           updated_at?: string
           user_id: string
+          vehicle_unit?: string | null
           vendor?: string | null
         }
         Update: {
@@ -383,6 +385,7 @@ export type Database = {
           trip_log_id?: string | null
           updated_at?: string
           user_id?: string
+          vehicle_unit?: string | null
           vendor?: string | null
         }
         Relationships: [
@@ -857,11 +860,13 @@ export type Database = {
           company_id: string
           cost_usd: number | null
           created_at: string
+          driver_id: string | null
           id: string
           next_due_date: string | null
           next_due_odometer: number | null
           notes: string | null
           odometer: number | null
+          receipt_url: string | null
           service_date: string
           service_type: string
           updated_at: string
@@ -873,11 +878,13 @@ export type Database = {
           company_id: string
           cost_usd?: number | null
           created_at?: string
+          driver_id?: string | null
           id?: string
           next_due_date?: string | null
           next_due_odometer?: number | null
           notes?: string | null
           odometer?: number | null
+          receipt_url?: string | null
           service_date?: string
           service_type: string
           updated_at?: string
@@ -889,11 +896,13 @@ export type Database = {
           company_id?: string
           cost_usd?: number | null
           created_at?: string
+          driver_id?: string | null
           id?: string
           next_due_date?: string | null
           next_due_odometer?: number | null
           notes?: string | null
           odometer?: number | null
+          receipt_url?: string | null
           service_date?: string
           service_type?: string
           updated_at?: string
