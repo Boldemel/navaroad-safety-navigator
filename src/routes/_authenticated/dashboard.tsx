@@ -633,9 +633,35 @@ function Dashboard() {
             <div className="space-y-3 pt-2 border-t border-border">
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
                 <span><MapPin className="inline size-3.5 mr-1" />{Math.round(result.distanceKm * 0.621371)} mi</span>
-                <span>~{formatDriveTime(result.durationMin)} <span className="text-xs">(Drive time estimate)</span></span>
+                <span>~{formatDriveTime(result.durationMin)} <span className="text-xs">(base drive time)</span></span>
+                {result.weatherImpact.available && result.weatherImpact.deltaMin > 0 && (
+                  <span className="text-warning">
+                    ~{formatDriveTime(result.weatherImpact.adjustedDurationMin)} with weather (+{result.weatherImpact.deltaMin} min · +{result.weatherImpact.deltaPct}%)
+                  </span>
+                )}
                 <span>{result.weatherAlertCount} weather alerts · {result.roadAlertCount} DOT alerts on path</span>
               </div>
+              {result.weatherImpact.available && result.weatherImpact.deltaMin > 0 && (
+                <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs space-y-1.5">
+                  <div className="font-medium text-foreground text-sm">Weather slowdown timeline</div>
+                  <div className="grid sm:grid-cols-3 gap-2">
+                    {result.weatherImpact.segments.map((s) => (
+                      <div key={s.label} className="rounded border border-border bg-background/60 p-2">
+                        <div className="font-medium text-foreground">{s.label}</div>
+                        <div className="text-muted-foreground">{s.reason}</div>
+                        <div className={cn(
+                          "text-[11px] mt-0.5",
+                          s.severity === "severe" && "text-destructive",
+                          s.severity === "moderate" && "text-warning",
+                          s.severity === "minor" && "text-muted-foreground",
+                        )}>
+                          ×{s.multiplier.toFixed(2)} {s.multiplier > 1 ? `(+${Math.round((s.multiplier - 1) * 100)}%)` : ""}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="text-xs text-muted-foreground">
                 Data as of {new Date(result.generatedAt).toLocaleString()} ·
                 {" "}Weather: {result.dataAvailability.weather ? `live (${result.providers.weather})` : "not connected"} ·
