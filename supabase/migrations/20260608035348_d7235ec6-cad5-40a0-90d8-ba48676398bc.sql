@@ -1,0 +1,18 @@
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS truck_vin text,
+  ADD COLUMN IF NOT EXISTS truck_plate text,
+  ADD COLUMN IF NOT EXISTS truck_plate_state text,
+  ADD COLUMN IF NOT EXISTS truck_make text,
+  ADD COLUMN IF NOT EXISTS truck_model text,
+  ADD COLUMN IF NOT EXISTS truck_year integer,
+  ADD COLUMN IF NOT EXISTS truck_registration_expiry date,
+  ADD COLUMN IF NOT EXISTS truck_insurance_carrier text,
+  ADD COLUMN IF NOT EXISTS truck_insurance_policy text,
+  ADD COLUMN IF NOT EXISTS truck_insurance_expiry date,
+  ADD COLUMN IF NOT EXISTS trailer_vin text,
+  ADD COLUMN IF NOT EXISTS trailer_plate text,
+  ADD COLUMN IF NOT EXISTS trailer_plate_state text,
+  ADD COLUMN IF NOT EXISTS trailer_make text,
+  ADD COLUMN IF NOT EXISTS trailer_year integer,
+  ADD COLUMN IF NOT EXISTS trailer_registration_expiry date,
+  ADD COLUMN IF NOT EXISTS trailer_insurance_expiry date;
