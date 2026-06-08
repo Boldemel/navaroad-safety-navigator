@@ -18,7 +18,7 @@ const nav = [
   { to: "/maintenance", label: "Maintenance", icon: Wrench },
   { to: "/documents", label: "Driver Documents", icon: FolderLock },
   { to: "/fuel", label: "Fuel Log", icon: Fuel },
-  { to: "/expenses", label: "Expenses", icon: Receipt },
+  { to: "/expenses", label: "Expenses & Earnings", icon: Receipt },
   { to: "/ifta", label: "IFTA Mileage", icon: MapPinned },
   { to: "/logbook", label: "Logbook & HOS", icon: ClipboardList },
   { to: "/trips", label: "Trip History", icon: BookOpen },
