@@ -108,7 +108,7 @@ ${fleetContext}`;
         const result = streamText({
           model,
           system,
-          messages: convertToModelMessages(body.messages),
+          messages: await convertToModelMessages(body.messages),
           onFinish: async ({ text }) => {
             if (text?.trim()) {
               await supabase.from("ai_chat_messages").insert({

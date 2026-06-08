@@ -15,6 +15,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedReportRouteImport } from './routes/_authenticated/report'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedParkingRouteImport } from './routes/_authenticated/parking'
@@ -64,6 +65,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedReportRoute = AuthenticatedReportRouteImport.update({
@@ -199,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/parking': typeof AuthenticatedParkingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
+  '/api/chat': typeof ApiChatRoute
   '/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/admin/moderation': typeof AuthenticatedAdminModerationRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -226,6 +233,7 @@ export interface FileRoutesByTo {
   '/parking': typeof AuthenticatedParkingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
+  '/api/chat': typeof ApiChatRoute
   '/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/admin/moderation': typeof AuthenticatedAdminModerationRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -256,6 +264,7 @@ export interface FileRoutesById {
   '/_authenticated/parking': typeof AuthenticatedParkingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/report': typeof AuthenticatedReportRoute
+  '/api/chat': typeof ApiChatRoute
   '/_authenticated/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/_authenticated/admin/moderation': typeof AuthenticatedAdminModerationRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -286,6 +295,7 @@ export interface FileRouteTypes {
     | '/parking'
     | '/profile'
     | '/report'
+    | '/api/chat'
     | '/admin/error-logs'
     | '/admin/moderation'
     | '/admin/users'
@@ -313,6 +323,7 @@ export interface FileRouteTypes {
     | '/parking'
     | '/profile'
     | '/report'
+    | '/api/chat'
     | '/admin/error-logs'
     | '/admin/moderation'
     | '/admin/users'
@@ -342,6 +353,7 @@ export interface FileRouteTypes {
     | '/_authenticated/parking'
     | '/_authenticated/profile'
     | '/_authenticated/report'
+    | '/api/chat'
     | '/_authenticated/admin/error-logs'
     | '/_authenticated/admin/moderation'
     | '/_authenticated/admin/users'
@@ -356,6 +368,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermsRoute: typeof TermsRoute
+  ApiChatRoute: typeof ApiChatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -400,6 +413,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/report': {
@@ -619,17 +639,8 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermsRoute: TermsRoute,
+  ApiChatRoute: ApiChatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
