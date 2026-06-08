@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { NavigationBanner } from "@/components/navigation-banner";
 import { ProximityAlertStack } from "@/components/proximity-alert-stack";
+import { OfflineBanner } from "@/components/offline-banner";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -78,6 +79,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <button onClick={signOut} className="text-sm text-muted-foreground"><LogOut className="size-4" /></button>
         </header>
 
+        <OfflineBanner />
         <NavigationBanner />
         <ProximityAlertStack />
         <main className="flex-1 overflow-x-hidden">{children}</main>
