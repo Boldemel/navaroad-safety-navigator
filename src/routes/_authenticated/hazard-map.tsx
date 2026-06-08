@@ -98,6 +98,41 @@ function HazardMap() {
   const [follow, setFollow] = useState(false);
   const [recenterToken, setRecenterToken] = useState(0);
   useRealtimeInvalidate(["hazard_reports"], [["map-hazards"], ["driver-names"]]);
+  useRealtimeInvalidate(["hazard_votes"], [["my-hazard-votes"]]);
+
+  const qc = useQueryClient();
+  const voteFn = useServerFn(voteOnHazard);
+  const removeVoteFn = useServerFn(removeMyHazardVote);
+  const { data: myVotes = {} } = useQuery({
+    queryKey: ["my-hazard-votes"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return {} as Record<string, "confirm" | "dispute">;
+      const { data, error } = await supabase
+        .from("hazard_votes")
+        .select("hazard_id, vote")
+        .eq("user_id", u.user.id);
+      if (error) return {} as Record<string, "confirm" | "dispute">;
+      const map: Record<string, "confirm" | "dispute"> = {};
+      for (const v of data ?? []) map[v.hazard_id] = v.vote as "confirm" | "dispute";
+      return map;
+    },
+    staleTime: 30_000,
+  });
+  const vote = useMutation({
+    mutationFn: async ({ hazardId, choice }: { hazardId: string; choice: "confirm" | "dispute" }) => {
+      if (myVotes[hazardId] === choice) {
+        await removeVoteFn({ data: { hazardId } });
+      } else {
+        await voteFn({ data: { hazardId, vote: choice } });
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["my-hazard-votes"] });
+      qc.invalidateQueries({ queryKey: ["map-hazards"] });
+      qc.invalidateQueries({ queryKey: ["route-analysis"] });
+    },
+  });
 
   const { data: drivers = {} } = useDriverNames();
   const tomtomKeyFn = useServerFn(getTomTomKey);
