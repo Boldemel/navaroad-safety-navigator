@@ -40,6 +40,17 @@ function IftaPage() {
   const entries = data?.entries ?? [];
   const [filter, setFilter] = useState(currentQuarter());
   const [showForm, setShowForm] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile-min"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return null;
+      const { data: p } = await supabase.from("profiles").select("driver_name,truck_type,trailer_type").eq("id", u.user.id).maybeSingle();
+      return { ...p, email: u.user.email };
+    },
+  });
 
   const filtered = useMemo(() => entries.filter((e) => inQuarter(e.entry_date, filter.year, filter.quarter)), [entries, filter]);
   const summary = useMemo(() => {
@@ -55,6 +66,7 @@ function IftaPage() {
   }, [filtered]);
 
   const totals = summary.reduce((acc, s) => ({ miles: acc.miles + s.miles, gallons: acc.gallons + s.gallons, cost: acc.cost + s.cost }), { miles: 0, gallons: 0, cost: 0 });
+  const fleetMpg = totals.gallons > 0 ? totals.miles / totals.gallons : null;
 
   const del = useMutation({
     mutationFn: (id: string) => remove({ data: { id } }),
@@ -62,15 +74,29 @@ function IftaPage() {
   });
 
   function exportCsv() {
+    const meta = [
+      ["IFTA Quarterly Report"],
+      [`Period`, `Q${filter.quarter} ${filter.year}`],
+      [`Driver`, profile?.driver_name ?? ""],
+      [`Generated`, new Date().toISOString()],
+      [],
+    ];
     const header = ["State","Miles","Gallons","Fuel Cost USD","MPG"];
     const rows = summary.map((s) => [s.state, s.miles.toFixed(1), s.gallons.toFixed(2), s.cost.toFixed(2), s.mpg ? s.mpg.toFixed(2) : ""]);
-    const csv = [header, ...rows, ["TOTAL", totals.miles.toFixed(1), totals.gallons.toFixed(2), totals.cost.toFixed(2), totals.gallons > 0 ? (totals.miles / totals.gallons).toFixed(2) : ""]]
-      .map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+    const totalRow = ["TOTAL", totals.miles.toFixed(1), totals.gallons.toFixed(2), totals.cost.toFixed(2), fleetMpg ? fleetMpg.toFixed(2) : ""];
+    const detail = [[], ["Detail Entries"], ["Date","State","Miles","Gallons","Fuel Cost USD","Notes"]];
+    const detailRows = filtered
+      .slice()
+      .sort((a, b) => a.entry_date.localeCompare(b.entry_date))
+      .map((e) => [e.entry_date, e.state_code, Number(e.miles).toFixed(1), Number(e.fuel_gallons).toFixed(2), e.fuel_cost_usd ? Number(e.fuel_cost_usd).toFixed(2) : "", (e.notes ?? "").replace(/[\r\n,]+/g, " ")]);
+    const all = [...meta, header, ...rows, totalRow, ...detail, ...detailRows];
+    const csv = all.map((r) => r.map((c) => /[,"\n]/.test(String(c)) ? `"${String(c).replace(/"/g, '""')}"` : c).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = `ifta-${filter.year}-Q${filter.quarter}.csv`; a.click();
     URL.revokeObjectURL(url);
+    toast.success("CSV downloaded");
   }
 
   return (
@@ -80,8 +106,9 @@ function IftaPage() {
           <h1 className="text-2xl font-bold flex items-center gap-2"><MapPinned className="size-6 text-primary" /> IFTA Mileage</h1>
           <p className="text-sm text-muted-foreground">Track miles & fuel by state for quarterly tax filings</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={exportCsv} disabled={summary.length === 0}><Download className="size-4 mr-2" /> Export</Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={() => setShowReport(true)} disabled={summary.length === 0}><FileText className="size-4 mr-2" /> Report</Button>
+          <Button variant="outline" onClick={exportCsv} disabled={summary.length === 0}><Download className="size-4 mr-2" /> CSV</Button>
           <Button onClick={() => setShowForm((v) => !v)}><Plus className="size-4 mr-2" /> Add</Button>
         </div>
       </div>
