@@ -600,6 +600,7 @@ function HazardMap() {
                   )}
                 </div>
                 {m.description && <p className="mt-1 text-sm line-clamp-3">{m.description}</p>}
+                {m.photoUrl && <HazardPhoto path={m.photoUrl} className="mt-2 size-24" />}
                 {m.layer === "driver" && (
                   <>
                     <div className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
