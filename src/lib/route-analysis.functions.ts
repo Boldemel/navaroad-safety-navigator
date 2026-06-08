@@ -416,7 +416,8 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       weighStations,
       driverReports,
       routeId,
-      etaMin: r.durationMin,
+      etaMin: adjustedDurationMin,
+      weatherImpact,
       debug: {
         routeId,
         origin: o.name,
