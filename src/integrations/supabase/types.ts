@@ -920,6 +920,97 @@ export type Database = {
           },
         ]
       }
+      maintenance_tasks: {
+        Row: {
+          assigned_to: string | null
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          defect_category: string | null
+          defect_description: string
+          defect_key: string | null
+          driver_id: string | null
+          id: string
+          inspection_id: string | null
+          maintenance_record_id: string | null
+          priority: Database["public"]["Enums"]["maintenance_task_priority"]
+          repair_cost_usd: number | null
+          repair_documentation_url: string | null
+          repair_notes: string | null
+          status: Database["public"]["Enums"]["maintenance_task_status"]
+          trailer_unit: string | null
+          updated_at: string
+          user_id: string
+          vehicle_unit: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          defect_category?: string | null
+          defect_description: string
+          defect_key?: string | null
+          driver_id?: string | null
+          id?: string
+          inspection_id?: string | null
+          maintenance_record_id?: string | null
+          priority?: Database["public"]["Enums"]["maintenance_task_priority"]
+          repair_cost_usd?: number | null
+          repair_documentation_url?: string | null
+          repair_notes?: string | null
+          status?: Database["public"]["Enums"]["maintenance_task_status"]
+          trailer_unit?: string | null
+          updated_at?: string
+          user_id: string
+          vehicle_unit?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          defect_category?: string | null
+          defect_description?: string
+          defect_key?: string | null
+          driver_id?: string | null
+          id?: string
+          inspection_id?: string | null
+          maintenance_record_id?: string | null
+          priority?: Database["public"]["Enums"]["maintenance_task_priority"]
+          repair_cost_usd?: number | null
+          repair_documentation_url?: string | null
+          repair_notes?: string | null
+          status?: Database["public"]["Enums"]["maintenance_task_status"]
+          trailer_unit?: string | null
+          updated_at?: string
+          user_id?: string
+          vehicle_unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_maintenance_record_id_fkey"
+            columns: ["maintenance_record_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1369,6 +1460,8 @@ export type Database = {
         | "accountant"
         | "company_owner"
         | "fleet_manager"
+      maintenance_task_priority: "Critical" | "High" | "Medium" | "Low"
+      maintenance_task_status: "Open" | "InProgress" | "Completed" | "Cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1530,6 +1623,8 @@ export const Constants = {
         "company_owner",
         "fleet_manager",
       ],
+      maintenance_task_priority: ["Critical", "High", "Medium", "Low"],
+      maintenance_task_status: ["Open", "InProgress", "Completed", "Cancelled"],
     },
   },
 } as const
