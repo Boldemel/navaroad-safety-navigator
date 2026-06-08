@@ -337,6 +337,7 @@ export type Database = {
           company_id: string
           created_at: string
           expense_date: string
+          fuel_purchase_id: string | null
           id: string
           notes: string | null
           receipt_url: string | null
@@ -351,6 +352,7 @@ export type Database = {
           company_id: string
           created_at?: string
           expense_date?: string
+          fuel_purchase_id?: string | null
           id?: string
           notes?: string | null
           receipt_url?: string | null
@@ -365,6 +367,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           expense_date?: string
+          fuel_purchase_id?: string | null
           id?: string
           notes?: string | null
           receipt_url?: string | null
@@ -379,6 +382,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_fuel_purchase_id_fkey"
+            columns: ["fuel_purchase_id"]
+            isOneToOne: false
+            referencedRelation: "fuel_purchases"
             referencedColumns: ["id"]
           },
         ]
@@ -599,6 +609,7 @@ export type Database = {
           entry_date: string
           fuel_cost_usd: number | null
           fuel_gallons: number
+          fuel_purchase_id: string | null
           id: string
           load_id: string | null
           miles: number
@@ -613,6 +624,7 @@ export type Database = {
           entry_date?: string
           fuel_cost_usd?: number | null
           fuel_gallons?: number
+          fuel_purchase_id?: string | null
           id?: string
           load_id?: string | null
           miles?: number
@@ -627,6 +639,7 @@ export type Database = {
           entry_date?: string
           fuel_cost_usd?: number | null
           fuel_gallons?: number
+          fuel_purchase_id?: string | null
           id?: string
           load_id?: string | null
           miles?: number
@@ -641,6 +654,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ifta_entries_fuel_purchase_id_fkey"
+            columns: ["fuel_purchase_id"]
+            isOneToOne: false
+            referencedRelation: "fuel_purchases"
             referencedColumns: ["id"]
           },
           {
