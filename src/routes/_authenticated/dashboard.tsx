@@ -79,6 +79,13 @@ function Dashboard() {
   const [truck, setTruck] = useState(cached?.truck ?? "Sleeper");
   const [trailer, setTrailer] = useState(cached?.trailer ?? "Dry Van");
   const [cachedResult, setCachedResult] = useState<RouteAnalysis | null>(cached?.result ?? null);
+  type Stop = { id: string; text: string; place: SelectedPlace | null };
+  const [stops, setStops] = useState<Stop[]>([]);
+  const stopWaypoints = stops
+    .filter((s) => s.place || s.text.trim().length >= 2)
+    .map((s) => s.place
+      ? { label: s.place.label, lat: s.place.lat, lon: s.place.lon }
+      : { label: s.text.trim() });
   useRealtimeInvalidate(["hazard_reports"], [["dash-hazards"]]);
 
   const analyzeFn = useServerFn(analyzeRoute);
@@ -273,6 +280,7 @@ function Dashboard() {
       origin: string; destination: string; truck: string; trailer: string;
       originCoords?: { lat: number; lon: number };
       destinationCoords?: { lat: number; lon: number };
+      waypoints?: Array<{ label: string; lat?: number; lon?: number }>;
       truckProfile?: typeof truckProfile;
     }) => analyzeFn({ data: vars }),
     onMutate: () => {
@@ -324,6 +332,7 @@ function Dashboard() {
           destLat: result.destination.lat,
           destLon: result.destination.lon,
           truck: true,
+          waypoints: (result.waypoints ?? []).map((w) => ({ lat: w.lat, lon: w.lon })),
         },
       });
       startNavigation({
@@ -475,6 +484,7 @@ function Dashboard() {
       origin, destination, truck, trailer, truckProfile,
       ...(originPlace ? { originCoords: { lat: originPlace.lat, lon: originPlace.lon } } : {}),
       ...(destPlace ? { destinationCoords: { lat: destPlace.lat, lon: destPlace.lon } } : {}),
+      ...(stopWaypoints.length ? { waypoints: stopWaypoints } : {}),
     });
   }
 
@@ -546,6 +556,45 @@ function Dashboard() {
                 proximity={originPlace ? { lat: originPlace.lat, lon: originPlace.lon } : (geo.coords ?? null)}
                 favorites={favSuggestions}
               />
+            </div>
+            <div className="sm:col-span-2 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Stops along the way ({stops.length})</Label>
+                <button
+                  type="button"
+                  onClick={() => setStops((s) => [...s, { id: crypto.randomUUID(), text: "", place: null }])}
+                  disabled={stops.length >= 8}
+                  className="text-[11px] inline-flex items-center gap-1 text-primary hover:underline disabled:opacity-60"
+                >
+                  + Add stop
+                </button>
+              </div>
+              {stops.map((stop, idx) => (
+                <div key={stop.id} className="flex items-start gap-2">
+                  <div className="mt-2 text-[11px] text-muted-foreground w-5 shrink-0 text-center">{idx + 1}</div>
+                  <div className="flex-1">
+                    <AddressAutocomplete
+                      value={stop.text}
+                      onChange={(t) => setStops((arr) => arr.map((s) => s.id === stop.id ? { ...s, text: t, place: s.place && t !== s.place.label ? null : s.place } : s))}
+                      onSelect={(p) => setStops((arr) => arr.map((s) => s.id === stop.id ? { ...s, place: p, text: p.label } : s))}
+                      placeholder="Cheyenne, WY"
+                      proximity={originPlace ? { lat: originPlace.lat, lon: originPlace.lon } : (geo.coords ?? null)}
+                      favorites={favSuggestions}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setStops((arr) => arr.filter((s) => s.id !== stop.id))}
+                    className="mt-2 text-[11px] text-muted-foreground hover:text-destructive"
+                    aria-label="Remove stop"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              {stops.length === 0 && (
+                <p className="text-[11px] text-muted-foreground">Add intermediate stops to route through them in order.</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Truck Type</Label>

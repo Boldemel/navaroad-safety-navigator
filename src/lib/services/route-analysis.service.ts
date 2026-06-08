@@ -18,7 +18,7 @@ export type RoutedPath = {
   error?: string;
 };
 
-type RouteOptions = { truckMode?: boolean };
+type RouteOptions = { truckMode?: boolean; waypoints?: GeoPoint[] };
 type TomTomRouteMode = "truck" | "standard";
 
 function isValidCoordinate(lat: number, lon: number) {
@@ -66,7 +66,7 @@ function extractTomTomError(body: string) {
   }
 }
 
-function buildTomTomRoutingUrl(key: string, o: GeoPoint, d: GeoPoint, mode: TomTomRouteMode) {
+function buildTomTomRoutingUrl(key: string, o: GeoPoint, d: GeoPoint, mode: TomTomRouteMode, waypoints: GeoPoint[] = []) {
   const params = new URLSearchParams({
     traffic: "true",
     routeType: "fastest",
@@ -74,7 +74,8 @@ function buildTomTomRoutingUrl(key: string, o: GeoPoint, d: GeoPoint, mode: TomT
     key,
   });
   if (mode === "truck") params.set("travelMode", "truck");
-  return `https://api.tomtom.com/routing/1/calculateRoute/${o.lat},${o.lon}:${d.lat},${d.lon}/json?${params.toString()}`;
+  const all = [o, ...waypoints, d].map((p) => `${p.lat},${p.lon}`).join(":");
+  return `https://api.tomtom.com/routing/1/calculateRoute/${all}/json?${params.toString()}`;
 }
 
 async function tryTomTomRoute(
@@ -82,8 +83,9 @@ async function tryTomTomRoute(
   o: GeoPoint,
   d: GeoPoint,
   mode: TomTomRouteMode,
+  waypoints: GeoPoint[] = [],
 ): Promise<{ ok: true; route: RoutedPath } | { ok: false; status: number; error: string; retryAsStandard: boolean }> {
-  const url = buildTomTomRoutingUrl(key, o, d, mode);
+  const url = buildTomTomRoutingUrl(key, o, d, mode, waypoints);
   console.info("TomTom Routing API URL", { mode, url: redactTomTomKey(url) });
   try {
     const res = await fetch(url);
@@ -130,9 +132,10 @@ async function tryTomTomRoute(
   }
 }
 
-async function tryOsrmRoute(o: GeoPoint, d: GeoPoint, truckMode: boolean): Promise<RoutedPath | null> {
+async function tryOsrmRoute(o: GeoPoint, d: GeoPoint, truckMode: boolean, waypoints: GeoPoint[] = []): Promise<RoutedPath | null> {
   try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${o.lon},${o.lat};${d.lon},${d.lat}?overview=simplified&geometries=geojson`;
+    const coords = [o, ...waypoints, d].map((p) => `${p.lon},${p.lat}`).join(";");
+    const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=simplified&geometries=geojson`;
     const res = await fetch(url);
     const body = await res.text();
     if (!res.ok) {
@@ -179,24 +182,25 @@ export async function getRoute(o: GeoPoint, d: GeoPoint, options: RouteOptions =
     return unavailableRoute(`Invalid route coordinates: origin=${o.lat},${o.lon}; destination=${d.lat},${d.lon}`);
   }
 
+  const waypoints = (options.waypoints ?? []).filter((w) => isValidCoordinate(w.lat, w.lon));
   // Prefer the correct TomTom Routing API endpoint. In truck mode, do not retry
   // with explicit car routing; use a clearly labeled standard route fallback.
   const key = process.env.TOMTOM_API_KEY;
   let tomtomError: string | null = null;
   if (key) {
     const primaryMode: TomTomRouteMode = options.truckMode ? "truck" : "standard";
-    const primary = await tryTomTomRoute(key, o, d, primaryMode);
+    const primary = await tryTomTomRoute(key, o, d, primaryMode, waypoints);
     if (primary.ok) return primary.route;
     tomtomError = `${primaryMode} ${primary.status}: ${primary.error}`;
 
     if (options.truckMode && primary.retryAsStandard) {
-      const standard = await tryTomTomRoute(key, o, d, "standard");
+      const standard = await tryTomTomRoute(key, o, d, "standard", waypoints);
       if (standard.ok) return standard.route;
       tomtomError = `truck ${primary.status}: ${primary.error}; standard ${standard.status}: ${standard.error}`;
     }
   }
 
-  const standardRoute = await tryOsrmRoute(o, d, !!options.truckMode);
+  const standardRoute = await tryOsrmRoute(o, d, !!options.truckMode, waypoints);
   if (standardRoute) return standardRoute;
 
   return unavailableRoute(tomtomError ? `TomTom: ${tomtomError}; standard fallback failed` : "standard fallback failed");

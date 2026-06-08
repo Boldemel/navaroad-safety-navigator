@@ -7,6 +7,10 @@ const Input = z.object({
   destLat: z.number().min(-90).max(90),
   destLon: z.number().min(-180).max(180),
   truck: z.boolean().optional(),
+  waypoints: z
+    .array(z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) }))
+    .max(8)
+    .optional(),
 });
 
 export type NavInstruction = {
@@ -67,9 +71,14 @@ export const getTruckRoute = createServerFn({ method: "POST" })
           key,
         });
         if (data.truck !== false) params.set("travelMode", "truck");
+        const wp = (data.waypoints ?? []).filter((w) => isValidCoordinate(w.lat, w.lon));
+        const coords = [
+          `${data.originLat},${data.originLon}`,
+          ...wp.map((w) => `${w.lat},${w.lon}`),
+          `${data.destLat},${data.destLon}`,
+        ].join(":");
         const url =
-          `https://api.tomtom.com/routing/1/calculateRoute/` +
-          `${data.originLat},${data.originLon}:${data.destLat},${data.destLon}/json?${params.toString()}`;
+          `https://api.tomtom.com/routing/1/calculateRoute/${coords}/json?${params.toString()}`;
         console.info("TomTom Routing API URL", { mode: data.truck === false ? "standard" : "truck", url: redactTomTomKey(url) });
         const res = await fetch(url);
         if (res.ok) {
