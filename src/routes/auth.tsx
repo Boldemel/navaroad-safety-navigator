@@ -235,6 +235,11 @@ function AuthPage() {
                     <Input id="u-pw" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>Create account</Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    By creating an account you agree to our{" "}
+                    <Link to="/terms" className="text-primary hover:underline">Terms</Link> and{" "}
+                    <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+                  </p>
                 </form>
               </TabsContent>
             </Tabs>
