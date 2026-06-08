@@ -62,12 +62,13 @@ export const createLoad = createServerFn({ method: "POST" })
   .inputValidator((data: z.infer<typeof LoadSchema>) => LoadSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const companyId = await getUserCompanyId(supabase, userId);
     if (data.isCurrent) {
       await supabase.from("loads").update({ is_current: false }).eq("user_id", userId).eq("is_current", true);
     }
     const { data: row, error } = await supabase
       .from("loads")
-      .insert({ user_id: userId, ...rowFromInput(data) })
+      .insert({ user_id: userId, company_id: companyId, ...rowFromInput(data) })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
