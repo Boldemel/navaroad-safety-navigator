@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getUserCompanyId } from "./get-company";
 
 export type TripLog = {
   id: string;
@@ -41,10 +42,12 @@ export const logTrip = createServerFn({ method: "POST" })
   .inputValidator((data: z.infer<typeof InsertSchema>) => InsertSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const companyId = await getUserCompanyId(supabase, userId);
     const { data: row, error } = await supabase
       .from("trip_logs")
       .insert({
         user_id: userId,
+        company_id: companyId,
         origin: data.origin,
         destination: data.destination,
         distance_mi: data.distanceMi ?? null,
