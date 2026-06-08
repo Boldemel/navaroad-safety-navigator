@@ -1,23 +1,34 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { User } from "lucide-react";
+import { User, Trash2 } from "lucide-react";
 import { VoiceSettingsCard } from "@/components/voice-settings-card";
 import { TruckProfileCard } from "@/components/truck-profile-card";
 import { FavoriteLocationsCard } from "@/components/favorite-locations-card";
+import { deleteOwnAccount } from "@/lib/account.functions";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   component: Profile,
 });
 
 function Profile() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const deleteAccountFn = useServerFn(deleteOwnAccount);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [email, setEmail] = useState("");
   const [form, setForm] = useState({
     driver_name: "",
@@ -25,6 +36,21 @@ function Profile() {
     notify_push: true,
     notify_sms: false,
   });
+
+  async function deleteAccount() {
+    setDeleting(true);
+    try {
+      await deleteAccountFn({});
+      await queryClient.cancelQueries();
+      queryClient.clear();
+      await supabase.auth.signOut();
+      toast.success("Your account has been deleted.");
+      router.navigate({ to: "/", replace: true });
+    } catch (e) {
+      setDeleting(false);
+      toast.error(e instanceof Error ? e.message : "Could not delete account.");
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -92,6 +118,40 @@ function Profile() {
       <TruckProfileCard />
       <FavoriteLocationsCard />
       <VoiceSettingsCard />
+
+      <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 space-y-3">
+        <div>
+          <div className="font-medium text-destructive">Delete account</div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Permanently removes your profile, saved routes, favorites, and sign-in credentials.
+            Hazard reports you submitted stay visible to the community but are detached from your account.
+            This cannot be undone.
+          </p>
+        </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" size="sm" disabled={deleting}>
+              <Trash2 className="size-4 mr-1.5" />
+              {deleting ? "Deleting…" : "Delete my account"}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete your Navaroad account?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This permanently deletes your profile, saved routes, favorites, truck profile, and sign-in.
+                You'll be signed out immediately. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={deleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Yes, delete everything
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }

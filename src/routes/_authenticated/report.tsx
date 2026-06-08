@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { HAZARD_TYPES, SEVERITIES } from "@/lib/navaroad";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { geocodeAddress } from "@/lib/geocode.functions";
+import { useGeolocation } from "@/hooks/use-geolocation";
+import { LocateFixed } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/report")({
   component: ReportHazard,
@@ -18,6 +22,8 @@ export const Route = createFileRoute("/_authenticated/report")({
 function ReportHazard() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const geocodeFn = useServerFn(geocodeAddress);
+  const geo = useGeolocation();
   const [hazardType, setHazardType] = useState("accident");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
@@ -28,12 +34,36 @@ function ReportHazard() {
     mutationFn: async () => {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) throw new Error("You must be signed in to report a hazard.");
+
+      // Try to attach lat/lon so the report can show up on the map and in
+      // proximity alerts. Prefer the user's current GPS fix (most accurate),
+      // otherwise forward-geocode the free-form location text. If both fail
+      // we still submit — the report stays text-only.
+      let latitude: number | null = null;
+      let longitude: number | null = null;
+      if (geo.coords) {
+        latitude = geo.coords.lat;
+        longitude = geo.coords.lon;
+      } else {
+        try {
+          const hit = await geocodeFn({ data: { query: location } });
+          if (hit) {
+            latitude = hit.lat;
+            longitude = hit.lon;
+          }
+        } catch {
+          /* non-fatal */
+        }
+      }
+
       const { error } = await supabase.from("hazard_reports").insert({
         hazard_type: hazardType,
         location,
         description,
         severity,
         reporter_id: u.user.id,
+        latitude,
+        longitude,
       });
       if (error) throw error;
     },
@@ -99,8 +129,18 @@ function ReportHazard() {
           </div>
 
           <div className="space-y-1.5">
-            <Label>Location</Label>
+            <div className="flex items-center justify-between">
+              <Label>Location</Label>
+              {geo.coords && (
+                <span className="text-xs text-success inline-flex items-center gap-1">
+                  <LocateFixed className="size-3" /> Will tag with your GPS location
+                </span>
+              )}
+            </div>
             <Input required value={location} onChange={(e) => setLocation(e.target.value)} placeholder="I-80 EB, MP 215, WY" />
+            <p className="text-xs text-muted-foreground">
+              We'll attach coordinates so this report appears on the map and triggers nearby-driver alerts.
+            </p>
           </div>
 
           <div className="space-y-1.5">

@@ -1,6 +1,7 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Map, AlertTriangle, Bell, User, LogOut, Truck } from "lucide-react";
 import { ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { NavigationBanner } from "@/components/navigation-banner";
@@ -17,8 +18,13 @@ const nav = [
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const router = useRouter();
+  const queryClient = useQueryClient();
 
+  // Sign-out hygiene: cancel in-flight queries, drop cached protected data,
+  // sign out, then REPLACE history so Back can't restore the protected route.
   async function signOut() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
     await supabase.auth.signOut();
     router.navigate({ to: "/auth", replace: true });
   }
