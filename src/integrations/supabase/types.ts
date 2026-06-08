@@ -217,6 +217,108 @@ export type Database = {
           },
         ]
       }
+      inspections: {
+        Row: {
+          created_at: string
+          defects: Json
+          defects_correction_required: boolean
+          id: string
+          inspection_type: string
+          notes: string | null
+          odometer: number | null
+          signature: string | null
+          trailer_unit: string | null
+          user_id: string
+          vehicle_unit: string | null
+        }
+        Insert: {
+          created_at?: string
+          defects?: Json
+          defects_correction_required?: boolean
+          id?: string
+          inspection_type?: string
+          notes?: string | null
+          odometer?: number | null
+          signature?: string | null
+          trailer_unit?: string | null
+          user_id: string
+          vehicle_unit?: string | null
+        }
+        Update: {
+          created_at?: string
+          defects?: Json
+          defects_correction_required?: boolean
+          id?: string
+          inspection_type?: string
+          notes?: string | null
+          odometer?: number | null
+          signature?: string | null
+          trailer_unit?: string | null
+          user_id?: string
+          vehicle_unit?: string | null
+        }
+        Relationships: []
+      }
+      loads: {
+        Row: {
+          bol_number: string | null
+          commodity: string | null
+          consignee_address: string | null
+          consignee_name: string | null
+          created_at: string
+          delivery_at: string | null
+          id: string
+          is_current: boolean
+          notes: string | null
+          pickup_at: string | null
+          rate_usd: number | null
+          shipper_address: string | null
+          shipper_name: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          weight_lbs: number | null
+        }
+        Insert: {
+          bol_number?: string | null
+          commodity?: string | null
+          consignee_address?: string | null
+          consignee_name?: string | null
+          created_at?: string
+          delivery_at?: string | null
+          id?: string
+          is_current?: boolean
+          notes?: string | null
+          pickup_at?: string | null
+          rate_usd?: number | null
+          shipper_address?: string | null
+          shipper_name?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          weight_lbs?: number | null
+        }
+        Update: {
+          bol_number?: string | null
+          commodity?: string | null
+          consignee_address?: string | null
+          consignee_name?: string | null
+          created_at?: string
+          delivery_at?: string | null
+          id?: string
+          is_current?: boolean
+          notes?: string | null
+          pickup_at?: string | null
+          rate_usd?: number | null
+          shipper_address?: string | null
+          shipper_name?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          weight_lbs?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
