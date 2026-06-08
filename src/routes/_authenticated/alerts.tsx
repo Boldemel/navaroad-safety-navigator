@@ -120,6 +120,7 @@ function AlertsCenter() {
       lat: h.latitude ?? null,
       lon: h.longitude ?? null,
       category: h.hazard_type,
+      photoUrl: h.photo_url ?? null,
     }));
     const all = [...weather, ...road, ...driverItems];
 
