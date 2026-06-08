@@ -114,7 +114,11 @@ export function useGeolocation(opts: { watch?: boolean; auto?: boolean } = {}) {
   useEffect(() => {
     if (!watch || state.status !== "granted") return;
     if (typeof window === "undefined" || !("geolocation" in navigator)) return;
-    watchId.current = navigator.geolocation.watchPosition(setCoords, setError, {
+    const onWatchError = (err: GeolocationPositionError) => {
+      // Don't blow away a usable fix on transient high-accuracy errors.
+      if (err.code === err.PERMISSION_DENIED) setError(err);
+    };
+    watchId.current = navigator.geolocation.watchPosition(setCoords, onWatchError, {
       enableHighAccuracy: true,
       maximumAge: 10_000,
     });
