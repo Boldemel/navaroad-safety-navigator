@@ -104,6 +104,41 @@ function Dashboard() {
     }
   }, [activeRoute]);
 
+  // Pick up a route the user chose to "Load" from their saved-routes list.
+  useEffect(() => {
+    const pending = consumePendingRoute();
+    if (!pending) return;
+    setOrigin(pending.origin);
+    setOriginPlace(null);
+    setDestination(pending.destination);
+    setDestPlace(null);
+    if (pending.truck) setTruck(pending.truck);
+    if (pending.trailer) setTrailer(pending.trailer);
+    toast.success("Saved route loaded — click Analyze Route to refresh conditions.");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [savingRoute, setSavingRoute] = useState(false);
+  async function handleSaveRoute() {
+    if (!origin.trim() || !destination.trim()) return;
+    setSavingRoute(true);
+    try {
+      await saveRoute({
+        origin: origin.trim(),
+        destination: destination.trim(),
+        truck,
+        trailer,
+        safetyScore: result?.safetyScore ?? null,
+      });
+      toast.success("Route saved to your profile.");
+      queryClient.invalidateQueries({ queryKey: ["saved-routes"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save route.");
+    } finally {
+      setSavingRoute(false);
+    }
+  }
+
 
 
   function routeInputKey(
