@@ -598,9 +598,39 @@ function HazardMap() {
                 </div>
                 {m.description && <p className="mt-1 text-sm line-clamp-3">{m.description}</p>}
                 {m.layer === "driver" && (
-                  <div className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
-                    <User className="size-3" /> Reported by {driver ?? "a driver"}
-                  </div>
+                  <>
+                    <div className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
+                      <User className="size-3" /> Reported by {driver ?? "a driver"}
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={vote.isPending}
+                        onClick={() => vote.mutate({ hazardId: m.id, choice: "confirm" })}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition disabled:opacity-50",
+                          myVotes[m.id] === "confirm"
+                            ? "border-success/50 bg-success/15 text-success"
+                            : "border-border bg-card text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        <ThumbsUp className="size-3.5" /> Still there ({m.confirmCount ?? 0})
+                      </button>
+                      <button
+                        type="button"
+                        disabled={vote.isPending}
+                        onClick={() => vote.mutate({ hazardId: m.id, choice: "dispute" })}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition disabled:opacity-50",
+                          myVotes[m.id] === "dispute"
+                            ? "border-destructive/50 bg-destructive/15 text-destructive"
+                            : "border-border bg-card text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        <ThumbsDown className="size-3.5" /> Cleared ({m.disputeCount ?? 0})
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
