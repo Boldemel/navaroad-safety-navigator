@@ -13,6 +13,7 @@ import {
   Navigation2, Fuel, ParkingCircle, ShieldAlert, Truck, Scale, Bookmark,
 } from "lucide-react";
 import { consumePendingRoute, saveRoute } from "@/lib/saved-routes";
+import { toast } from "sonner";
 
 import { TRUCK_TYPES, TRAILER_TYPES, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
