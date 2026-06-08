@@ -41,8 +41,10 @@ export const createIfta = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: z.infer<typeof EntrySchema>) => EntrySchema.parse(data))
   .handler(async ({ data, context }) => {
+    const companyId = await getUserCompanyId(context.supabase, context.userId);
     const { error } = await context.supabase.from("ifta_entries").insert({
       user_id: context.userId,
+      company_id: companyId,
       entry_date: data.entryDate,
       state_code: data.stateCode.toUpperCase(),
       miles: data.miles,
