@@ -22,7 +22,7 @@ const nav = [
   { to: "/expenses", label: "Expenses & Earnings", icon: Receipt },
   { to: "/ifta", label: "IFTA Mileage", icon: MapPinned },
   { to: "/logbook", label: "Logbook & HOS", icon: ClipboardList },
-  { to: "/trips", label: "Trip History", icon: BookOpen },
+  
   { to: "/profile", label: "Profile", icon: User },
 ];
 
