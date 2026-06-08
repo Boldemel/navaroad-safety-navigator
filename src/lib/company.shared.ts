@@ -3,6 +3,7 @@ export const ROLES = [
   "dispatcher",
   "safety_manager",
   "maintenance_manager",
+  "accountant",
   "driver",
 ] as const;
 export type CompanyRole = (typeof ROLES)[number];
