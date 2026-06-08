@@ -772,11 +772,13 @@ export async function searchTruckPoisForRoute(data: SearchTruckPoisInput): Promi
       // Casey's Travel Center and CAT Scales are surfaced end-to-end.
       // Keep keyword searches targeted so repeated analyses do not get
       // throttled and return partial, inconsistent data.
-      const kwSamples = samples;
+      // Keyword fallback uses a strided subset of samples to avoid blowing the
+      // upstream timeout. Take every other sample, max 6.
+      const kwSamples = samples.filter((_, i) => i % 2 === 0).slice(0, 6);
       const kwList =
-        data.kind === "truck_stop" ? ["Love's Travel Stop", "TA Travel Center", "Petro Stopping Center", "truck stop", "travel center"]
-        : data.kind === "cat_scale" ? keywords.slice(0, 4)
-        : keywords.slice(0, 4);
+        data.kind === "truck_stop" ? ["Love's Travel Stop", "TA Travel Center", "Petro Stopping Center"]
+        : data.kind === "cat_scale" ? keywords.slice(0, 2)
+        : keywords.slice(0, 3);
       const keywordTasks: Array<() => Promise<TomTomCall>> = [];
       const keywordSamples: Array<{ lat: number; lon: number }> = [];
       for (const s of kwSamples) {
@@ -785,7 +787,7 @@ export async function searchTruckPoisForRoute(data: SearchTruckPoisInput): Promi
           keywordSamples.push(s);
         }
       }
-      const kwResults = await runLimited(keywordTasks, 6);
+      const kwResults = await runLimited(keywordTasks, 8);
       kwResults.forEach((call, i) =>
         call.results.forEach((r) => addRaw(r, keywordSamples[i].lat, keywordSamples[i].lon)),
       );
