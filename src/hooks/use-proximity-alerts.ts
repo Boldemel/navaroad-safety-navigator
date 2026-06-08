@@ -85,6 +85,7 @@ export function useProximityAlerts() {
         .from("hazard_reports")
         .select("*")
         .eq("status", "active")
+        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
