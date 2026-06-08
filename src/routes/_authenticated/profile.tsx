@@ -18,6 +18,7 @@ import { TruckProfileCard } from "@/components/truck-profile-card";
 import { FavoriteLocationsCard } from "@/components/favorite-locations-card";
 import { SavedRoutesCard } from "@/components/saved-routes-card";
 import { deleteOwnAccount } from "@/lib/account.functions";
+import { useBrowserNotifications } from "@/hooks/use-browser-notifications";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   component: Profile,
