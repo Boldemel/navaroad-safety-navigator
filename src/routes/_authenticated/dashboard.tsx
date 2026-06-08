@@ -35,7 +35,7 @@ import { favoriteCategoryLabel } from "@/lib/favorite-locations";
 import type { TruckPoiResult } from "@/lib/poi-search.functions";
 
 // Persist the last analysis so navigating away (e.g. to the Hazard Map) and
-// back to the Dashboard doesn't reset the route, score, and stat cards to zero.
+// back to the Route Analysis page doesn't reset the route, score, and stat cards to zero.
 const ANALYSIS_CACHE_KEY = "navaroad.lastAnalysis";
 type CachedAnalysis = {
   result: RouteAnalysis;
@@ -495,7 +495,7 @@ function Dashboard() {
     <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Route Analysis</h1>
           <p className="text-muted-foreground text-sm">Live safety intelligence from weather, road, and driver sources.</p>
         </div>
         <div className="inline-flex items-center gap-2 text-xs text-muted-foreground rounded-full border border-border bg-card px-3 py-1.5">
