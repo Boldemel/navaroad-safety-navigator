@@ -15,7 +15,6 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedTripsRouteImport } from './routes/_authenticated/trips'
 import { Route as AuthenticatedReportRouteImport } from './routes/_authenticated/report'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedParkingRouteImport } from './routes/_authenticated/parking'
@@ -31,6 +30,8 @@ import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
+import { Route as AuthenticatedLoadsIndexRouteImport } from './routes/_authenticated/loads.index'
+import { Route as AuthenticatedLoadsHistoryRouteImport } from './routes/_authenticated/loads.history'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminModerationRouteImport } from './routes/_authenticated/admin/moderation'
 import { Route as AuthenticatedAdminErrorLogsRouteImport } from './routes/_authenticated/admin/error-logs'
@@ -63,11 +64,6 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedTripsRoute = AuthenticatedTripsRouteImport.update({
-  id: '/trips',
-  path: '/trips',
-  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedReportRoute = AuthenticatedReportRouteImport.update({
   id: '/report',
@@ -146,6 +142,17 @@ const AuthenticatedAlertsRoute = AuthenticatedAlertsRouteImport.update({
   path: '/alerts',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedLoadsIndexRoute = AuthenticatedLoadsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedLoadsRoute,
+} as any)
+const AuthenticatedLoadsHistoryRoute =
+  AuthenticatedLoadsHistoryRouteImport.update({
+    id: '/history',
+    path: '/history',
+    getParentRoute: () => AuthenticatedLoadsRoute,
+  } as any)
 const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   id: '/admin/users',
   path: '/admin/users',
@@ -179,16 +186,17 @@ export interface FileRoutesByFullPath {
   '/hos': typeof AuthenticatedHosRoute
   '/ifta': typeof AuthenticatedIftaRoute
   '/inspections': typeof AuthenticatedInspectionsRoute
-  '/loads': typeof AuthenticatedLoadsRoute
+  '/loads': typeof AuthenticatedLoadsRouteWithChildren
   '/logbook': typeof AuthenticatedLogbookRoute
   '/maintenance': typeof AuthenticatedMaintenanceRoute
   '/parking': typeof AuthenticatedParkingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
-  '/trips': typeof AuthenticatedTripsRoute
   '/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/admin/moderation': typeof AuthenticatedAdminModerationRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/loads/history': typeof AuthenticatedLoadsHistoryRoute
+  '/loads/': typeof AuthenticatedLoadsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -205,16 +213,16 @@ export interface FileRoutesByTo {
   '/hos': typeof AuthenticatedHosRoute
   '/ifta': typeof AuthenticatedIftaRoute
   '/inspections': typeof AuthenticatedInspectionsRoute
-  '/loads': typeof AuthenticatedLoadsRoute
   '/logbook': typeof AuthenticatedLogbookRoute
   '/maintenance': typeof AuthenticatedMaintenanceRoute
   '/parking': typeof AuthenticatedParkingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
-  '/trips': typeof AuthenticatedTripsRoute
   '/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/admin/moderation': typeof AuthenticatedAdminModerationRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/loads/history': typeof AuthenticatedLoadsHistoryRoute
+  '/loads': typeof AuthenticatedLoadsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -233,16 +241,17 @@ export interface FileRoutesById {
   '/_authenticated/hos': typeof AuthenticatedHosRoute
   '/_authenticated/ifta': typeof AuthenticatedIftaRoute
   '/_authenticated/inspections': typeof AuthenticatedInspectionsRoute
-  '/_authenticated/loads': typeof AuthenticatedLoadsRoute
+  '/_authenticated/loads': typeof AuthenticatedLoadsRouteWithChildren
   '/_authenticated/logbook': typeof AuthenticatedLogbookRoute
   '/_authenticated/maintenance': typeof AuthenticatedMaintenanceRoute
   '/_authenticated/parking': typeof AuthenticatedParkingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/report': typeof AuthenticatedReportRoute
-  '/_authenticated/trips': typeof AuthenticatedTripsRoute
   '/_authenticated/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/_authenticated/admin/moderation': typeof AuthenticatedAdminModerationRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/_authenticated/loads/history': typeof AuthenticatedLoadsHistoryRoute
+  '/_authenticated/loads/': typeof AuthenticatedLoadsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -267,10 +276,11 @@ export interface FileRouteTypes {
     | '/parking'
     | '/profile'
     | '/report'
-    | '/trips'
     | '/admin/error-logs'
     | '/admin/moderation'
     | '/admin/users'
+    | '/loads/history'
+    | '/loads/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -287,16 +297,16 @@ export interface FileRouteTypes {
     | '/hos'
     | '/ifta'
     | '/inspections'
-    | '/loads'
     | '/logbook'
     | '/maintenance'
     | '/parking'
     | '/profile'
     | '/report'
-    | '/trips'
     | '/admin/error-logs'
     | '/admin/moderation'
     | '/admin/users'
+    | '/loads/history'
+    | '/loads'
   id:
     | '__root__'
     | '/'
@@ -320,10 +330,11 @@ export interface FileRouteTypes {
     | '/_authenticated/parking'
     | '/_authenticated/profile'
     | '/_authenticated/report'
-    | '/_authenticated/trips'
     | '/_authenticated/admin/error-logs'
     | '/_authenticated/admin/moderation'
     | '/_authenticated/admin/users'
+    | '/_authenticated/loads/history'
+    | '/_authenticated/loads/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -378,13 +389,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/trips': {
-      id: '/_authenticated/trips'
-      path: '/trips'
-      fullPath: '/trips'
-      preLoaderRoute: typeof AuthenticatedTripsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/report': {
       id: '/_authenticated/report'
@@ -491,6 +495,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAlertsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/loads/': {
+      id: '/_authenticated/loads/'
+      path: '/'
+      fullPath: '/loads/'
+      preLoaderRoute: typeof AuthenticatedLoadsIndexRouteImport
+      parentRoute: typeof AuthenticatedLoadsRoute
+    }
+    '/_authenticated/loads/history': {
+      id: '/_authenticated/loads/history'
+      path: '/history'
+      fullPath: '/loads/history'
+      preLoaderRoute: typeof AuthenticatedLoadsHistoryRouteImport
+      parentRoute: typeof AuthenticatedLoadsRoute
+    }
     '/_authenticated/admin/users': {
       id: '/_authenticated/admin/users'
       path: '/admin/users'
@@ -515,6 +533,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedLoadsRouteChildren {
+  AuthenticatedLoadsHistoryRoute: typeof AuthenticatedLoadsHistoryRoute
+  AuthenticatedLoadsIndexRoute: typeof AuthenticatedLoadsIndexRoute
+}
+
+const AuthenticatedLoadsRouteChildren: AuthenticatedLoadsRouteChildren = {
+  AuthenticatedLoadsHistoryRoute: AuthenticatedLoadsHistoryRoute,
+  AuthenticatedLoadsIndexRoute: AuthenticatedLoadsIndexRoute,
+}
+
+const AuthenticatedLoadsRouteWithChildren =
+  AuthenticatedLoadsRoute._addFileChildren(AuthenticatedLoadsRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAlertsRoute: typeof AuthenticatedAlertsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -525,13 +556,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHosRoute: typeof AuthenticatedHosRoute
   AuthenticatedIftaRoute: typeof AuthenticatedIftaRoute
   AuthenticatedInspectionsRoute: typeof AuthenticatedInspectionsRoute
-  AuthenticatedLoadsRoute: typeof AuthenticatedLoadsRoute
+  AuthenticatedLoadsRoute: typeof AuthenticatedLoadsRouteWithChildren
   AuthenticatedLogbookRoute: typeof AuthenticatedLogbookRoute
   AuthenticatedMaintenanceRoute: typeof AuthenticatedMaintenanceRoute
   AuthenticatedParkingRoute: typeof AuthenticatedParkingRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReportRoute: typeof AuthenticatedReportRoute
-  AuthenticatedTripsRoute: typeof AuthenticatedTripsRoute
   AuthenticatedAdminErrorLogsRoute: typeof AuthenticatedAdminErrorLogsRoute
   AuthenticatedAdminModerationRoute: typeof AuthenticatedAdminModerationRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
@@ -547,13 +577,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHosRoute: AuthenticatedHosRoute,
   AuthenticatedIftaRoute: AuthenticatedIftaRoute,
   AuthenticatedInspectionsRoute: AuthenticatedInspectionsRoute,
-  AuthenticatedLoadsRoute: AuthenticatedLoadsRoute,
+  AuthenticatedLoadsRoute: AuthenticatedLoadsRouteWithChildren,
   AuthenticatedLogbookRoute: AuthenticatedLogbookRoute,
   AuthenticatedMaintenanceRoute: AuthenticatedMaintenanceRoute,
   AuthenticatedParkingRoute: AuthenticatedParkingRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReportRoute: AuthenticatedReportRoute,
-  AuthenticatedTripsRoute: AuthenticatedTripsRoute,
   AuthenticatedAdminErrorLogsRoute: AuthenticatedAdminErrorLogsRoute,
   AuthenticatedAdminModerationRoute: AuthenticatedAdminModerationRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
@@ -573,3 +602,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

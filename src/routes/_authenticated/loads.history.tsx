@@ -8,7 +8,7 @@ import { BookOpen, Download, Search, Trash2, Loader2, MapPin } from "lucide-reac
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/trips")({
+export const Route = createFileRoute("/_authenticated/loads/history")({
   component: TripsPage,
 });
 

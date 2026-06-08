@@ -12,7 +12,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/loads")({
+export const Route = createFileRoute("/_authenticated/loads/")({
   component: LoadsPage,
 });
 
