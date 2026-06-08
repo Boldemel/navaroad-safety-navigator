@@ -22,6 +22,7 @@ import { hazardsWithin, hazardsAlongRoute, nearestHazardAlert, type HazardLike }
 import { DriveModePanel } from "@/components/drive-mode-panel";
 import { voteOnHazard, removeMyHazardVote } from "@/lib/hazards";
 import { supabase } from "@/integrations/supabase/client";
+import { HazardPhoto } from "@/components/hazard-photo";
 
 // POI marker colors (kept in sync with the legend below).
 const POI_COLORS = {
