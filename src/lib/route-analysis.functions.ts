@@ -183,6 +183,20 @@ export type RouteAnalysis = {
   driverReports: RouteDriverReport[];
   routeId: string;
   etaMin: number;
+  weatherImpact: {
+    baseDurationMin: number;
+    adjustedDurationMin: number;
+    deltaMin: number;
+    deltaPct: number;
+    available: boolean;
+    segments: Array<{
+      label: string;
+      multiplier: number;
+      condition: string;
+      reason: string;
+      severity: "none" | "minor" | "moderate" | "severe";
+    }>;
+  };
   debug: {
     routeId: string;
     origin: string;
