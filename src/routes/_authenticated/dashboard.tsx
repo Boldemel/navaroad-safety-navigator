@@ -1382,7 +1382,7 @@ function LogTripButton({ origin, destination, truck, trailer, result }: {
     queryFn: () => listLoadsFn(),
     staleTime: 60_000,
   });
-  const activeLoad = useMemo(() => {
+  const activeLoad = useMemo<Load | null>(() => {
     const all = loadsData?.loads ?? [];
     return (
       all.find((l) => l.is_current) ??
