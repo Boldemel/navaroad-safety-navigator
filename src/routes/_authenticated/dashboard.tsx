@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -922,42 +922,25 @@ function Dashboard() {
           <StatCard icon={<Wind className="size-5" />} label="Wind Risk" count={windCount} sub={usingRoute ? "Wind/gust risks on this route" : "Active high-wind / tornado (NWS)"} accent="primary" loading={feedLoading} />
           <StatCard icon={<Construction className="size-5" />} label="Road Closure Risk" count={closureCount} sub={feed?.providers.road === "not_connected" ? "Connect DOT API" : usingRoute ? "Closures on this route" : "Active closures"} accent="destructive" loading={feedLoading} />
           <StatCard icon={<ShieldAlert className="size-5" />} label="Truck Restriction Risk" count={0} sub="Bridge / weight / hazmat data not connected yet" accent="warning" />
-          <StatCard icon={<ParkingCircle className="size-5" />} label="Rest Areas" count={usingRoute ? parkingStops?.pois.length ?? 0 : 0} sub={parkingStops && !parkingStops.connected ? "Not connected yet" : usingRoute ? "Rest areas & welcome centers · route-filtered" : "Analyze a route to find rest areas"} accent="primary" loading={parkingLoading} onClick={usingRoute && (parkingStops?.pois.length ?? 0) > 0 ? () => setPoiDialog({ title: "Rest Areas on this Route", result: parkingStops ?? null }) : undefined} />
-          <StatCard icon={<Truck className="size-5" />} label="Truck Stops" count={usingRoute ? truckStops?.pois.length ?? 0 : 0} sub={truckStops && !truckStops.connected ? "Not connected yet" : usingRoute ? "Pilot · Flying J · Love's · TA · Petro · verified plazas" : "Analyze a route to find truck stops"} accent="primary" loading={truckStopsLoading} onClick={usingRoute && (truckStops?.pois.length ?? 0) > 0 ? () => setPoiDialog({ title: "Truck Stops on this Route", result: truckStops ?? null }) : undefined} />
-          <StatCard icon={<Scale className="size-5" />} label="Weigh Stations" count={usingRoute ? weighStations?.pois.length ?? 0 : 0} sub={weighStations && !weighStations.connected ? "Not connected yet" : usingRoute ? `State weigh, port of entry, inspection · ${weighStations?.provider ?? "TomTom"}` : "Analyze a route to find weigh stations"} accent="warning" loading={weighLoading} onClick={usingRoute && (weighStations?.pois.length ?? 0) > 0 ? () => setPoiDialog({ title: "Weigh Stations on this Route", result: weighStations ?? null }) : undefined} />
-          
           <StatCard icon={<Users className="size-5" />} label="Driver Reports" count={driverCount} sub="Community layer · live" accent="warning" />
         </div>
+
+        {usingRoute && (() => {
+          const stopsTotal = (parkingStops?.pois.length ?? 0) + (truckStops?.pois.length ?? 0) + (weighStations?.pois.length ?? 0);
+          return (
+            <Link
+              to="/parking"
+              className="mt-3 inline-flex items-center gap-2 rounded-md border border-border bg-card hover:bg-accent px-3 py-2 text-sm transition-colors"
+            >
+              <ParkingCircle className="size-4 text-primary" />
+              <span className="font-medium">{stopsTotal} stop{stopsTotal === 1 ? "" : "s"} along route</span>
+              <span className="text-muted-foreground">· {parkingStops?.pois.length ?? 0} rest · {truckStops?.pois.length ?? 0} truck stops · {weighStations?.pois.length ?? 0} weigh</span>
+              <span className="text-primary">→ Parking &amp; Stops</span>
+            </Link>
+          );
+        })()}
       </div>
 
-      {usingRoute && (
-        <div className="grid lg:grid-cols-2 gap-4">
-          <PoiList
-            icon={<ParkingCircle className="size-4 text-primary" />}
-            title="Rest Areas on this Route"
-            routeLabel={routeLabel}
-            loading={parkingLoading}
-            result={parkingStops}
-            emptyHint="No rest areas or welcome centers detected near this route."
-          />
-          <PoiList
-            icon={<Truck className="size-4 text-primary" />}
-            title="Truck Stops on this Route"
-            routeLabel={routeLabel}
-            loading={truckStopsLoading}
-            result={truckStops}
-            emptyHint="No truck stops detected near this route."
-          />
-          <PoiList
-            icon={<Scale className="size-4 text-primary" />}
-            title="Weigh Stations on this Route"
-            routeLabel={routeLabel}
-            loading={weighLoading}
-            result={weighStations}
-            emptyHint="No weigh stations detected near this route."
-          />
-        </div>
-      )}
 
 
       <div>
