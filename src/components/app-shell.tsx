@@ -30,7 +30,7 @@ const mobileNav = [
   { to: "/dashboard", label: "Dash", icon: LayoutDashboard },
   { to: "/parking", label: "Stops", icon: ParkingCircle },
   { to: "/loads", label: "Loads", icon: Package },
-  { to: "/hos", label: "HOS", icon: Clock },
+  { to: "/logbook", label: "HOS", icon: ClipboardList },
   { to: "/profile", label: "Me", icon: User },
 ];
 
