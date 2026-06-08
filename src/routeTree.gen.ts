@@ -19,10 +19,13 @@ import { Route as AuthenticatedTripsRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedReportRouteImport } from './routes/_authenticated/report'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedParkingRouteImport } from './routes/_authenticated/parking'
+import { Route as AuthenticatedMaintenanceRouteImport } from './routes/_authenticated/maintenance'
 import { Route as AuthenticatedLoadsRouteImport } from './routes/_authenticated/loads'
 import { Route as AuthenticatedInspectionsRouteImport } from './routes/_authenticated/inspections'
+import { Route as AuthenticatedIftaRouteImport } from './routes/_authenticated/ifta'
 import { Route as AuthenticatedHosRouteImport } from './routes/_authenticated/hos'
 import { Route as AuthenticatedHazardMapRouteImport } from './routes/_authenticated/hazard-map'
+import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
@@ -78,6 +81,12 @@ const AuthenticatedParkingRoute = AuthenticatedParkingRouteImport.update({
   path: '/parking',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMaintenanceRoute =
+  AuthenticatedMaintenanceRouteImport.update({
+    id: '/maintenance',
+    path: '/maintenance',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedLoadsRoute = AuthenticatedLoadsRouteImport.update({
   id: '/loads',
   path: '/loads',
@@ -89,6 +98,11 @@ const AuthenticatedInspectionsRoute =
     path: '/inspections',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedIftaRoute = AuthenticatedIftaRouteImport.update({
+  id: '/ifta',
+  path: '/ifta',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedHosRoute = AuthenticatedHosRouteImport.update({
   id: '/hos',
   path: '/hos',
@@ -97,6 +111,11 @@ const AuthenticatedHosRoute = AuthenticatedHosRouteImport.update({
 const AuthenticatedHazardMapRoute = AuthenticatedHazardMapRouteImport.update({
   id: '/hazard-map',
   path: '/hazard-map',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDocumentsRoute = AuthenticatedDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -135,10 +154,13 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/alerts': typeof AuthenticatedAlertsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/documents': typeof AuthenticatedDocumentsRoute
   '/hazard-map': typeof AuthenticatedHazardMapRoute
   '/hos': typeof AuthenticatedHosRoute
+  '/ifta': typeof AuthenticatedIftaRoute
   '/inspections': typeof AuthenticatedInspectionsRoute
   '/loads': typeof AuthenticatedLoadsRoute
+  '/maintenance': typeof AuthenticatedMaintenanceRoute
   '/parking': typeof AuthenticatedParkingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
@@ -155,10 +177,13 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/alerts': typeof AuthenticatedAlertsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/documents': typeof AuthenticatedDocumentsRoute
   '/hazard-map': typeof AuthenticatedHazardMapRoute
   '/hos': typeof AuthenticatedHosRoute
+  '/ifta': typeof AuthenticatedIftaRoute
   '/inspections': typeof AuthenticatedInspectionsRoute
   '/loads': typeof AuthenticatedLoadsRoute
+  '/maintenance': typeof AuthenticatedMaintenanceRoute
   '/parking': typeof AuthenticatedParkingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
@@ -177,10 +202,13 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_authenticated/alerts': typeof AuthenticatedAlertsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
   '/_authenticated/hazard-map': typeof AuthenticatedHazardMapRoute
   '/_authenticated/hos': typeof AuthenticatedHosRoute
+  '/_authenticated/ifta': typeof AuthenticatedIftaRoute
   '/_authenticated/inspections': typeof AuthenticatedInspectionsRoute
   '/_authenticated/loads': typeof AuthenticatedLoadsRoute
+  '/_authenticated/maintenance': typeof AuthenticatedMaintenanceRoute
   '/_authenticated/parking': typeof AuthenticatedParkingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/report': typeof AuthenticatedReportRoute
@@ -199,10 +227,13 @@ export interface FileRouteTypes {
     | '/terms'
     | '/alerts'
     | '/dashboard'
+    | '/documents'
     | '/hazard-map'
     | '/hos'
+    | '/ifta'
     | '/inspections'
     | '/loads'
+    | '/maintenance'
     | '/parking'
     | '/profile'
     | '/report'
@@ -219,10 +250,13 @@ export interface FileRouteTypes {
     | '/terms'
     | '/alerts'
     | '/dashboard'
+    | '/documents'
     | '/hazard-map'
     | '/hos'
+    | '/ifta'
     | '/inspections'
     | '/loads'
+    | '/maintenance'
     | '/parking'
     | '/profile'
     | '/report'
@@ -240,10 +274,13 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_authenticated/alerts'
     | '/_authenticated/dashboard'
+    | '/_authenticated/documents'
     | '/_authenticated/hazard-map'
     | '/_authenticated/hos'
+    | '/_authenticated/ifta'
     | '/_authenticated/inspections'
     | '/_authenticated/loads'
+    | '/_authenticated/maintenance'
     | '/_authenticated/parking'
     | '/_authenticated/profile'
     | '/_authenticated/report'
@@ -334,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedParkingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/maintenance': {
+      id: '/_authenticated/maintenance'
+      path: '/maintenance'
+      fullPath: '/maintenance'
+      preLoaderRoute: typeof AuthenticatedMaintenanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/loads': {
       id: '/_authenticated/loads'
       path: '/loads'
@@ -348,6 +392,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInspectionsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ifta': {
+      id: '/_authenticated/ifta'
+      path: '/ifta'
+      fullPath: '/ifta'
+      preLoaderRoute: typeof AuthenticatedIftaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/hos': {
       id: '/_authenticated/hos'
       path: '/hos'
@@ -360,6 +411,13 @@ declare module '@tanstack/react-router' {
       path: '/hazard-map'
       fullPath: '/hazard-map'
       preLoaderRoute: typeof AuthenticatedHazardMapRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/documents': {
+      id: '/_authenticated/documents'
+      path: '/documents'
+      fullPath: '/documents'
+      preLoaderRoute: typeof AuthenticatedDocumentsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -403,10 +461,13 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAlertsRoute: typeof AuthenticatedAlertsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
   AuthenticatedHazardMapRoute: typeof AuthenticatedHazardMapRoute
   AuthenticatedHosRoute: typeof AuthenticatedHosRoute
+  AuthenticatedIftaRoute: typeof AuthenticatedIftaRoute
   AuthenticatedInspectionsRoute: typeof AuthenticatedInspectionsRoute
   AuthenticatedLoadsRoute: typeof AuthenticatedLoadsRoute
+  AuthenticatedMaintenanceRoute: typeof AuthenticatedMaintenanceRoute
   AuthenticatedParkingRoute: typeof AuthenticatedParkingRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReportRoute: typeof AuthenticatedReportRoute
@@ -419,10 +480,13 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAlertsRoute: AuthenticatedAlertsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
   AuthenticatedHazardMapRoute: AuthenticatedHazardMapRoute,
   AuthenticatedHosRoute: AuthenticatedHosRoute,
+  AuthenticatedIftaRoute: AuthenticatedIftaRoute,
   AuthenticatedInspectionsRoute: AuthenticatedInspectionsRoute,
   AuthenticatedLoadsRoute: AuthenticatedLoadsRoute,
+  AuthenticatedMaintenanceRoute: AuthenticatedMaintenanceRoute,
   AuthenticatedParkingRoute: AuthenticatedParkingRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReportRoute: AuthenticatedReportRoute,

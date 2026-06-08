@@ -47,6 +47,51 @@ export type Database = {
         }
         Relationships: []
       }
+      documents: {
+        Row: {
+          created_at: string
+          doc_number: string | null
+          doc_type: string
+          expires_on: string | null
+          file_url: string | null
+          id: string
+          issued_on: string | null
+          issuer: string | null
+          notes: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          doc_number?: string | null
+          doc_type: string
+          expires_on?: string | null
+          file_url?: string | null
+          id?: string
+          issued_on?: string | null
+          issuer?: string | null
+          notes?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          doc_number?: string | null
+          doc_type?: string
+          expires_on?: string | null
+          file_url?: string | null
+          id?: string
+          issued_on?: string | null
+          issuer?: string | null
+          notes?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       error_logs: {
         Row: {
           context: Json | null
@@ -217,6 +262,45 @@ export type Database = {
           },
         ]
       }
+      ifta_entries: {
+        Row: {
+          created_at: string
+          entry_date: string
+          fuel_cost_usd: number | null
+          fuel_gallons: number
+          id: string
+          miles: number
+          notes: string | null
+          state_code: string
+          trip_log_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entry_date?: string
+          fuel_cost_usd?: number | null
+          fuel_gallons?: number
+          id?: string
+          miles?: number
+          notes?: string | null
+          state_code: string
+          trip_log_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entry_date?: string
+          fuel_cost_usd?: number | null
+          fuel_gallons?: number
+          id?: string
+          miles?: number
+          notes?: string | null
+          state_code?: string
+          trip_log_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       inspections: {
         Row: {
           created_at: string
@@ -316,6 +400,54 @@ export type Database = {
           updated_at?: string
           user_id?: string
           weight_lbs?: number | null
+        }
+        Relationships: []
+      }
+      maintenance_records: {
+        Row: {
+          cost_usd: number | null
+          created_at: string
+          id: string
+          next_due_date: string | null
+          next_due_odometer: number | null
+          notes: string | null
+          odometer: number | null
+          service_date: string
+          service_type: string
+          updated_at: string
+          user_id: string
+          vehicle_unit: string | null
+          vendor: string | null
+        }
+        Insert: {
+          cost_usd?: number | null
+          created_at?: string
+          id?: string
+          next_due_date?: string | null
+          next_due_odometer?: number | null
+          notes?: string | null
+          odometer?: number | null
+          service_date?: string
+          service_type: string
+          updated_at?: string
+          user_id: string
+          vehicle_unit?: string | null
+          vendor?: string | null
+        }
+        Update: {
+          cost_usd?: number | null
+          created_at?: string
+          id?: string
+          next_due_date?: string | null
+          next_due_odometer?: number | null
+          notes?: string | null
+          odometer?: number | null
+          service_date?: string
+          service_type?: string
+          updated_at?: string
+          user_id?: string
+          vehicle_unit?: string | null
+          vendor?: string | null
         }
         Relationships: []
       }
