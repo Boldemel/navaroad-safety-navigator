@@ -58,7 +58,8 @@ export const createDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: z.infer<typeof DocSchema>) => DocSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("documents").insert({ user_id: context.userId, ...row(data) });
+    const companyId = await getUserCompanyId(context.supabase, context.userId);
+    const { error } = await context.supabase.from("documents").insert({ user_id: context.userId, company_id: companyId, ...row(data) });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
