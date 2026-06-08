@@ -34,7 +34,7 @@ export const logClientError = createServerFn({ method: "POST" })
         url: trim(data.url, 1000),
         route: trim(data.route, 500),
         severity: data.severity ?? "error",
-        context: data.context ?? null,
+        context: (data.context ?? null) as never,
         user_agent: trim(userAgent, 500),
         user_id: data.userId ?? null,
       });
