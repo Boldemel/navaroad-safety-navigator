@@ -589,13 +589,30 @@ export type Database = {
           notify_email: boolean | null
           notify_push: boolean | null
           notify_sms: boolean | null
+          trailer_insurance_expiry: string | null
+          trailer_make: string | null
+          trailer_plate: string | null
+          trailer_plate_state: string | null
+          trailer_registration_expiry: string | null
           trailer_type: string | null
+          trailer_vin: string | null
+          trailer_year: number | null
           truck_axles: number | null
           truck_hazmat: boolean
           truck_height_in: number | null
+          truck_insurance_carrier: string | null
+          truck_insurance_expiry: string | null
+          truck_insurance_policy: string | null
           truck_length_ft: number | null
+          truck_make: string | null
+          truck_model: string | null
+          truck_plate: string | null
+          truck_plate_state: string | null
+          truck_registration_expiry: string | null
           truck_type: string | null
+          truck_vin: string | null
           truck_weight_lbs: number | null
+          truck_year: number | null
           updated_at: string
         }
         Insert: {
@@ -606,13 +623,30 @@ export type Database = {
           notify_email?: boolean | null
           notify_push?: boolean | null
           notify_sms?: boolean | null
+          trailer_insurance_expiry?: string | null
+          trailer_make?: string | null
+          trailer_plate?: string | null
+          trailer_plate_state?: string | null
+          trailer_registration_expiry?: string | null
           trailer_type?: string | null
+          trailer_vin?: string | null
+          trailer_year?: number | null
           truck_axles?: number | null
           truck_hazmat?: boolean
           truck_height_in?: number | null
+          truck_insurance_carrier?: string | null
+          truck_insurance_expiry?: string | null
+          truck_insurance_policy?: string | null
           truck_length_ft?: number | null
+          truck_make?: string | null
+          truck_model?: string | null
+          truck_plate?: string | null
+          truck_plate_state?: string | null
+          truck_registration_expiry?: string | null
           truck_type?: string | null
+          truck_vin?: string | null
           truck_weight_lbs?: number | null
+          truck_year?: number | null
           updated_at?: string
         }
         Update: {
@@ -623,13 +657,30 @@ export type Database = {
           notify_email?: boolean | null
           notify_push?: boolean | null
           notify_sms?: boolean | null
+          trailer_insurance_expiry?: string | null
+          trailer_make?: string | null
+          trailer_plate?: string | null
+          trailer_plate_state?: string | null
+          trailer_registration_expiry?: string | null
           trailer_type?: string | null
+          trailer_vin?: string | null
+          trailer_year?: number | null
           truck_axles?: number | null
           truck_hazmat?: boolean
           truck_height_in?: number | null
+          truck_insurance_carrier?: string | null
+          truck_insurance_expiry?: string | null
+          truck_insurance_policy?: string | null
           truck_length_ft?: number | null
+          truck_make?: string | null
+          truck_model?: string | null
+          truck_plate?: string | null
+          truck_plate_state?: string | null
+          truck_registration_expiry?: string | null
           truck_type?: string | null
+          truck_vin?: string | null
           truck_weight_lbs?: number | null
+          truck_year?: number | null
           updated_at?: string
         }
         Relationships: []
