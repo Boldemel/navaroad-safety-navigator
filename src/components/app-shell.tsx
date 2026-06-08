@@ -1,5 +1,5 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Map, AlertTriangle, Bell, User, LogOut, Truck, Shield, Users, FileWarning, Clock, BookOpen, ClipboardCheck, Package, ParkingCircle, MapPinned, FolderLock, Wrench } from "lucide-react";
+import { LayoutDashboard, Map, AlertTriangle, Bell, User, LogOut, Truck, Shield, Users, FileWarning, Clock, BookOpen, ClipboardCheck, Package, ParkingCircle, MapPinned, FolderLock, Wrench, Receipt, Fuel, ClipboardList } from "lucide-react";
 import { ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,10 @@ const nav = [
   { to: "/inspections", label: "Inspections", icon: ClipboardCheck },
   { to: "/maintenance", label: "Maintenance", icon: Wrench },
   { to: "/documents", label: "Documents", icon: FolderLock },
+  { to: "/fuel", label: "Fuel Log", icon: Fuel },
+  { to: "/expenses", label: "Expenses", icon: Receipt },
   { to: "/ifta", label: "IFTA Mileage", icon: MapPinned },
+  { to: "/logbook", label: "Logbook", icon: ClipboardList },
   { to: "/report", label: "Report Hazard", icon: AlertTriangle },
   { to: "/hos", label: "Hours of Service", icon: Clock },
   { to: "/trips", label: "Trip History", icon: BookOpen },
