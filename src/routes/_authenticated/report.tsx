@@ -1,15 +1,19 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectItem as _SI, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HAZARD_TYPES, SEVERITIES } from "@/lib/navaroad";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { geocodeAddress } from "@/lib/geocode.functions";
+import { useGeolocation } from "@/hooks/use-geolocation";
+import { LocateFixed } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/report")({
   component: ReportHazard,
