@@ -667,6 +667,65 @@ export type Database = {
         }
         Relationships: []
       }
+      settlements: {
+        Row: {
+          created_at: string
+          deduction_notes: string | null
+          deductions_usd: number
+          gross_pay_usd: number
+          id: string
+          load_id: string | null
+          miles: number | null
+          notes: string | null
+          payer: string | null
+          rate_per_mile: number | null
+          reference_number: string | null
+          settlement_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deduction_notes?: string | null
+          deductions_usd?: number
+          gross_pay_usd?: number
+          id?: string
+          load_id?: string | null
+          miles?: number | null
+          notes?: string | null
+          payer?: string | null
+          rate_per_mile?: number | null
+          reference_number?: string | null
+          settlement_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deduction_notes?: string | null
+          deductions_usd?: number
+          gross_pay_usd?: number
+          id?: string
+          load_id?: string | null
+          miles?: number | null
+          notes?: string | null
+          payer?: string | null
+          rate_per_mile?: number | null
+          reference_number?: string | null
+          settlement_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlements_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "loads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_logs: {
         Row: {
           completed_at: string
