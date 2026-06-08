@@ -49,10 +49,12 @@ export const createInspection = createServerFn({ method: "POST" })
   .inputValidator((data: z.infer<typeof InsertSchema>) => InsertSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const companyId = await getUserCompanyId(supabase, userId);
     const { data: row, error } = await supabase
       .from("inspections")
       .insert({
         user_id: userId,
+        company_id: companyId,
         inspection_type: data.inspectionType,
         vehicle_unit: data.vehicleUnit ?? null,
         trailer_unit: data.trailerUnit ?? null,
