@@ -95,6 +95,7 @@ function LogbookPage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><ClipboardList className="size-6 text-primary" /> Logbook</h1>
           <p className="text-sm text-muted-foreground">ELD-style duty status grid · 15-min blocks</p>
+          <PageTabs tabs={LOGBOOK_TABS} />
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => shiftDay(-1)}><ChevronLeft className="size-4" /></Button>
