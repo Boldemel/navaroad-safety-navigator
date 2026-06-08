@@ -91,12 +91,13 @@ function isValidTomTomKey(k: string | null): k is string {
 
 function truckArrowIcon(headingDeg: number | null) {
   const rot = headingDeg ?? 0;
-  const html = `<div style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;transform:rotate(${rot}deg);transform-origin:center">
-    <div style="width:26px;height:26px;border-radius:9999px;background:#22c55e;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:white">
+  const html = `<div style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;transform:rotate(${rot}deg);transform-origin:center">
+    <div style="position:absolute;width:42px;height:42px;border-radius:9999px;background:rgba(34,197,94,0.22);border:2px solid rgba(34,197,94,0.8)"></div>
+    <div style="width:28px;height:28px;border-radius:9999px;background:#22c55e;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;color:white;z-index:1">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 14h6v8h4v-8h6Z"/></svg>
     </div>
   </div>`;
-  return L.divIcon({ className: "", html, iconSize: [34, 34], iconAnchor: [17, 17] });
+  return L.divIcon({ className: "", html, iconSize: [42, 42], iconAnchor: [21, 21] });
 }
 
 export default function TomTomMapClient({
@@ -182,7 +183,7 @@ export default function TomTomMapClient({
           </Marker>
         ))}
         {currentLocation && (
-          <Marker position={[currentLocation.lat, currentLocation.lon]} icon={truckArrowIcon(headingDeg)}>
+          <Marker position={[currentLocation.lat, currentLocation.lon]} icon={truckArrowIcon(headingDeg)} zIndexOffset={1000}>
             <Popup>
               <div className="text-sm font-medium">You are here</div>
               <div className="text-xs text-gray-600">{currentLocation.lat.toFixed(4)}, {currentLocation.lon.toFixed(4)}</div>
