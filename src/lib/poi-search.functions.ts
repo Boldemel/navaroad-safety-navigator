@@ -342,18 +342,25 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function tomtomRequest(url: string): Promise<TomTomCall> {
   let last: TomTomCall = { url, status: 0, error: "TomTom request failed", results: [] };
-  for (let attempt = 0; attempt < 4; attempt++) {
+  // Keep total upstream budget small to avoid Cloudflare upstream timeouts.
+  // Two attempts, short fixed backoff on 429/5xx.
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const r = await fetch(url);
-      const j = (await r.json().catch(() => null)) as { results?: RawResult[] } | null;
-      last = { url, status: r.status, error: r.ok ? null : tomtomError(j), results: r.ok ? j?.results ?? [] : [] };
-      if (r.ok || (r.status !== 429 && r.status < 500) || attempt === 3) return last;
-      const retryAfter = Number(r.headers.get("retry-after"));
-      await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 700 * (attempt + 1) ** 2);
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 6_000);
+      try {
+        const r = await fetch(url, { signal: ctrl.signal });
+        const j = (await r.json().catch(() => null)) as { results?: RawResult[] } | null;
+        last = { url, status: r.status, error: r.ok ? null : tomtomError(j), results: r.ok ? j?.results ?? [] : [] };
+        if (r.ok || (r.status !== 429 && r.status < 500) || attempt === 1) return last;
+      } finally {
+        clearTimeout(timer);
+      }
+      await sleep(400);
     } catch {
       last = { url, status: 0, error: "TomTom request failed", results: [] };
-      if (attempt === 3) return last;
-      await sleep(700 * (attempt + 1) ** 2);
+      if (attempt === 1) return last;
+      await sleep(400);
     }
   }
   return last;
