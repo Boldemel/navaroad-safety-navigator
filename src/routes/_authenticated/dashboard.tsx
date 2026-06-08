@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import { consumePendingRoute, saveRoute } from "@/lib/saved-routes";
 import { toast } from "sonner";
+import { FuelCostCard } from "@/components/fuel-cost-card";
+import { estimateFuel } from "@/lib/fuel-estimator";
+import { logTrip } from "@/lib/trip-logs.functions";
 
 import { TRUCK_TYPES, TRAILER_TYPES, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
