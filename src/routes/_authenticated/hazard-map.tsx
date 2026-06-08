@@ -507,7 +507,9 @@ function HazardMap() {
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Truck POIs</div>
             <LegendRow color={POI_COLORS.truck_stop} icon={<Truck className="size-3.5" />} label="Truck stop / travel center" />
             <LegendRow color={POI_COLORS.rest_area} icon={<TreePine className="size-3.5" />} label="Rest area / welcome center" />
-            <LegendRow color={POI_COLORS.weigh_station} icon={<Scale className="size-3.5" />} label="Weigh / inspection station" />
+            <LegendRow color={POI_COLORS.weigh_station} icon={<Scale className="size-3.5" />} label="Weigh station (status unknown)" />
+            <LegendRow color={POI_COLORS.weigh_station_open} icon={<Scale className="size-3.5" />} label="Weigh station — reported OPEN" />
+            <LegendRow color={POI_COLORS.weigh_station_closed} icon={<Scale className="size-3.5" />} label="Weigh station — reported CLOSED" />
           </div>
           <div className="space-y-2">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Other</div>
