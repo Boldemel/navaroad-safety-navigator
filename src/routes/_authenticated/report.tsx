@@ -76,6 +76,7 @@ function ReportHazard() {
     setDescription("");
     setSeverity("medium");
     setSubmitted(false);
+    setWasDeduped(false);
     submit.reset();
   }
 
