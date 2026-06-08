@@ -9,6 +9,7 @@ import { ProximityAlertStack } from "@/components/proximity-alert-stack";
 import { OfflineBanner } from "@/components/offline-banner";
 import { NotificationBell } from "@/components/notification-bell";
 import { useIsAdmin } from "@/hooks/use-is-admin";
+import { useAllowedModules } from "@/hooks/use-allowed-modules";
 
 const nav = [
   { to: "/dashboard", label: "Route Analysis", icon: LayoutDashboard },
@@ -46,6 +47,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const isAdmin = useIsAdmin();
+  const { allowed } = useAllowedModules();
+  const visibleNav = allowed ? nav.filter((n) => allowed.has(n.to)) : nav;
+  const visibleMobileNav = allowed ? mobileNav.filter((n) => allowed.has(n.to)) : mobileNav;
 
   // Sign-out hygiene: cancel in-flight queries, drop cached protected data,
   // sign out, then REPLACE history so Back can't restore the protected route.
@@ -67,7 +71,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <NotificationBell />
         </div>
         <nav className="flex-1 p-3 space-y-1">
-          {nav.map((n) => {
+          {visibleNav.map((n) => {
             const active = pathname === n.to || pathname.startsWith(n.to + "/");
             return (
               <Link
@@ -140,7 +144,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* Mobile bottom nav */}
         <nav className="md:hidden sticky bottom-0 grid grid-cols-5 border-t border-border bg-sidebar">
-          {mobileNav.map((n) => {
+          {visibleMobileNav.map((n) => {
             const active = pathname === n.to;
             return (
               <Link
