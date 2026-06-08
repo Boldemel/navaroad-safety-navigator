@@ -1,5 +1,5 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Map, AlertTriangle, Bell, User, LogOut, Truck, Shield, Users, FileWarning, Clock, BookOpen } from "lucide-react";
+import { LayoutDashboard, Map, AlertTriangle, Bell, User, LogOut, Truck, Shield, Users, FileWarning, Clock, BookOpen, ClipboardCheck, Package, ParkingCircle } from "lucide-react";
 import { ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,9 @@ import { useIsAdmin } from "@/hooks/use-is-admin";
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/hazard-map", label: "Hazard Map", icon: Map },
+  { to: "/parking", label: "Parking & Stops", icon: ParkingCircle },
+  { to: "/loads", label: "Loads", icon: Package },
+  { to: "/inspections", label: "Inspections", icon: ClipboardCheck },
   { to: "/report", label: "Report Hazard", icon: AlertTriangle },
   { to: "/hos", label: "Hours of Service", icon: Clock },
   { to: "/trips", label: "Trip History", icon: BookOpen },
@@ -21,9 +24,9 @@ const nav = [
 
 const mobileNav = [
   { to: "/dashboard", label: "Dash", icon: LayoutDashboard },
-  { to: "/hazard-map", label: "Map", icon: Map },
+  { to: "/parking", label: "Stops", icon: ParkingCircle },
+  { to: "/loads", label: "Loads", icon: Package },
   { to: "/hos", label: "HOS", icon: Clock },
-  { to: "/trips", label: "Trips", icon: BookOpen },
   { to: "/profile", label: "Me", icon: User },
 ];
 
