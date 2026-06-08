@@ -357,6 +357,44 @@ export const analyzeRoute = createServerFn({ method: "POST" })
     ];
     const sharedResultCount = weatherAlerts.length + roadAlerts.length + driverReports.length + restAreas.pois.length + truckStops.pois.length + weighStations.pois.length;
 
+    // Weather-impacted ETA: per-sample slowdown multipliers, averaged across
+    // available samples and applied to the base routing duration.
+    const impactSegments = weatherSamples.map((w) => {
+      if (!w.available) {
+        return { label: w.label, multiplier: 1, condition: "Unknown", reason: "No forecast", severity: "none" as const };
+      }
+      let mult = 1;
+      const reasons: string[] = [];
+      let sev: "none" | "minor" | "moderate" | "severe" = "none";
+      const bump = (m: number, r: string, s: "minor" | "moderate" | "severe") => {
+        mult *= m;
+        reasons.push(r);
+        const rank = { none: 0, minor: 1, moderate: 2, severe: 3 };
+        if (rank[s] > rank[sev]) sev = s;
+      };
+      const c = w.condition.toLowerCase();
+      if (c.includes("snow")) bump(1.3, "Snow", "severe");
+      else if (c.includes("thunder")) bump(1.2, "Thunderstorms", "moderate");
+      else if (c.includes("rain")) bump((w.precipMm ?? 0) > 5 ? 1.2 : 1.1, (w.precipMm ?? 0) > 5 ? "Heavy rain" : "Rain", (w.precipMm ?? 0) > 5 ? "moderate" : "minor");
+      else if (c.includes("drizzle")) bump(1.05, "Drizzle", "minor");
+      if (c.includes("fog") || (w.visibilityKm != null && w.visibilityKm < 1)) bump(1.25, "Low visibility", "moderate");
+      else if (w.visibilityKm != null && w.visibilityKm < 5) bump(1.1, "Reduced visibility", "minor");
+      if ((w.gustKph ?? 0) > 80) bump(1.1, "High wind gusts", "moderate");
+      else if ((w.windKph ?? 0) > 60) bump(1.05, "Strong wind", "minor");
+      return { label: w.label, multiplier: Math.round(mult * 100) / 100, condition: w.condition, reason: reasons.join(", ") || "Clear", severity: sev };
+    });
+    const availableSegs = impactSegments.filter((s, i) => weatherSamples[i].available);
+    const avgMult = availableSegs.length > 0 ? availableSegs.reduce((s, x) => s + x.multiplier, 0) / availableSegs.length : 1;
+    const adjustedDurationMin = Math.round(r.durationMin * avgMult);
+    const weatherImpact = {
+      baseDurationMin: r.durationMin,
+      adjustedDurationMin,
+      deltaMin: Math.max(0, adjustedDurationMin - Math.round(r.durationMin)),
+      deltaPct: Math.round((avgMult - 1) * 100),
+      available: availableSegs.length > 0,
+      segments: impactSegments,
+    };
+
     return {
       origin: o,
       destination: d2,
