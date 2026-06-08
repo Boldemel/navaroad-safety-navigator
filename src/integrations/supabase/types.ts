@@ -47,6 +47,114 @@ export type Database = {
         }
         Relationships: []
       }
+      companies: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      company_member_permission_overrides: {
+        Row: {
+          created_at: string
+          granted: boolean
+          member_id: string
+          permission: Database["public"]["Enums"]["app_permission"]
+        }
+        Insert: {
+          created_at?: string
+          granted: boolean
+          member_id: string
+          permission: Database["public"]["Enums"]["app_permission"]
+        }
+        Update: {
+          created_at?: string
+          granted?: boolean
+          member_id?: string
+          permission?: Database["public"]["Enums"]["app_permission"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_member_permission_overrides_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "company_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_member_roles: {
+        Row: {
+          created_at: string
+          member_id: string
+          role: Database["public"]["Enums"]["company_role"]
+        }
+        Insert: {
+          created_at?: string
+          member_id: string
+          role: Database["public"]["Enums"]["company_role"]
+        }
+        Update: {
+          created_at?: string
+          member_id?: string
+          role?: Database["public"]["Enums"]["company_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_member_roles_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "company_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_members: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           created_at: string
@@ -685,6 +793,21 @@ export type Database = {
         }
         Relationships: []
       }
+      role_default_permissions: {
+        Row: {
+          permission: Database["public"]["Enums"]["app_permission"]
+          role: Database["public"]["Enums"]["company_role"]
+        }
+        Insert: {
+          permission: Database["public"]["Enums"]["app_permission"]
+          role: Database["public"]["Enums"]["company_role"]
+        }
+        Update: {
+          permission?: Database["public"]["Enums"]["app_permission"]
+          role?: Database["public"]["Enums"]["company_role"]
+        }
+        Relationships: []
+      }
       saved_routes: {
         Row: {
           created_at: string
@@ -897,6 +1020,22 @@ export type Database = {
     }
     Functions: {
       delete_current_user: { Args: never; Returns: undefined }
+      has_company_permission: {
+        Args: {
+          _company: string
+          _permission: Database["public"]["Enums"]["app_permission"]
+          _user: string
+        }
+        Returns: boolean
+      }
+      has_company_role: {
+        Args: {
+          _company: string
+          _role: Database["public"]["Enums"]["company_role"]
+          _user: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -904,9 +1043,45 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_company_member: {
+        Args: { _company: string; _user: string }
+        Returns: boolean
+      }
+      is_company_owner: {
+        Args: { _company: string; _user: string }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_permission:
+        | "company.manage"
+        | "members.manage"
+        | "loads.manage"
+        | "loads.view"
+        | "routes.manage"
+        | "routes.view"
+        | "inspections.manage"
+        | "inspections.view"
+        | "maintenance.manage"
+        | "maintenance.view"
+        | "documents.manage"
+        | "documents.view"
+        | "fuel.manage"
+        | "fuel.view"
+        | "expenses.manage"
+        | "expenses.view"
+        | "ifta.manage"
+        | "ifta.view"
+        | "hos.manage"
+        | "hos.view"
+        | "drive"
       app_role: "admin" | "moderator" | "user"
+      company_role:
+        | "fleet_owner"
+        | "dispatcher"
+        | "safety_manager"
+        | "maintenance_manager"
+        | "driver"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1034,7 +1209,37 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_permission: [
+        "company.manage",
+        "members.manage",
+        "loads.manage",
+        "loads.view",
+        "routes.manage",
+        "routes.view",
+        "inspections.manage",
+        "inspections.view",
+        "maintenance.manage",
+        "maintenance.view",
+        "documents.manage",
+        "documents.view",
+        "fuel.manage",
+        "fuel.view",
+        "expenses.manage",
+        "expenses.view",
+        "ifta.manage",
+        "ifta.view",
+        "hos.manage",
+        "hos.view",
+        "drive",
+      ],
       app_role: ["admin", "moderator", "user"],
+      company_role: [
+        "fleet_owner",
+        "dispatcher",
+        "safety_manager",
+        "maintenance_manager",
+        "driver",
+      ],
     },
   },
 } as const
