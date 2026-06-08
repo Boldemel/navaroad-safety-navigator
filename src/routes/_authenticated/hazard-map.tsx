@@ -22,6 +22,7 @@ import { hazardsWithin, hazardsAlongRoute, nearestHazardAlert, type HazardLike }
 import { DriveModePanel } from "@/components/drive-mode-panel";
 import { voteOnHazard, removeMyHazardVote } from "@/lib/hazards";
 import { supabase } from "@/integrations/supabase/client";
+import { HazardPhoto } from "@/components/hazard-photo";
 
 // POI marker colors (kept in sync with the legend below).
 const POI_COLORS = {
@@ -85,6 +86,7 @@ type Marker = {
   lon?: number | null;
   confirmCount?: number;
   disputeCount?: number;
+  photoUrl?: string | null;
 };
 
 function HazardMap() {
@@ -188,6 +190,7 @@ function HazardMap() {
         lat: h.latitude ?? null, lon: h.longitude ?? null,
         confirmCount: h.confirm_count ?? 0,
         disputeCount: h.dispute_count ?? 0,
+        photoUrl: h.photo_url ?? null,
       })),
     [hazards],
   );
@@ -597,6 +600,7 @@ function HazardMap() {
                   )}
                 </div>
                 {m.description && <p className="mt-1 text-sm line-clamp-3">{m.description}</p>}
+                {m.photoUrl && <HazardPhoto path={m.photoUrl} className="mt-2 size-24" />}
                 {m.layer === "driver" && (
                   <>
                     <div className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">

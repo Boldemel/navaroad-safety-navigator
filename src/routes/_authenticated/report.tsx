@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
@@ -9,11 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HAZARD_TYPES, SEVERITIES } from "@/lib/navaroad";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Camera, X } from "lucide-react";
 import { geocodeAddress } from "@/lib/geocode.functions";
 import { submitHazard } from "@/lib/hazards";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { LocateFixed } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/report")({
   component: ReportHazard,
@@ -31,6 +32,40 @@ function ReportHazard() {
   const [severity, setSeverity] = useState("medium");
   const [submitted, setSubmitted] = useState(false);
   const [wasDeduped, setWasDeduped] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function onPickPhoto(f: File | null) {
+    if (!f) {
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      return;
+    }
+    if (!f.type.startsWith("image/")) {
+      toast.error("Please choose an image file.");
+      return;
+    }
+    if (f.size > 8 * 1024 * 1024) {
+      toast.error("Photo must be under 8 MB.");
+      return;
+    }
+    setPhotoFile(f);
+    setPhotoPreview(URL.createObjectURL(f));
+  }
+
+  async function uploadPhoto(): Promise<string | null> {
+    if (!photoFile) return null;
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) throw new Error("Not signed in");
+    const ext = (photoFile.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+    const path = `${u.user.id}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage
+      .from("hazard-photos")
+      .upload(path, photoFile, { contentType: photoFile.type, upsert: false });
+    if (error) throw new Error(`Photo upload failed: ${error.message}`);
+    return path;
+  }
 
   const submit = useMutation({
     mutationFn: async () => {
@@ -50,8 +85,9 @@ function ReportHazard() {
           /* non-fatal */
         }
       }
+      const photo_url = await uploadPhoto();
       return submitFn({
-        data: { hazard_type: hazardType, location, description, severity, latitude, longitude },
+        data: { hazard_type: hazardType, location, description, severity, latitude, longitude, photo_url },
       });
     },
     onSuccess: (res) => {
@@ -77,6 +113,8 @@ function ReportHazard() {
     setSeverity("medium");
     setSubmitted(false);
     setWasDeduped(false);
+    setPhotoFile(null);
+    setPhotoPreview(null);
     submit.reset();
   }
 
@@ -142,6 +180,40 @@ function ReportHazard() {
           <div className="space-y-1.5">
             <Label>Description</Label>
             <Textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What did you see?" />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Photo (optional)</Label>
+            {photoPreview ? (
+              <div className="relative inline-block">
+                <img src={photoPreview} alt="Selected" className="h-32 w-32 rounded-md border border-border object-cover" />
+                <button
+                  type="button"
+                  onClick={() => onPickPhoto(null)}
+                  className="absolute -top-2 -right-2 size-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+                  aria-label="Remove photo"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-2 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
+              >
+                <Camera className="size-4" /> Add photo
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => onPickPhoto(e.target.files?.[0] ?? null)}
+            />
+            <p className="text-xs text-muted-foreground">Up to 8 MB. Visible to other Navaroad drivers.</p>
           </div>
 
           <div className="space-y-1.5">

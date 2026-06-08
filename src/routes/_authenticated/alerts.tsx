@@ -13,6 +13,7 @@ import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { useActiveRoute } from "@/hooks/use-active-route";
 import { hazardsAlongRoute, recommendedActionFor, type HazardLike } from "@/lib/hazard-proximity";
 import { Route as RouteIcon } from "lucide-react";
+import { HazardPhoto } from "@/components/hazard-photo";
 
 export const Route = createFileRoute("/_authenticated/alerts")({
   component: AlertsCenter,
@@ -73,6 +74,7 @@ function AlertsCenter() {
     category?: string;
     onRoute?: boolean;
     distanceMi?: number;
+    photoUrl?: string | null;
   };
 
   const items: Item[] = useMemo(() => {
@@ -118,6 +120,7 @@ function AlertsCenter() {
       lat: h.latitude ?? null,
       lon: h.longitude ?? null,
       category: h.hazard_type,
+      photoUrl: h.photo_url ?? null,
     }));
     const all = [...weather, ...road, ...driverItems];
 
@@ -260,6 +263,7 @@ function AlertsCenter() {
                 <MapPin className="size-3.5" /> {it.location}
               </div>
               {it.message && <p className="mt-2 text-sm line-clamp-3">{it.message}</p>}
+              {it.photoUrl && <HazardPhoto path={it.photoUrl} className="mt-2 size-24" />}
               {it.source === "driver" && (
                 <div className="text-xs text-muted-foreground mt-2 inline-flex items-center gap-1">
                   <User className="size-3" /> Reported by {driver ?? "a driver"}
