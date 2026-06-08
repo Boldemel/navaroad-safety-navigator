@@ -7,6 +7,7 @@ import { useActiveRoute } from "@/hooks/use-active-route";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { hazardLabel } from "@/lib/navaroad";
 import { recommendedActionFor } from "@/lib/hazard-proximity";
+import { useBrowserNotifications } from "@/hooks/use-browser-notifications";
 
 export type ProximityAlertKind = "high_wind" | "road_closure" | "severe_weather" | "driver_report";
 
