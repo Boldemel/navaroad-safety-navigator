@@ -324,6 +324,7 @@ function Dashboard() {
           destLat: result.destination.lat,
           destLon: result.destination.lon,
           truck: true,
+          waypoints: (result.waypoints ?? []).map((w) => ({ lat: w.lat, lon: w.lon })),
         },
       });
       startNavigation({
