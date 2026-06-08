@@ -28,6 +28,7 @@ function Profile() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const deleteAccountFn = useServerFn(deleteOwnAccount);
+  const { supported: notifSupported, permission: notifPermission, request: requestNotif } = useBrowserNotifications();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
