@@ -118,6 +118,7 @@ function Profile() {
 
       <TruckProfileCard />
       <FavoriteLocationsCard />
+      <SavedRoutesCard />
       <VoiceSettingsCard />
 
       <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 space-y-3">
