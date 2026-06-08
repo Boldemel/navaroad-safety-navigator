@@ -44,6 +44,7 @@ export type RouteDriverReport = {
   distanceMi: number;
   confirm_count: number;
   dispute_count: number;
+  photo_url: string | null;
 };
 
 type RouteWeatherAlert = WeatherAlert;
