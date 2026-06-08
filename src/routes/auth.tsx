@@ -48,7 +48,7 @@ function AuthPage() {
   async function signUp(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -58,7 +58,26 @@ function AuthPage() {
     });
     setLoading(false);
     if (error) return toast.error(error.message);
+    if (!data.session) {
+      // Email confirmation required.
+      toast.success("Check your inbox to confirm your email, then sign in.");
+      return;
+    }
     toast.success("Account created. You're signed in.");
+    navigate({ to: "/dashboard", replace: true });
+  }
+
+  async function signInWithGoogle() {
+    setLoading(true);
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      setLoading(false);
+      toast.error(result.error.message ?? "Google sign-in failed.");
+      return;
+    }
+    if (result.redirected) return; // browser is leaving for Google
     navigate({ to: "/dashboard", replace: true });
   }
 
