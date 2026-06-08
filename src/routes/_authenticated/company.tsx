@@ -34,6 +34,7 @@ const ROLE_LABELS: Record<CompanyRole, string> = {
   dispatcher: "Dispatcher",
   safety_manager: "Safety Manager",
   maintenance_manager: "Maintenance Manager",
+  accountant: "Accountant",
   driver: "Driver",
 };
 
