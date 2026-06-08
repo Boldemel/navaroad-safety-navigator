@@ -18,9 +18,12 @@ import {
 import {
   getMyCompany, listCompanyMembers, updateCompanyName,
   addCompanyMemberByEmail, removeCompanyMember, setMemberRoles, setPermissionOverride,
+} from "@/lib/company.functions";
+import {
   ROLES, PERMISSIONS,
   type CompanyRole, type AppPermission, type CompanyMember,
-} from "@/lib/company.functions";
+} from "@/lib/company.shared";
+
 
 export const Route = createFileRoute("/_authenticated/company")({
   component: CompanyPage,
