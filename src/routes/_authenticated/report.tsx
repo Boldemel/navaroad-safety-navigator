@@ -22,6 +22,8 @@ export const Route = createFileRoute("/_authenticated/report")({
 function ReportHazard() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const geocodeFn = useServerFn(geocodeAddress);
+  const geo = useGeolocation();
   const [hazardType, setHazardType] = useState("accident");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
@@ -32,12 +34,36 @@ function ReportHazard() {
     mutationFn: async () => {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) throw new Error("You must be signed in to report a hazard.");
+
+      // Try to attach lat/lon so the report can show up on the map and in
+      // proximity alerts. Prefer the user's current GPS fix (most accurate),
+      // otherwise forward-geocode the free-form location text. If both fail
+      // we still submit — the report stays text-only.
+      let latitude: number | null = null;
+      let longitude: number | null = null;
+      if (geo.coords) {
+        latitude = geo.coords.lat;
+        longitude = geo.coords.lon;
+      } else {
+        try {
+          const hit = await geocodeFn({ data: { query: location } });
+          if (hit) {
+            latitude = hit.lat;
+            longitude = hit.lon;
+          }
+        } catch {
+          /* non-fatal */
+        }
+      }
+
       const { error } = await supabase.from("hazard_reports").insert({
         hazard_type: hazardType,
         location,
         description,
         severity,
         reporter_id: u.user.id,
+        latitude,
+        longitude,
       });
       if (error) throw error;
     },
