@@ -1,9 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
-import { Clock, AlertTriangle, Bed, Briefcase, TruckIcon, Coffee, RotateCcw } from "lucide-react";
+import { Clock, AlertTriangle, Bed, Briefcase, TruckIcon, Coffee, RotateCcw, ClipboardList } from "lucide-react";
 import { useHos, LIMITS, fmtHm, type DutyStatus } from "@/hooks/use-hos";
 import { cn } from "@/lib/utils";
+import { PageTabs } from "@/components/page-tabs";
+
+const LOGBOOK_TABS = [
+  { to: "/logbook", label: "Logbook Grid", icon: ClipboardList },
+  { to: "/hos", label: "HOS Limits", icon: Clock },
+];
 
 export const Route = createFileRoute("/_authenticated/hos")({
   component: HosPage,
@@ -51,9 +57,12 @@ function HosPage() {
 
   return (
       <div className="container max-w-3xl py-6 space-y-5">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Clock className="size-6 text-primary" /> Hours of Service</h1>
-          <p className="text-sm text-muted-foreground">Property-carrying CMV · 11/14/70 rule</p>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2"><Clock className="size-6 text-primary" /> Hours of Service</h1>
+            <p className="text-sm text-muted-foreground">Property-carrying CMV · 11/14/70 rule</p>
+          </div>
+          <PageTabs tabs={LOGBOOK_TABS} />
         </div>
 
         {warnings.length > 0 && (

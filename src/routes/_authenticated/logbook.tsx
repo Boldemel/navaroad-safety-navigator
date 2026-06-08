@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ClipboardList, Plus, Trash2, Loader2, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { ClipboardList, Plus, Trash2, Loader2, AlertTriangle, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { PageTabs } from "@/components/page-tabs";
+
+const LOGBOOK_TABS = [
+  { to: "/logbook", label: "Logbook Grid", icon: ClipboardList },
+  { to: "/hos", label: "HOS Limits", icon: Clock },
+];
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -90,6 +96,7 @@ function LogbookPage() {
           <h1 className="text-2xl font-bold flex items-center gap-2"><ClipboardList className="size-6 text-primary" /> Logbook</h1>
           <p className="text-sm text-muted-foreground">ELD-style duty status grid · 15-min blocks</p>
         </div>
+        <PageTabs tabs={LOGBOOK_TABS} />
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => shiftDay(-1)}><ChevronLeft className="size-4" /></Button>
           <Input type="date" value={fmtDate(date)} onChange={(e) => setDate(startOfDay(new Date(e.target.value + "T00:00:00")))} className="h-9 w-auto" />
