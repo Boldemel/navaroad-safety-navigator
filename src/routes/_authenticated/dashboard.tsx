@@ -665,6 +665,15 @@ function Dashboard() {
                   </div>
                 </div>
               )}
+              <FuelCostCard distanceMi={Math.round(result.distanceKm * 0.621371)} truck={truck} />
+              <LogTripButton
+                origin={origin}
+                destination={destination}
+                truck={truck}
+                trailer={trailer}
+                result={result}
+              />
+
               <div className="text-xs text-muted-foreground">
                 Data as of {new Date(result.generatedAt).toLocaleString()} ·
                 {" "}Weather: {result.dataAvailability.weather ? `live (${result.providers.weather})` : "not connected"} ·
