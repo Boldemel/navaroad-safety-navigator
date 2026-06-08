@@ -129,7 +129,7 @@ function Dashboard() {
         destination: destination.trim(),
         truck,
         trailer,
-        safetyScore: result?.safetyScore ?? null,
+        safetyScore: result?.score ?? null,
       });
       toast.success("Route saved to your profile.");
       queryClient.invalidateQueries({ queryKey: ["saved-routes"] });
