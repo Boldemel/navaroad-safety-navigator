@@ -600,6 +600,7 @@ export type Database = {
           fuel_cost_usd: number | null
           fuel_gallons: number
           id: string
+          load_id: string | null
           miles: number
           notes: string | null
           state_code: string
@@ -613,6 +614,7 @@ export type Database = {
           fuel_cost_usd?: number | null
           fuel_gallons?: number
           id?: string
+          load_id?: string | null
           miles?: number
           notes?: string | null
           state_code: string
@@ -626,6 +628,7 @@ export type Database = {
           fuel_cost_usd?: number | null
           fuel_gallons?: number
           id?: string
+          load_id?: string | null
           miles?: number
           notes?: string | null
           state_code?: string
@@ -638,6 +641,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ifta_entries_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "loads"
             referencedColumns: ["id"]
           },
         ]
@@ -1069,13 +1079,17 @@ export type Database = {
           fuel_cost: number | null
           hazard_count: number | null
           id: string
+          load_id: string | null
           notes: string | null
           origin: string
+          route_date: string | null
           safety_score: number | null
           started_at: string | null
+          state_mileage: Json | null
           trailer_type: string | null
           truck_type: string | null
           user_id: string
+          vehicle_unit: string | null
           weather_alerts: number | null
         }
         Insert: {
@@ -1088,13 +1102,17 @@ export type Database = {
           fuel_cost?: number | null
           hazard_count?: number | null
           id?: string
+          load_id?: string | null
           notes?: string | null
           origin: string
+          route_date?: string | null
           safety_score?: number | null
           started_at?: string | null
+          state_mileage?: Json | null
           trailer_type?: string | null
           truck_type?: string | null
           user_id: string
+          vehicle_unit?: string | null
           weather_alerts?: number | null
         }
         Update: {
@@ -1107,13 +1125,17 @@ export type Database = {
           fuel_cost?: number | null
           hazard_count?: number | null
           id?: string
+          load_id?: string | null
           notes?: string | null
           origin?: string
+          route_date?: string | null
           safety_score?: number | null
           started_at?: string | null
+          state_mileage?: Json | null
           trailer_type?: string | null
           truck_type?: string | null
           user_id?: string
+          vehicle_unit?: string | null
           weather_alerts?: number | null
         }
         Relationships: [
@@ -1122,6 +1144,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_logs_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "loads"
             referencedColumns: ["id"]
           },
         ]

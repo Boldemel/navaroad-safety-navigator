@@ -9,6 +9,7 @@ import {
 import { computeSafety } from "./services/safety-score.service";
 import { fetchRoadAlerts, type RoadAlert } from "./services/road-alert.service";
 import { searchTruckPoisForRoute, type TruckPoiResult } from "./poi-search.functions";
+import { computeStateMileage, type StateSlice } from "./services/state-mileage.service";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const InputSchema = z.object({
@@ -241,7 +242,9 @@ export type RouteAnalysis = {
     } | null;
   };
   providers: { weather: string; weatherAlerts: string; road: string };
+  stateMileage: StateSlice[];
 };
+
 
 export const analyzeRoute = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => InputSchema.parse(d))
@@ -408,6 +411,11 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       segments: impactSegments,
     };
 
+    const totalMiles = r.distanceKm * 0.621371;
+    const stateMileage = routeAvailable
+      ? await computeStateMileage(r.geometry, totalMiles).catch(() => [] as StateSlice[])
+      : [];
+
     return {
       origin: o,
       destination: d2,
@@ -488,5 +496,6 @@ export const analyzeRoute = createServerFn({ method: "POST" })
         weatherAlerts: "NWS",
         road: roadAlerts.length > 0 ? (roadAlerts[0]?.provider ?? "configured") : (process.env.TOMTOM_API_KEY ? "TomTom (no incidents on route)" : "not_connected"),
       },
+      stateMileage,
     };
   });

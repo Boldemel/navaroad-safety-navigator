@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { FuelCostCard } from "@/components/fuel-cost-card";
 import { estimateFuel } from "@/lib/fuel-estimator";
 import { logTrip } from "@/lib/trip-logs.functions";
+import { listLoads, type Load } from "@/lib/loads.functions";
 
 import { TRUCK_TYPES, TRAILER_TYPES, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
@@ -1367,10 +1368,30 @@ function LogTripButton({ origin, destination, truck, trailer, result }: {
   result: RouteAnalysis;
 }) {
   const logTripFn = useServerFn(logTrip);
+  const listLoadsFn = useServerFn(listLoads);
   const [logged, setLogged] = useState(false);
   const [busy, setBusy] = useState(false);
   const distanceMi = Math.round(result.distanceKm * 0.621371);
   const { cost } = estimateFuel(distanceMi, truck, 3.85);
+
+  // Resolve the active load for this driver — first "is_current", otherwise
+  // the most recent in_transit/planned. The trip log is attached to that load
+  // so IFTA entries inherit load_id.
+  const { data: loadsData } = useQuery({
+    queryKey: ["loads"],
+    queryFn: () => listLoadsFn(),
+    staleTime: 60_000,
+  });
+  const activeLoad = useMemo<Load | null>(() => {
+    const all = loadsData?.loads ?? [];
+    return (
+      all.find((l) => l.is_current) ??
+      all.find((l) => l.status === "in_transit") ??
+      all.find((l) => l.status === "planned") ??
+      null
+    );
+  }, [loadsData]);
+
   async function save() {
     if (!origin.trim() || !destination.trim()) return;
     setBusy(true);
@@ -1382,6 +1403,10 @@ function LogTripButton({ origin, destination, truck, trailer, result }: {
         durationMin: result.durationMin,
         truckType: truck || null,
         trailerType: trailer || null,
+        vehicleUnit: truck || null,
+        routeDate: new Date().toISOString().slice(0, 10),
+        loadId: activeLoad?.id ?? null,
+        stateMileage: result.stateMileage ?? null,
         safetyScore: result.score ?? null,
         hazardCount: result.roadAlertCount + result.weatherAlertCount,
         weatherAlerts: result.weatherAlertCount,
@@ -1390,7 +1415,12 @@ function LogTripButton({ origin, destination, truck, trailer, result }: {
         startedAt: null,
       }});
       setLogged(true);
-      toast.success("Trip logged to your history.");
+      const states = result.stateMileage?.length ?? 0;
+      toast.success(
+        activeLoad
+          ? `Trip logged to load ${activeLoad.bol_number ?? activeLoad.id.slice(0, 8)}${states ? ` · ${states} IFTA states` : ""}`
+          : `Trip logged${states ? ` · ${states} IFTA states` : ""}`,
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not log trip.");
     } finally {
@@ -1404,7 +1434,8 @@ function LogTripButton({ origin, destination, truck, trailer, result }: {
       disabled={busy || logged}
       className="text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline"
     >
-      {logged ? "✓ Trip logged" : busy ? "Logging…" : "Log this trip to history →"}
+      {logged ? "✓ Trip logged" : busy ? "Logging…" : activeLoad ? "Log trip → load & IFTA →" : "Log this trip to history →"}
     </button>
   );
 }
+
