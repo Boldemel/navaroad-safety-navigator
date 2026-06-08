@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { NavigationBanner } from "@/components/navigation-banner";
 import { ProximityAlertStack } from "@/components/proximity-alert-stack";
 import { OfflineBanner } from "@/components/offline-banner";
+import { NotificationBell } from "@/components/notification-bell";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 
 const nav = [
@@ -61,7 +62,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="size-9 rounded-md bg-primary flex items-center justify-center">
             <Truck className="size-5 text-primary-foreground" />
           </div>
-          <div className="font-semibold tracking-tight text-sidebar-foreground">Navaroad</div>
+          <div className="font-semibold tracking-tight text-sidebar-foreground flex-1">Navaroad</div>
+          <NotificationBell />
         </div>
         <nav className="flex-1 p-3 space-y-1">
           {nav.map((n) => {
@@ -124,7 +126,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
             <span className="font-semibold">Navaroad</span>
           </div>
-          <button onClick={signOut} className="text-sm text-muted-foreground"><LogOut className="size-4" /></button>
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <button onClick={signOut} className="text-sm text-muted-foreground p-2"><LogOut className="size-4" /></button>
+          </div>
         </header>
 
         <OfflineBanner />
