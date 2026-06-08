@@ -7,7 +7,7 @@ import { hazardLabel, severityClasses } from "@/lib/navaroad";
 import { formatDistanceToNow } from "date-fns";
 import { Bell, MapPin, Clock, User, Cloud, Construction, Users, Lightbulb } from "lucide-react";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
-import { useDriverNames } from "@/hooks/use-driver-names";
+import { useReporterProfiles, ReporterTrustBadge } from "@/components/reporter-trust-badge";
 import { cn } from "@/lib/utils";
 import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { useActiveRoute } from "@/hooks/use-active-route";
@@ -30,7 +30,7 @@ const SOURCES: Array<{ value: Source; label: string; icon: React.ComponentType<{
 function AlertsCenter() {
   useRealtimeInvalidate(["hazard_reports"], [["alerts-hazards"], ["driver-names"]]);
   const [filters, setFilters] = useState<Set<Source>>(new Set(SOURCES.map((s) => s.value)));
-  const { data: drivers = {} } = useDriverNames();
+  // Driver reputation profiles for everyone whose hazard appears in this list.
   const feedFn = useServerFn(getSafetyFeed);
   const activeRoute = useActiveRoute();
   const geometry = activeRoute?.geometry ?? [];
@@ -165,6 +165,9 @@ function AlertsCenter() {
   const visible = items.filter((it) => filters.has(it.source) && (!onRouteOnly || it.onRoute));
   const onRouteCount = items.filter((i) => i.onRoute).length;
   const loading = feedLoading || hazardsLoading;
+  const { data: reporters } = useReporterProfiles(
+    visible.filter((i) => i.source === "driver").map((i) => i.reporter_id ?? null),
+  );
 
   function toggle(v: Source) {
     setFilters((s) => {
@@ -236,7 +239,8 @@ function AlertsCenter() {
           </div>
         )}
         {visible.map((it) => {
-          const driver = it.reporter_id ? drivers[it.reporter_id] : null;
+          const reporter = it.reporter_id ? reporters?.[it.reporter_id] : undefined;
+          const driver = reporter?.driver_name ?? null;
           return (
             <div key={it.source + it.id} className={cn(
               "rounded-xl border bg-card p-4 md:p-5",
