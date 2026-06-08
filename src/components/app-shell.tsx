@@ -128,7 +128,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* Mobile bottom nav */}
         <nav className="md:hidden sticky bottom-0 grid grid-cols-5 border-t border-border bg-sidebar">
-          {nav.map((n) => {
+          {mobileNav.map((n) => {
             const active = pathname === n.to;
             return (
               <Link
