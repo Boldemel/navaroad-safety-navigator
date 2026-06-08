@@ -140,8 +140,9 @@ async function tryTomTomRoute(
   d: GeoPoint,
   mode: TomTomRouteMode,
   waypoints: GeoPoint[] = [],
+  profile?: TruckDimensions,
 ): Promise<{ ok: true; route: RoutedPath } | { ok: false; status: number; error: string; retryAsStandard: boolean }> {
-  const url = buildTomTomRoutingUrl(key, o, d, mode, waypoints);
+  const url = buildTomTomRoutingUrl(key, o, d, mode, waypoints, profile);
   console.info("TomTom Routing API URL", { mode, url: redactTomTomKey(url) });
   try {
     const res = await fetch(url);
@@ -178,6 +179,7 @@ async function tryTomTomRoute(
         provider: "TomTom",
         mode,
         truckRestrictionsVerified: mode === "truck",
+        verifiedRestrictions: verifiedFor(mode, profile),
         warning: mode === "standard" ? STANDARD_ROUTE_WARNING : undefined,
       },
     };
@@ -210,6 +212,7 @@ async function tryOsrmRoute(o: GeoPoint, d: GeoPoint, truckMode: boolean, waypoi
       provider: "OSRM",
       mode: "standard",
       truckRestrictionsVerified: false,
+      verifiedRestrictions: noneVerified(),
       warning: truckMode ? STANDARD_ROUTE_WARNING : undefined,
     };
   } catch (e) {
