@@ -125,6 +125,8 @@ async function fetchRouteDriverReports(geometry: Array<[number, number]>, corrid
         longitude: h.longitude,
         created_at: h.created_at,
         distanceMi: d,
+        confirm_count: h.confirm_count ?? 0,
+        dispute_count: h.dispute_count ?? 0,
       } satisfies RouteDriverReport;
     })
     .filter((h): h is RouteDriverReport => h != null)
