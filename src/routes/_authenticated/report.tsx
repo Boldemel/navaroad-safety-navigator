@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HAZARD_TYPES, SEVERITIES } from "@/lib/navaroad";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, Camera, X, Map as MapIcon } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Camera, X, Map as MapIcon, Bell } from "lucide-react";
 import { geocodeAddress } from "@/lib/geocode.functions";
 import { submitHazard } from "@/lib/hazards";
 import { useGeolocation } from "@/hooks/use-geolocation";
@@ -20,6 +20,7 @@ import { PageTabs } from "@/components/page-tabs";
 const HAZARD_TABS = [
   { to: "/hazard-map", label: "Hazard Map", icon: MapIcon },
   { to: "/report", label: "Report Hazard", icon: AlertTriangle },
+  { to: "/alerts", label: "Alerts", icon: Bell },
 ];
 
 export const Route = createFileRoute("/_authenticated/report")({

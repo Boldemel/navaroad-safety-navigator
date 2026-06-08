@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { hazardLabel, severityClasses } from "@/lib/navaroad";
 import { formatDistanceToNow } from "date-fns";
-import { Bell, MapPin, Clock, User, Cloud, Construction, Users, Lightbulb } from "lucide-react";
+import { Bell, MapPin, Clock, User, Cloud, Construction, Users, Lightbulb, Map as MapIcon, AlertTriangle } from "lucide-react";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { useReporterProfiles, ReporterTrustBadge } from "@/components/reporter-trust-badge";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,13 @@ import { useActiveRoute } from "@/hooks/use-active-route";
 import { hazardsAlongRoute, recommendedActionFor, type HazardLike } from "@/lib/hazard-proximity";
 import { Route as RouteIcon } from "lucide-react";
 import { HazardPhoto } from "@/components/hazard-photo";
+import { PageTabs } from "@/components/page-tabs";
+
+const HAZARD_TABS = [
+  { to: "/hazard-map", label: "Hazard Map", icon: MapIcon },
+  { to: "/report", label: "Report Hazard", icon: AlertTriangle },
+  { to: "/alerts", label: "Alerts", icon: Bell },
+];
 
 export const Route = createFileRoute("/_authenticated/alerts")({
   component: AlertsCenter,
@@ -179,19 +186,22 @@ function AlertsCenter() {
 
   return (
     <div className="p-4 md:p-8 space-y-4 max-w-5xl mx-auto">
-      <div className="flex items-center gap-3">
-        <Bell className="size-6 text-primary" />
-        <div>
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Alerts Center</h1>
-          <p className="text-muted-foreground text-sm">
-            Live alerts from weather APIs, DOT feeds, and driver reports.
-            {activeRoute ? (
-              <> Scoped to your route: <span className="text-foreground">{activeRoute.origin} → {activeRoute.destination}</span>.</>
-            ) : (
-              <> Analyze a route on the Dashboard to see route-scoped weather & road alerts.</>
-            )}
-          </p>
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <Bell className="size-6 text-primary" />
+          <div>
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Alerts</h1>
+            <p className="text-muted-foreground text-sm">
+              Live alerts from weather APIs, DOT feeds, and driver reports.
+              {activeRoute ? (
+                <> Scoped to your route: <span className="text-foreground">{activeRoute.origin} → {activeRoute.destination}</span>.</>
+              ) : (
+                <> Analyze a route to see route-scoped weather & road alerts.</>
+              )}
+            </p>
+          </div>
         </div>
+        <PageTabs tabs={HAZARD_TABS} />
       </div>
 
       <div className="flex flex-wrap gap-2">
