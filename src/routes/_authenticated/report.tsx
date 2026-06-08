@@ -183,6 +183,40 @@ function ReportHazard() {
           </div>
 
           <div className="space-y-1.5">
+            <Label>Photo (optional)</Label>
+            {photoPreview ? (
+              <div className="relative inline-block">
+                <img src={photoPreview} alt="Selected" className="h-32 w-32 rounded-md border border-border object-cover" />
+                <button
+                  type="button"
+                  onClick={() => onPickPhoto(null)}
+                  className="absolute -top-2 -right-2 size-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+                  aria-label="Remove photo"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-2 rounded-md border border-dashed border-border bg-card px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
+              >
+                <Camera className="size-4" /> Add photo
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => onPickPhoto(e.target.files?.[0] ?? null)}
+            />
+            <p className="text-xs text-muted-foreground">Up to 8 MB. Visible to other Navaroad drivers.</p>
+          </div>
+
+          <div className="space-y-1.5">
             <Label>Severity</Label>
             <Select value={severity} onValueChange={setSeverity}>
               <SelectTrigger><SelectValue /></SelectTrigger>
