@@ -92,6 +92,45 @@ export type Database = {
         }
         Relationships: []
       }
+      duty_status_logs: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          id: string
+          location: string | null
+          notes: string | null
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+          vehicle_unit: string | null
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          started_at: string
+          status: string
+          updated_at?: string
+          user_id: string
+          vehicle_unit?: string | null
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          vehicle_unit?: string | null
+        }
+        Relationships: []
+      }
       error_logs: {
         Row: {
           context: Json | null
@@ -131,6 +170,48 @@ export type Database = {
           url?: string | null
           user_agent?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount_usd: number
+          category: string
+          created_at: string
+          expense_date: string
+          id: string
+          notes: string | null
+          receipt_url: string | null
+          state_code: string | null
+          updated_at: string
+          user_id: string
+          vendor: string | null
+        }
+        Insert: {
+          amount_usd?: number
+          category: string
+          created_at?: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          receipt_url?: string | null
+          state_code?: string | null
+          updated_at?: string
+          user_id: string
+          vendor?: string | null
+        }
+        Update: {
+          amount_usd?: number
+          category?: string
+          created_at?: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          receipt_url?: string | null
+          state_code?: string | null
+          updated_at?: string
+          user_id?: string
+          vendor?: string | null
         }
         Relationships: []
       }
@@ -176,6 +257,54 @@ export type Database = {
           notes?: string | null
           state?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      fuel_purchases: {
+        Row: {
+          created_at: string
+          gallons: number
+          id: string
+          notes: string | null
+          odometer: number | null
+          price_per_gallon: number
+          purchase_date: string
+          state_code: string
+          station_name: string | null
+          total_cost_usd: number
+          updated_at: string
+          user_id: string
+          vehicle_unit: string | null
+        }
+        Insert: {
+          created_at?: string
+          gallons?: number
+          id?: string
+          notes?: string | null
+          odometer?: number | null
+          price_per_gallon?: number
+          purchase_date?: string
+          state_code: string
+          station_name?: string | null
+          total_cost_usd?: number
+          updated_at?: string
+          user_id: string
+          vehicle_unit?: string | null
+        }
+        Update: {
+          created_at?: string
+          gallons?: number
+          id?: string
+          notes?: string | null
+          odometer?: number | null
+          price_per_gallon?: number
+          purchase_date?: string
+          state_code?: string
+          station_name?: string | null
+          total_cost_usd?: number
+          updated_at?: string
+          user_id?: string
+          vehicle_unit?: string | null
         }
         Relationships: []
       }
