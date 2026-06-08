@@ -1,5 +1,5 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Map, AlertTriangle, Bell, User, LogOut, Truck } from "lucide-react";
+import { LayoutDashboard, Map, AlertTriangle, Bell, User, LogOut, Truck, Shield, Users, FileWarning } from "lucide-react";
 import { ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { NavigationBanner } from "@/components/navigation-banner";
 import { ProximityAlertStack } from "@/components/proximity-alert-stack";
 import { OfflineBanner } from "@/components/offline-banner";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -14,6 +15,12 @@ const nav = [
   { to: "/report", label: "Report Hazard", icon: AlertTriangle },
   { to: "/alerts", label: "Alerts", icon: Bell },
   { to: "/profile", label: "Profile", icon: User },
+];
+
+const adminNav = [
+  { to: "/admin/moderation", label: "Moderation", icon: Shield },
+  { to: "/admin/users", label: "User roles", icon: Users },
+  { to: "/admin/error-logs", label: "Error logs", icon: FileWarning },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
