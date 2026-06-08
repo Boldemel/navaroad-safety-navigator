@@ -340,6 +340,7 @@ export type Database = {
           fuel_purchase_id: string | null
           id: string
           load_id: string | null
+          maintenance_record_id: string | null
           notes: string | null
           receipt_url: string | null
           state_code: string | null
@@ -357,6 +358,7 @@ export type Database = {
           fuel_purchase_id?: string | null
           id?: string
           load_id?: string | null
+          maintenance_record_id?: string | null
           notes?: string | null
           receipt_url?: string | null
           state_code?: string | null
@@ -374,6 +376,7 @@ export type Database = {
           fuel_purchase_id?: string | null
           id?: string
           load_id?: string | null
+          maintenance_record_id?: string | null
           notes?: string | null
           receipt_url?: string | null
           state_code?: string | null
@@ -402,6 +405,13 @@ export type Database = {
             columns: ["load_id"]
             isOneToOne: false
             referencedRelation: "loads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_maintenance_record_id_fkey"
+            columns: ["maintenance_record_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_records"
             referencedColumns: ["id"]
           },
           {
