@@ -104,7 +104,7 @@ async function fetchRouteDriverReports(geometry: Array<[number, number]>, corrid
   if (geometry.length < 2) return [];
   const { data, error } = await supabaseAdmin
     .from("hazard_reports")
-    .select("id,hazard_type,severity,location,description,reporter_id,latitude,longitude,created_at,status,expires_at,confirm_count,dispute_count")
+    .select("id,hazard_type,severity,location,description,reporter_id,latitude,longitude,created_at,status,expires_at,confirm_count,dispute_count,photo_url")
     .eq("status", "active")
     .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
     .order("created_at", { ascending: false })
@@ -128,6 +128,7 @@ async function fetchRouteDriverReports(geometry: Array<[number, number]>, corrid
         distanceMi: d,
         confirm_count: h.confirm_count ?? 0,
         dispute_count: h.dispute_count ?? 0,
+        photo_url: h.photo_url ?? null,
       } satisfies RouteDriverReport;
     })
     .filter((h): h is RouteDriverReport => h != null)
