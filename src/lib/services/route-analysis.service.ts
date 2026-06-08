@@ -39,6 +39,10 @@ function isValidCoordinate(lat: number, lon: number) {
   return Number.isFinite(lat) && Number.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
 }
 
+function noneVerified(): VerifiedRestrictions {
+  return { clearance: false, weight: false, hazmat: false };
+}
+
 function unavailableRoute(detail: string): RoutedPath {
   console.warn("Routing unavailable", { detail });
   return {
@@ -48,6 +52,7 @@ function unavailableRoute(detail: string): RoutedPath {
     provider: "none",
     mode: "unavailable",
     truckRestrictionsVerified: false,
+    verifiedRestrictions: noneVerified(),
     error: ROUTE_NOT_CALCULATED_MESSAGE,
   };
 }
@@ -80,16 +85,53 @@ function extractTomTomError(body: string) {
   }
 }
 
-function buildTomTomRoutingUrl(key: string, o: GeoPoint, d: GeoPoint, mode: TomTomRouteMode, waypoints: GeoPoint[] = []) {
+function buildTomTomRoutingUrl(
+  key: string,
+  o: GeoPoint,
+  d: GeoPoint,
+  mode: TomTomRouteMode,
+  waypoints: GeoPoint[] = [],
+  profile?: TruckDimensions,
+) {
   const params = new URLSearchParams({
     traffic: "true",
     routeType: "fastest",
     computeTravelTimeFor: "all",
     key,
   });
-  if (mode === "truck") params.set("travelMode", "truck");
+  if (mode === "truck") {
+    params.set("travelMode", "truck");
+    params.set("vehicleCommercial", "true");
+    if (profile?.heightIn != null && profile.heightIn > 0) {
+      params.set("vehicleHeight", (profile.heightIn * 0.0254).toFixed(2));
+    }
+    if (profile?.lengthFt != null && profile.lengthFt > 0) {
+      params.set("vehicleLength", (profile.lengthFt * 0.3048).toFixed(2));
+    }
+    if (profile?.weightLbs != null && profile.weightLbs > 0) {
+      const kg = Math.round(profile.weightLbs * 0.453592);
+      params.set("vehicleWeight", String(kg));
+      if (profile.axles && profile.axles > 0) {
+        params.set("vehicleAxleWeight", String(Math.round(kg / profile.axles)));
+      }
+    }
+    if (profile?.hazmat) {
+      // No specific class supplied — use a general hazmat load type so TomTom
+      // avoids hazmat-restricted segments.
+      params.set("vehicleLoadType", "otherHazmatGeneral");
+    }
+  }
   const all = [o, ...waypoints, d].map((p) => `${p.lat},${p.lon}`).join(":");
   return `https://api.tomtom.com/routing/1/calculateRoute/${all}/json?${params.toString()}`;
+}
+
+function verifiedFor(mode: TomTomRouteMode, profile?: TruckDimensions): VerifiedRestrictions {
+  if (mode !== "truck") return noneVerified();
+  return {
+    clearance: !!(profile?.heightIn && profile.heightIn > 0),
+    weight: !!(profile?.weightLbs && profile.weightLbs > 0),
+    hazmat: !!profile?.hazmat,
+  };
 }
 
 async function tryTomTomRoute(
