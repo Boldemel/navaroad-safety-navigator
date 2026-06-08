@@ -519,6 +519,61 @@ function HazardMap() {
         </aside>
       </div>
 
+      {showWeighStations && (weighStationsData?.pois?.length ?? 0) > 0 && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="text-sm font-medium mb-2 inline-flex items-center gap-2">
+            <Scale className="size-4" style={{ color: POI_COLORS.weigh_station }} />
+            Weigh station status
+            <span className="text-xs text-muted-foreground font-normal">— tap Open / Closed to help other drivers (expires after 8h)</span>
+          </div>
+          <ul className="space-y-2">
+            {(weighStationsData?.pois ?? []).slice(0, 10).map((p) => {
+              const stId = "ws-" + p.id;
+              const st = weighStatuses?.get(stId);
+              const color = st?.status === "open" ? POI_COLORS.weigh_station_open
+                : st?.status === "closed" ? POI_COLORS.weigh_station_closed
+                : POI_COLORS.weigh_station;
+              return (
+                <li key={stId} className="flex items-center gap-2 text-sm flex-wrap">
+                  <span className="inline-block size-2.5 rounded-full" style={{ backgroundColor: color }} />
+                  <span className="flex-1 min-w-0 truncate">{p.name}</span>
+                  {st ? (
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {st.status === "open" ? "OPEN" : "CLOSED"} · {formatDistanceToNow(new Date(st.created_at), { addSuffix: true })}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No recent reports</span>
+                  )}
+                  <button
+                    type="button"
+                    disabled={reportWeigh.isPending}
+                    onClick={() => reportWeigh.mutate(
+                      { stationId: stId, stationName: p.name, lat: p.lat, lon: p.lon, status: "open" },
+                      { onSuccess: () => toast.success("Reported as open"), onError: (e) => toast.error(e instanceof Error ? e.message : "Failed") },
+                    )}
+                    className="rounded-md border border-red-500/40 bg-red-500/10 text-red-500 px-2 py-1 text-xs hover:bg-red-500/20"
+                  >
+                    Open
+                  </button>
+                  <button
+                    type="button"
+                    disabled={reportWeigh.isPending}
+                    onClick={() => reportWeigh.mutate(
+                      { stationId: stId, stationName: p.name, lat: p.lat, lon: p.lon, status: "closed" },
+                      { onSuccess: () => toast.success("Reported as closed"), onError: (e) => toast.error(e instanceof Error ? e.message : "Failed") },
+                    )}
+                    className="rounded-md border border-green-500/40 bg-green-500/10 text-green-500 px-2 py-1 text-xs hover:bg-green-500/20"
+                  >
+                    Closed
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+
       {activeRoute && (
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="text-sm font-medium mb-2 inline-flex items-center gap-2">
