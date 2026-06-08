@@ -81,11 +81,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Navaroad" },
       { name: "description", content: "Real-time hazard, wind, and closure intelligence for professional drivers, owner operators, and small fleets." },
       { name: "author", content: "Navaroad" },
-      { property: "og:title", content: "Navaroad — Trucking Safety Intelligence" },
-      { property: "og:description", content: "Avoid dangerous conditions before you reach them." },
+      { property: "og:title", content: "Navaroad" },
+      { property: "og:description", content: "Real-time hazard, wind, and closure intelligence for professional drivers, owner operators, and small fleets." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Navaroad" },
+      { name: "twitter:title", content: "Navaroad" },
+      { name: "twitter:description", content: "Real-time hazard, wind, and closure intelligence for professional drivers, owner operators, and small fleets." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4f72805f-bbd9-43d9-bc80-85a967707250/id-preview-ad11849b--7d0ff20d-f992-4dcc-a165-57cf286b3315.lovable.app-1780925513342.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4f72805f-bbd9-43d9-bc80-85a967707250/id-preview-ad11849b--7d0ff20d-f992-4dcc-a165-57cf286b3315.lovable.app-1780925513342.png" },
     ],
     links: [
       {
