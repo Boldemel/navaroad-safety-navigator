@@ -248,12 +248,12 @@ export async function getRoute(o: GeoPoint, d: GeoPoint, options: RouteOptions =
   let tomtomError: string | null = null;
   if (key) {
     const primaryMode: TomTomRouteMode = options.truckMode ? "truck" : "standard";
-    const primary = await tryTomTomRoute(key, o, d, primaryMode, waypoints);
+    const primary = await tryTomTomRoute(key, o, d, primaryMode, waypoints, options.truckProfile);
     if (primary.ok) return primary.route;
     tomtomError = `${primaryMode} ${primary.status}: ${primary.error}`;
 
     if (options.truckMode && primary.retryAsStandard) {
-      const standard = await tryTomTomRoute(key, o, d, "standard", waypoints);
+      const standard = await tryTomTomRoute(key, o, d, "standard", waypoints, options.truckProfile);
       if (standard.ok) return standard.route;
       tomtomError = `truck ${primary.status}: ${primary.error}; standard ${standard.status}: ${standard.error}`;
     }
