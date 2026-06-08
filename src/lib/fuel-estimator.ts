@@ -10,8 +10,8 @@ const MPG_TABLE: Record<string, number> = {
 
 export const DEFAULT_DIESEL_PRICE = 3.85; // USD/gal — national avg fallback
 
-export function mpgFor(truck: string | null | undefined, loaded: boolean = true) {
-  const base = (truck && MPG_TABLE[truck]) ?? 6.5;
+export function mpgFor(truck: string | null | undefined, loaded: boolean = true): number {
+  const base: number = (truck ? MPG_TABLE[truck] : undefined) ?? 6.5;
   // Empty trucks get ~10% better MPG
   return loaded ? base : base * 1.1;
 }

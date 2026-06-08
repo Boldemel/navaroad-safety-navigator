@@ -34,8 +34,11 @@ export function FuelCostCard({ distanceMi, truck, loaded = true }: { distanceMi:
           step="0.01"
           min="0"
           max="20"
-          value={price}
-          onChange={(e) => setPrice(Math.max(0, Number(e.target.value) || 0))}
+          value={Number.isFinite(price) ? price : 0}
+          onChange={(e) => {
+            const n = Number(e.target.value);
+            setPrice(Number.isFinite(n) && n >= 0 ? n : 0);
+          }}
           className="w-20 h-7 rounded border border-input bg-background px-2 text-sm"
         />
         <span>· assumed {mpg.toFixed(1)} mpg ({truck || "default"}{loaded ? ", loaded" : ", empty"})</span>
