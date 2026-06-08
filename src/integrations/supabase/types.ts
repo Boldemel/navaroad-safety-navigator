@@ -325,6 +325,42 @@ export type Database = {
         }
         Relationships: []
       }
+      weigh_station_status: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          latitude: number
+          longitude: number
+          reporter_id: string
+          station_id: string
+          station_name: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          latitude: number
+          longitude: number
+          reporter_id: string
+          station_id: string
+          station_name?: string | null
+          status: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          reporter_id?: string
+          station_id?: string
+          station_name?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
