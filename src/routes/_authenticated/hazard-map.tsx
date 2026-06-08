@@ -81,6 +81,8 @@ type Marker = {
   reporter_id?: string | null;
   lat?: number | null;
   lon?: number | null;
+  confirmCount?: number;
+  disputeCount?: number;
 };
 
 function HazardMap() {
