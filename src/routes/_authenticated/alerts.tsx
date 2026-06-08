@@ -13,6 +13,7 @@ import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { useActiveRoute } from "@/hooks/use-active-route";
 import { hazardsAlongRoute, recommendedActionFor, type HazardLike } from "@/lib/hazard-proximity";
 import { Route as RouteIcon } from "lucide-react";
+import { HazardPhoto } from "@/components/hazard-photo";
 
 export const Route = createFileRoute("/_authenticated/alerts")({
   component: AlertsCenter,
