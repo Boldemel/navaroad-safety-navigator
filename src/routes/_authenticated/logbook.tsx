@@ -95,8 +95,8 @@ function LogbookPage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><ClipboardList className="size-6 text-primary" /> Logbook</h1>
           <p className="text-sm text-muted-foreground">ELD-style duty status grid · 15-min blocks</p>
-          <PageTabs tabs={LOGBOOK_TABS} />
         </div>
+        <PageTabs tabs={LOGBOOK_TABS} />
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => shiftDay(-1)}><ChevronLeft className="size-4" /></Button>
           <Input type="date" value={fmtDate(date)} onChange={(e) => setDate(startOfDay(new Date(e.target.value + "T00:00:00")))} className="h-9 w-auto" />
