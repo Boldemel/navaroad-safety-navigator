@@ -12,7 +12,7 @@ import {
 import { HAZARD_TYPES, hazardLabel, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
-import { useDriverNames } from "@/hooks/use-driver-names";
+import { useReporterProfiles, ReporterTrustBadge } from "@/components/reporter-trust-badge";
 import { formatDistanceToNow } from "date-fns";
 import { getTomTomKey } from "@/lib/tomtom.functions";
 import { TomTomMap, type MapMarker } from "@/components/tomtom-map";
