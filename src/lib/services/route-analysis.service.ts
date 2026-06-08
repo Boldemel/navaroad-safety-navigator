@@ -7,6 +7,19 @@ export const ROUTE_NOT_CALCULATED_MESSAGE =
 export const STANDARD_ROUTE_WARNING = "Standard route shown — truck restrictions not verified yet.";
 
 export type GeoPoint = { name: string; lat: number; lon: number };
+export type TruckDimensions = {
+  heightIn?: number | null;
+  weightLbs?: number | null;
+  lengthFt?: number | null;
+  axles?: number | null;
+  hazmat?: boolean;
+  loaded?: boolean;
+};
+export type VerifiedRestrictions = {
+  clearance: boolean;
+  weight: boolean;
+  hazmat: boolean;
+};
 export type RoutedPath = {
   distanceKm: number;
   durationMin: number;
@@ -14,11 +27,12 @@ export type RoutedPath = {
   provider: "TomTom" | "OSRM" | "none";
   mode: "truck" | "standard" | "unavailable";
   truckRestrictionsVerified: boolean;
+  verifiedRestrictions: VerifiedRestrictions;
   warning?: string;
   error?: string;
 };
 
-type RouteOptions = { truckMode?: boolean; waypoints?: GeoPoint[] };
+type RouteOptions = { truckMode?: boolean; waypoints?: GeoPoint[]; truckProfile?: TruckDimensions };
 type TomTomRouteMode = "truck" | "standard";
 
 function isValidCoordinate(lat: number, lon: number) {
