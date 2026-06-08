@@ -149,6 +149,8 @@ function HazardMap() {
         location: h.location, description: h.description ?? "", updatedAt: h.created_at,
         reporter_id: h.reporter_id,
         lat: h.latitude ?? null, lon: h.longitude ?? null,
+        confirmCount: h.confirm_count ?? 0,
+        disputeCount: h.dispute_count ?? 0,
       })),
     [hazards],
   );
