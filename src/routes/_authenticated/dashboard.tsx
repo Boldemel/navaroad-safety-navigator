@@ -765,17 +765,17 @@ function Dashboard() {
                 <p className="text-foreground/90">{result.truckRestrictions.message}</p>
                 <ul className="text-xs text-muted-foreground space-y-0.5 list-disc pl-5">
                   <li>
-                    Low clearance risk — {result.truckRestrictions.verified.clearance
+                    Low clearance risk — {result.truckRestrictions.verified?.clearance
                       ? <span className="text-success font-medium">verified against {result.truckRestrictions.profile?.heightIn}" height</span>
                       : <span>not verified <span className="text-foreground/60">(add truck height to profile)</span></span>}
                   </li>
                   <li>
-                    Weight restriction risk — {result.truckRestrictions.verified.weight
+                    Weight restriction risk — {result.truckRestrictions.verified?.weight
                       ? <span className="text-success font-medium">verified against {result.truckRestrictions.profile?.weightLbs?.toLocaleString()} lbs</span>
                       : <span>not verified <span className="text-foreground/60">(add truck weight to profile)</span></span>}
                   </li>
                   <li>
-                    Hazmat restriction risk — {result.truckRestrictions.verified.hazmat
+                    Hazmat restriction risk — {result.truckRestrictions.verified?.hazmat
                       ? <span className="text-success font-medium">verified (hazmat load on profile)</span>
                       : <span>not verified{result.truckRestrictions.profile?.hazmat ? "" : " (enable hazmat in profile if applicable)"}</span>}
                   </li>
