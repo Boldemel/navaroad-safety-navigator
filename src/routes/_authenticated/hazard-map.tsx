@@ -206,6 +206,7 @@ function HazardMap() {
   const allVisible = [...visibleApi, ...visibleDriver].sort(
     (a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt),
   );
+  const { data: reporters } = useReporterProfiles(allVisible.map((m) => m.reporter_id ?? null));
 
   // Proximity (25mi from current GPS) — works regardless of active route.
   const allHazardsForProximity: HazardLike[] = useMemo(
@@ -638,7 +639,8 @@ function HazardMap() {
         )}
         {allVisible.map((m) => {
           const Icon = HAZARD_ICONS[m.category] ?? AlertTriangle;
-          const driver = m.reporter_id ? drivers[m.reporter_id] : null;
+          const reporter = m.reporter_id ? reporters?.[m.reporter_id] : undefined;
+          const driver = reporter?.driver_name ?? null;
           return (
             <div key={m.layer + m.id} className="rounded-xl border border-border bg-card p-4 flex items-start gap-3">
               <div
