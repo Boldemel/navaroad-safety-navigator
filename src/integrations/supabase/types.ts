@@ -304,6 +304,63 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_logs: {
+        Row: {
+          completed_at: string
+          created_at: string
+          destination: string
+          distance_mi: number | null
+          duration_min: number | null
+          fuel_cost: number | null
+          hazard_count: number | null
+          id: string
+          notes: string | null
+          origin: string
+          safety_score: number | null
+          started_at: string | null
+          trailer_type: string | null
+          truck_type: string | null
+          user_id: string
+          weather_alerts: number | null
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          destination: string
+          distance_mi?: number | null
+          duration_min?: number | null
+          fuel_cost?: number | null
+          hazard_count?: number | null
+          id?: string
+          notes?: string | null
+          origin: string
+          safety_score?: number | null
+          started_at?: string | null
+          trailer_type?: string | null
+          truck_type?: string | null
+          user_id: string
+          weather_alerts?: number | null
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          destination?: string
+          distance_mi?: number | null
+          duration_min?: number | null
+          fuel_cost?: number | null
+          hazard_count?: number | null
+          id?: string
+          notes?: string | null
+          origin?: string
+          safety_score?: number | null
+          started_at?: string | null
+          trailer_type?: string | null
+          truck_type?: string | null
+          user_id?: string
+          weather_alerts?: number | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
