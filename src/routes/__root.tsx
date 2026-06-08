@@ -117,6 +117,10 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    installGlobalErrorLogger();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="dark">
@@ -126,3 +130,4 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
+
