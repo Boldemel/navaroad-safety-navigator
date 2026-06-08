@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppShell } from "@/components/app-shell";
+
 import { Button } from "@/components/ui/button";
 import { Clock, AlertTriangle, Bed, Briefcase, TruckIcon, Coffee, RotateCcw } from "lucide-react";
 import { useHos, LIMITS, fmtHm, type DutyStatus } from "@/hooks/use-hos";
@@ -50,7 +50,6 @@ function HosPage() {
   if (remaining.cycle <= 4 * 60) warnings.push({ msg: `Only ${fmtHm(remaining.cycle)} left in 70h/8-day cycle`, severe: remaining.cycle === 0 });
 
   return (
-    <AppShell>
       <div className="container max-w-3xl py-6 space-y-5">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><Clock className="size-6 text-primary" /> Hours of Service</h1>
@@ -115,6 +114,5 @@ function HosPage() {
           This tracker is informational only. Always cross-check with your official ELD. Counters are stored in this browser only.
         </p>
       </div>
-    </AppShell>
   );
 }

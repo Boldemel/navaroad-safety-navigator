@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppShell } from "@/components/app-shell";
+
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { findNearbyTruckStops, type NearbyPoi } from "@/lib/nearby-poi.functions";
@@ -46,7 +46,6 @@ function ParkingPage() {
   const findNowUrgent = driveLeft <= 60 && hos.state.status === "driving";
 
   return (
-    <AppShell>
       <div className="container max-w-3xl py-6 space-y-5">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><ParkingCircle className="size-6 text-primary" /> Truck Stops & Parking</h1>
@@ -106,7 +105,6 @@ function ParkingPage() {
           </div>
         )}
       </div>
-    </AppShell>
   );
 }
 

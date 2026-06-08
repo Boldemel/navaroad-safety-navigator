@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppShell } from "@/components/app-shell";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listTrips, deleteTrip, type TripLog } from "@/lib/trip-logs.functions";
@@ -65,7 +65,6 @@ function TripsPage() {
   const totalCost = filtered.reduce((s, t) => s + (t.fuel_cost ?? 0), 0);
 
   return (
-    <AppShell>
       <div className="container max-w-4xl py-6 space-y-5">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
@@ -128,6 +127,5 @@ function TripsPage() {
           </div>
         )}
       </div>
-    </AppShell>
   );
 }
