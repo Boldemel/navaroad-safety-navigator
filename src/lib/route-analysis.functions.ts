@@ -411,6 +411,11 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       segments: impactSegments,
     };
 
+    const totalMiles = r.distanceKm * 0.621371;
+    const stateMileage = routeAvailable
+      ? await computeStateMileage(r.geometry, totalMiles).catch(() => [] as StateSlice[])
+      : [];
+
     return {
       origin: o,
       destination: d2,
