@@ -164,6 +164,15 @@ export function useProximityAlerts() {
     }
     if (additions.length > 0) {
       writeFired(firedRef.current);
+      for (const a of additions) {
+        if (a.severity === "critical" || a.severity === "high") {
+          notify({
+            title: `${a.title} · ${a.severity.toUpperCase()}`,
+            body: `${a.distanceMi < 1 ? "<1 mi" : Math.round(a.distanceMi) + " mi"} away — ${a.recommendedAction}`,
+            tag: a.uid,
+          });
+        }
+      }
       // Newest critical first, cap at 5 visible.
       setActive((cur) => {
         const merged = [...additions, ...cur];
@@ -174,7 +183,7 @@ export function useProximityAlerts() {
         return merged.slice(0, 5);
       });
     }
-  }, [candidates, here?.lat, here?.lon]);
+  }, [candidates, here?.lat, here?.lon, notify]);
 
   const dismiss = (uid: string) => setActive((cur) => cur.filter((a) => a.uid !== uid));
   const dismissAll = () => setActive([]);
