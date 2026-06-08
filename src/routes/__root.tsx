@@ -10,7 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
+import { reportLovableError, installGlobalErrorLogger } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -117,6 +117,10 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    installGlobalErrorLogger();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="dark">
@@ -126,3 +130,4 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
+
