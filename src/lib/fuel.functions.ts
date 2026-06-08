@@ -6,6 +6,9 @@ import { getUserCompanyId } from "./get-company";
 export type FuelPurchase = {
   id: string;
   user_id: string;
+  driver_id: string | null;
+  load_id: string | null;
+  trip_log_id: string | null;
   purchase_date: string;
   state_code: string;
   station_name: string | null;
@@ -14,6 +17,7 @@ export type FuelPurchase = {
   total_cost_usd: number;
   odometer: number | null;
   vehicle_unit: string | null;
+  receipt_url: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -29,6 +33,10 @@ const Schema = z.object({
   odometer: z.number().int().min(0).max(5_000_000).nullable().optional(),
   vehicleUnit: z.string().max(40).nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
+  driverId: z.string().uuid().nullable().optional(),
+  loadId: z.string().uuid().nullable().optional(),
+  tripLogId: z.string().uuid().nullable().optional(),
+  receiptUrl: z.string().url().max(2000).nullable().optional(),
 });
 
 function row(d: z.infer<typeof Schema>) {
@@ -42,6 +50,10 @@ function row(d: z.infer<typeof Schema>) {
     odometer: d.odometer ?? null,
     vehicle_unit: d.vehicleUnit ?? null,
     notes: d.notes ?? null,
+    driver_id: d.driverId ?? null,
+    load_id: d.loadId ?? null,
+    trip_log_id: d.tripLogId ?? null,
+    receipt_url: d.receiptUrl ?? null,
   };
 }
 
