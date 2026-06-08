@@ -62,8 +62,13 @@ function Landing() {
         ))}
       </section>
 
-      <footer className="border-t border-border py-8 text-center text-xs text-muted-foreground">
-        © Navaroad — Trucking Safety Intelligence
+      <footer className="border-t border-border py-8 text-center text-xs text-muted-foreground space-y-2">
+        <div className="flex items-center justify-center gap-4">
+          <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
+          <span aria-hidden>·</span>
+          <Link to="/terms" className="hover:text-foreground">Terms</Link>
+        </div>
+        <div>© Navaroad — Trucking Safety Intelligence</div>
       </footer>
     </div>
   );
