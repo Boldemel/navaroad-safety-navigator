@@ -757,22 +757,21 @@ export async function searchTruckPoisForRoute(data: SearchTruckPoisInput): Promi
     );
     samples.forEach((s, i) => categoryResults[i].results.forEach((r) => addRaw(r, s.lat, s.lon)));
 
-    // Step 2: keyword fallback. Always run for truck_stop / weigh_station /
-    // cat_scale so we surface multiple brands (not just whichever the category
-    // search happened to return most of). For rest_area, only run when sparse.
+    // If TomTom is rate-limiting, skip the keyword fan-out — it would only
+    // make throttling worse and push the request past the upstream timeout.
+    const rateLimited = categoryResults.some(
+      (c) => c.status === 429 || /rate limit/i.test(c.error ?? ""),
+    );
+
+    // Step 2: keyword fallback (skipped if rate-limited).
     if (
-      data.kind === "truck_stop" ||
-      data.kind === "weigh_station" ||
-      data.kind === "cat_scale" ||
-      seen.size < 10
+      !rateLimited &&
+      (data.kind === "truck_stop" ||
+        data.kind === "weigh_station" ||
+        data.kind === "cat_scale" ||
+        seen.size < 10)
     ) {
-      // Run keyword search across the full route (not just a strided subset)
-      // so brands like Pilot/Flying J/Love's/TA/Petro/Sapp Bros/Road Ranger/
-      // Casey's Travel Center and CAT Scales are surfaced end-to-end.
-      // Keep keyword searches targeted so repeated analyses do not get
-      // throttled and return partial, inconsistent data.
-      // Keyword fallback uses a strided subset of samples to avoid blowing the
-      // upstream timeout. Take every other sample, max 6.
+      // Strided subset, max 6 samples; small keyword list to stay within budget.
       const kwSamples = samples.filter((_, i) => i % 2 === 0).slice(0, 6);
       const kwList =
         data.kind === "truck_stop" ? ["Love's Travel Stop", "TA Travel Center", "Petro Stopping Center"]
@@ -791,6 +790,7 @@ export async function searchTruckPoisForRoute(data: SearchTruckPoisInput): Promi
         call.results.forEach((r) => addRaw(r, keywordSamples[i].lat, keywordSamples[i].lon)),
       );
     }
+
 
     // Step 3 (supplemental): OpenStreetMap Overpass for rest areas, truck
     // stops, parking, and weigh stations so provider throttling does not leave
