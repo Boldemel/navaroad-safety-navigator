@@ -312,15 +312,23 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       }
       bbox = [minLon, minLat, maxLon, maxLat];
     }
-    const [roadAlerts, restAreas, truckStops, weighStations, driverReports] = routeAvailable
-      ? await Promise.all([
-          fetchRoadAlerts({ bbox }).catch(() => [] as RoadAlert[]),
-          searchTruckPoisForRoute({ geometry: r.geometry, kind: "rest_area", limit: 100 }).catch(() => emptyPoiResult()),
-          searchTruckPoisForRoute({ geometry: r.geometry, kind: "truck_stop", limit: 100 }).catch(() => emptyPoiResult()),
-          searchTruckPoisForRoute({ geometry: r.geometry, kind: "weigh_station", limit: 100 }).catch(() => emptyPoiResult()),
-          fetchRouteDriverReports(r.geometry).catch(() => []),
-        ])
-      : [[], emptyPoiResult(), emptyPoiResult(), emptyPoiResult(), [] as RouteDriverReport[]];
+    let roadAlerts: RoadAlert[] = [];
+    let restAreas: TruckPoiResult = emptyPoiResult();
+    let truckStops: TruckPoiResult = emptyPoiResult();
+    let weighStations: TruckPoiResult = emptyPoiResult();
+    let driverReports: RouteDriverReport[] = [];
+    if (routeAvailable) {
+      // Run road alerts + driver reports in parallel (cheap), then POI searches
+      // sequentially. Concurrent POI fan-outs trip TomTom's rate limit and
+      // cause the whole analysis to time out.
+      [roadAlerts, driverReports] = await Promise.all([
+        fetchRoadAlerts({ bbox }).catch(() => [] as RoadAlert[]),
+        fetchRouteDriverReports(r.geometry).catch(() => []),
+      ]);
+      restAreas = await searchTruckPoisForRoute({ geometry: r.geometry, kind: "rest_area", limit: 100 }).catch(() => emptyPoiResult());
+      truckStops = await searchTruckPoisForRoute({ geometry: r.geometry, kind: "truck_stop", limit: 100 }).catch(() => emptyPoiResult());
+      weighStations = await searchTruckPoisForRoute({ geometry: r.geometry, kind: "weigh_station", limit: 100 }).catch(() => emptyPoiResult());
+    }
 
     const weatherAvailable = weatherSamples.some((w) => w.available);
 
