@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_authenticated/parking")({
   component: ParkingPage,
 });
 
-type Kind = "all" | "truck_stop" | "rest_area" | "parking";
+type Kind = "all" | "truck_stop" | "rest_area" | "parking" | "weigh_station";
 
 function ParkingPage() {
   const find = useServerFn(findNearbyTruckStops);
@@ -66,6 +66,7 @@ function ParkingPage() {
               { k: "truck_stop", label: "Truck stops", icon: Fuel },
               { k: "rest_area", label: "Rest areas", icon: Bed },
               { k: "parking", label: "Parking only", icon: ParkingCircle },
+              { k: "weigh_station", label: "Weigh stations", icon: Scale },
             ] as const).map((o) => (
               <Button key={o.k} size="sm" variant={kind === o.k ? "default" : "outline"} onClick={() => setKind(o.k)}>
                 <o.icon className="size-3.5 mr-1.5" /> {o.label}
@@ -110,11 +111,11 @@ function ParkingPage() {
 
 function PoiRow({ poi }: { poi: NearbyPoi }) {
   const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${poi.lat},${poi.lon}&travelmode=driving`;
-  const typeColor = poi.type === "truck_stop" ? "text-primary" : poi.type === "rest_area" ? "text-success" : "text-muted-foreground";
+  const typeColor = poi.type === "truck_stop" ? "text-primary" : poi.type === "rest_area" ? "text-success" : poi.type === "weigh_station" ? "text-warning" : "text-muted-foreground";
   return (
     <div className="rounded-lg border border-border bg-card p-3 flex gap-3">
       <div className={cn("size-9 rounded-md border border-border flex items-center justify-center shrink-0", typeColor)}>
-        {poi.type === "truck_stop" ? <Truck className="size-4" /> : poi.type === "rest_area" ? <Bed className="size-4" /> : <ParkingCircle className="size-4" />}
+        {poi.type === "truck_stop" ? <Truck className="size-4" /> : poi.type === "rest_area" ? <Bed className="size-4" /> : poi.type === "weigh_station" ? <Scale className="size-4" /> : <ParkingCircle className="size-4" />}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
