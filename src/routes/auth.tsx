@@ -140,7 +140,30 @@ function AuthPage() {
             Navaroad
           </Link>
 
-          {resetMode ? (
+          {pendingConfirmEmail ? (
+            <div className="space-y-4">
+              <div>
+                <h1 className="text-2xl font-semibold">Confirm your email</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  We sent a confirmation link to <span className="text-foreground font-medium">{pendingConfirmEmail}</span>.
+                  Click the link, then come back to sign in.
+                </p>
+              </div>
+              <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                Didn't get it? Check your spam folder, or resend below. Links expire after a short time.
+              </div>
+              <Button type="button" className="w-full" disabled={loading} onClick={resendConfirmation}>
+                {loading ? "Sending…" : "Resend confirmation email"}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setPendingConfirmEmail(null)}
+                className="text-sm text-muted-foreground hover:text-foreground w-full text-center"
+              >
+                Back to sign in
+              </button>
+            </div>
+          ) : resetMode ? (
             <form onSubmit={resetPassword} className="space-y-4">
               <div>
                 <h1 className="text-2xl font-semibold">Reset password</h1>
