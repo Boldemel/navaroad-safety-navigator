@@ -113,6 +113,21 @@ function Profile() {
           <Toggle label="Email alerts" checked={form.notify_email} onChange={(v) => setForm({ ...form, notify_email: v })} />
           <Toggle label="Push notifications" checked={form.notify_push} onChange={(v) => setForm({ ...form, notify_push: v })} />
           <Toggle label="SMS for critical alerts" checked={form.notify_sms} onChange={(v) => setForm({ ...form, notify_sms: v })} />
+          {form.notify_push && notifSupported && (
+            <div className="flex items-center justify-between text-xs rounded-md border border-border bg-muted/40 px-3 py-2">
+              <span className="text-muted-foreground">
+                Browser notifications:{" "}
+                <span className={notifPermission === "granted" ? "text-primary font-medium" : "text-foreground"}>
+                  {notifPermission === "granted" ? "enabled" : notifPermission === "denied" ? "blocked in browser settings" : "permission needed"}
+                </span>
+              </span>
+              {notifPermission !== "granted" && notifPermission !== "denied" && (
+                <Button type="button" size="sm" variant="outline" onClick={() => requestNotif()}>
+                  Enable
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         <Button type="submit" disabled={saving} className="w-full sm:w-auto">{saving ? "Saving…" : "Save profile"}</Button>
