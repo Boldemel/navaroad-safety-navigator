@@ -443,13 +443,12 @@ async function overpassAlongRoute(
 ): Promise<{ results: OsmPoi[]; error: string | null }> {
   const endpoints = [
     "https://overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
   ];
   const body = "data=" + encodeURIComponent(overpassQueryFor(kind, samples));
   let lastError: string | null = null;
   for (const url of endpoints) {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 12_000);
+    const timer = setTimeout(() => ctrl.abort(), 6_000);
     try {
       const r = await fetch(url, {
         method: "POST",
