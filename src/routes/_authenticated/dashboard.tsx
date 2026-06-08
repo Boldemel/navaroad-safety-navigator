@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { FuelCostCard } from "@/components/fuel-cost-card";
 import { estimateFuel } from "@/lib/fuel-estimator";
 import { logTrip } from "@/lib/trip-logs.functions";
+import { listLoads, type Load } from "@/lib/loads.functions";
 
 import { TRUCK_TYPES, TRAILER_TYPES, severityClasses } from "@/lib/navaroad";
 import { cn } from "@/lib/utils";
