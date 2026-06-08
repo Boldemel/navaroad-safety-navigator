@@ -184,7 +184,190 @@ function IftaPage() {
           ))
         }
       </div>
+
+      <IftaReportDialog
+        open={showReport}
+        onClose={() => setShowReport(false)}
+        year={filter.year}
+        quarter={filter.quarter}
+        summary={summary}
+        totals={totals}
+        fleetMpg={fleetMpg}
+        entries={filtered}
+        driverName={profile?.driver_name ?? null}
+        driverEmail={profile?.email ?? null}
+        truckType={profile?.truck_type ?? null}
+        trailerType={profile?.trailer_type ?? null}
+      />
     </div>
+  );
+}
+
+type SummaryRow = { state: string; miles: number; gallons: number; cost: number; mpg: number | null };
+
+function IftaReportDialog(props: {
+  open: boolean;
+  onClose: () => void;
+  year: number;
+  quarter: number;
+  summary: SummaryRow[];
+  totals: { miles: number; gallons: number; cost: number };
+  fleetMpg: number | null;
+  entries: IftaEntry[];
+  driverName: string | null;
+  driverEmail: string | null;
+  truckType: string | null;
+  trailerType: string | null;
+}) {
+  const { open, onClose, year, quarter, summary, totals, fleetMpg, entries, driverName, driverEmail, truckType, trailerType } = props;
+  const { start, end } = quarterRange(year, quarter);
+  const dateFmt = (d: Date) => d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  const generatedAt = new Date().toLocaleString();
+  const sortedEntries = [...entries].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+        <style>{`
+          @media print {
+            body * { visibility: hidden !important; }
+            #ifta-print-area, #ifta-print-area * { visibility: visible !important; }
+            #ifta-print-area { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; padding: 24px !important; background: white !important; color: black !important; }
+            #ifta-print-area .no-print { display: none !important; }
+            @page { size: letter; margin: 0.5in; }
+          }
+        `}</style>
+        <DialogHeader className="px-6 pt-6 pb-3 border-b no-print">
+          <DialogTitle className="flex items-center gap-2"><FileText className="size-5" /> IFTA Report Preview — Q{quarter} {year}</DialogTitle>
+        </DialogHeader>
+
+        <div id="ifta-print-area" className="px-6 py-5 print:p-0 print:text-black">
+          {/* Letterhead */}
+          <div className="border-b-2 border-foreground/80 pb-3 mb-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-xl font-bold">IFTA Quarterly Mileage Report</div>
+                <div className="text-sm text-muted-foreground print:text-gray-700">International Fuel Tax Agreement</div>
+              </div>
+              <div className="text-right text-xs">
+                <div className="font-semibold">Q{quarter} {year}</div>
+                <div className="text-muted-foreground print:text-gray-700">{dateFmt(start)} – {dateFmt(end)}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Driver / vehicle block */}
+          <div className="grid grid-cols-2 gap-4 text-xs mb-5">
+            <div className="space-y-1">
+              <div><span className="font-semibold uppercase text-[10px] tracking-wider">Driver</span></div>
+              <div className="text-sm">{driverName || "—"}</div>
+              {driverEmail && <div className="text-muted-foreground print:text-gray-700">{driverEmail}</div>}
+            </div>
+            <div className="space-y-1">
+              <div><span className="font-semibold uppercase text-[10px] tracking-wider">Vehicle</span></div>
+              <div className="text-sm">{truckType || "—"}{trailerType ? ` / ${trailerType}` : ""}</div>
+              <div className="text-muted-foreground print:text-gray-700">Report generated {generatedAt}</div>
+            </div>
+          </div>
+
+          {/* Headline totals */}
+          <div className="grid grid-cols-4 gap-3 mb-5">
+            {[
+              { label: "Total Miles", value: totals.miles.toLocaleString(undefined, { maximumFractionDigits: 1 }) },
+              { label: "Total Gallons", value: totals.gallons.toLocaleString(undefined, { maximumFractionDigits: 2 }) },
+              { label: "Fleet MPG", value: fleetMpg ? fleetMpg.toFixed(2) : "—" },
+              { label: "Fuel Spend", value: `$${totals.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+            ].map((s) => (
+              <div key={s.label} className="border border-foreground/30 rounded p-2 print:rounded-none">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground print:text-gray-700">{s.label}</div>
+                <div className="text-base font-semibold tabular-nums">{s.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Per-state summary */}
+          <div className="mb-5">
+            <div className="text-sm font-semibold mb-2 uppercase tracking-wide">Mileage & Fuel by Jurisdiction</div>
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="border-y-2 border-foreground/80">
+                  <th className="text-left py-1.5 px-2">State</th>
+                  <th className="text-right py-1.5 px-2">Taxable Miles</th>
+                  <th className="text-right py-1.5 px-2">Fuel (gal)</th>
+                  <th className="text-right py-1.5 px-2">MPG</th>
+                  <th className="text-right py-1.5 px-2">Fuel Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.map((s) => (
+                  <tr key={s.state} className="border-b border-foreground/20">
+                    <td className="py-1 px-2 font-medium">{s.state}</td>
+                    <td className="py-1 px-2 text-right tabular-nums">{s.miles.toFixed(1)}</td>
+                    <td className="py-1 px-2 text-right tabular-nums">{s.gallons.toFixed(2)}</td>
+                    <td className="py-1 px-2 text-right tabular-nums">{s.mpg ? s.mpg.toFixed(2) : "—"}</td>
+                    <td className="py-1 px-2 text-right tabular-nums">${s.cost.toFixed(2)}</td>
+                  </tr>
+                ))}
+                <tr className="font-bold border-t-2 border-foreground/80">
+                  <td className="py-1.5 px-2">TOTAL</td>
+                  <td className="py-1.5 px-2 text-right tabular-nums">{totals.miles.toFixed(1)}</td>
+                  <td className="py-1.5 px-2 text-right tabular-nums">{totals.gallons.toFixed(2)}</td>
+                  <td className="py-1.5 px-2 text-right tabular-nums">{fleetMpg ? fleetMpg.toFixed(2) : "—"}</td>
+                  <td className="py-1.5 px-2 text-right tabular-nums">${totals.cost.toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Detail entries */}
+          <div className="break-before-page">
+            <div className="text-sm font-semibold mb-2 uppercase tracking-wide">Detail Entries</div>
+            {sortedEntries.length === 0 ? (
+              <div className="text-xs italic text-muted-foreground">No entries for this quarter.</div>
+            ) : (
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="border-y-2 border-foreground/80">
+                    <th className="text-left py-1.5 px-2">Date</th>
+                    <th className="text-left py-1.5 px-2">State</th>
+                    <th className="text-right py-1.5 px-2">Miles</th>
+                    <th className="text-right py-1.5 px-2">Gallons</th>
+                    <th className="text-right py-1.5 px-2">Fuel $</th>
+                    <th className="text-left py-1.5 px-2">Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedEntries.map((e) => (
+                    <tr key={e.id} className="border-b border-foreground/20">
+                      <td className="py-1 px-2 font-mono">{e.entry_date}</td>
+                      <td className="py-1 px-2 font-medium">{e.state_code}</td>
+                      <td className="py-1 px-2 text-right tabular-nums">{Number(e.miles).toFixed(1)}</td>
+                      <td className="py-1 px-2 text-right tabular-nums">{Number(e.fuel_gallons).toFixed(2)}</td>
+                      <td className="py-1 px-2 text-right tabular-nums">{e.fuel_cost_usd ? `$${Number(e.fuel_cost_usd).toFixed(2)}` : "—"}</td>
+                      <td className="py-1 px-2 text-muted-foreground print:text-gray-700">{e.notes ?? ""}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Certification footer */}
+          <div className="mt-8 pt-4 border-t border-foreground/40 text-[10px] text-muted-foreground print:text-gray-700">
+            I certify under penalty of perjury that the information on this report is true, accurate, and complete to the best of my knowledge.
+            <div className="grid grid-cols-2 gap-6 mt-6">
+              <div><div className="border-b border-foreground/60 h-6"></div><div className="mt-1">Driver signature</div></div>
+              <div><div className="border-b border-foreground/60 h-6"></div><div className="mt-1">Date</div></div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="px-6 py-3 border-t no-print">
+          <Button variant="outline" onClick={onClose}>Close</Button>
+          <Button onClick={() => window.print()}><Printer className="size-4 mr-2" /> Print / Save PDF</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
