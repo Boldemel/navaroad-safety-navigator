@@ -1177,55 +1177,121 @@ export type Database = {
       }
       settlements: {
         Row: {
+          cash_advances_usd: number
           company_id: string
           created_at: string
+          customer: string | null
           deduction_notes: string | null
           deductions_usd: number
+          delivery_date: string | null
+          destination: string | null
+          detention_usd: number
+          driver_id: string | null
+          fuel_advances_usd: number
+          fuel_surcharge_usd: number
           gross_pay_usd: number
+          gross_revenue_usd: number | null
           id: string
+          layover_usd: number
+          linehaul_revenue_usd: number
           load_id: string | null
+          lumper_reimbursement_usd: number
           miles: number | null
+          net_settlement_usd: number | null
           notes: string | null
+          origin: string | null
+          other_deductions_usd: number
+          other_revenue_usd: number
           payer: string | null
           rate_per_mile: number | null
           reference_number: string | null
+          repairs_usd: number
+          scale_tickets_usd: number
           settlement_date: string
+          status: string
+          tolls_usd: number
+          total_deductions_usd: number | null
           updated_at: string
           user_id: string
+          vehicle_unit: string | null
         }
         Insert: {
+          cash_advances_usd?: number
           company_id: string
           created_at?: string
+          customer?: string | null
           deduction_notes?: string | null
           deductions_usd?: number
+          delivery_date?: string | null
+          destination?: string | null
+          detention_usd?: number
+          driver_id?: string | null
+          fuel_advances_usd?: number
+          fuel_surcharge_usd?: number
           gross_pay_usd?: number
+          gross_revenue_usd?: number | null
           id?: string
+          layover_usd?: number
+          linehaul_revenue_usd?: number
           load_id?: string | null
+          lumper_reimbursement_usd?: number
           miles?: number | null
+          net_settlement_usd?: number | null
           notes?: string | null
+          origin?: string | null
+          other_deductions_usd?: number
+          other_revenue_usd?: number
           payer?: string | null
           rate_per_mile?: number | null
           reference_number?: string | null
+          repairs_usd?: number
+          scale_tickets_usd?: number
           settlement_date?: string
+          status?: string
+          tolls_usd?: number
+          total_deductions_usd?: number | null
           updated_at?: string
           user_id: string
+          vehicle_unit?: string | null
         }
         Update: {
+          cash_advances_usd?: number
           company_id?: string
           created_at?: string
+          customer?: string | null
           deduction_notes?: string | null
           deductions_usd?: number
+          delivery_date?: string | null
+          destination?: string | null
+          detention_usd?: number
+          driver_id?: string | null
+          fuel_advances_usd?: number
+          fuel_surcharge_usd?: number
           gross_pay_usd?: number
+          gross_revenue_usd?: number | null
           id?: string
+          layover_usd?: number
+          linehaul_revenue_usd?: number
           load_id?: string | null
+          lumper_reimbursement_usd?: number
           miles?: number | null
+          net_settlement_usd?: number | null
           notes?: string | null
+          origin?: string | null
+          other_deductions_usd?: number
+          other_revenue_usd?: number
           payer?: string | null
           rate_per_mile?: number | null
           reference_number?: string | null
+          repairs_usd?: number
+          scale_tickets_usd?: number
           settlement_date?: string
+          status?: string
+          tolls_usd?: number
+          total_deductions_usd?: number | null
           updated_at?: string
           user_id?: string
+          vehicle_unit?: string | null
         }
         Relationships: [
           {
