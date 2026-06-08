@@ -135,6 +135,7 @@ export function useProximityAlerts() {
 
   const firedRef = useRef<Set<string>>(readFired());
   const [active, setActive] = useState<ProximityAlert[]>([]);
+  const { notify } = useBrowserNotifications();
 
   // Detect new hazards that just entered their radius.
   useEffect(() => {
