@@ -91,9 +91,11 @@ function ReportHazard() {
         <div className="rounded-xl border border-success/30 bg-success/10 p-6 text-center space-y-4">
           <CheckCircle2 className="size-12 text-success mx-auto" />
           <div>
-            <h2 className="text-lg font-semibold">Report submitted</h2>
+            <h2 className="text-lg font-semibold">{wasDeduped ? "Report merged" : "Report submitted"}</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Your hazard is now visible to other Navaroad drivers on the map and Alerts Center.
+              {wasDeduped
+                ? "We found a matching hazard nearby and counted yours as a confirmation."
+                : "Your hazard is now visible to other Navaroad drivers on the map and Alerts Center."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2 justify-center">
