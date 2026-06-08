@@ -453,7 +453,7 @@ function HazardMap() {
           <div className="space-y-2">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Other</div>
             <LegendRow color="#22c55e" icon={<MapPin className="size-3.5" />} label="Selected / focused point" />
-            <LegendRow color="#3b82f6" icon={<LocateFixed className="size-3.5" />} label="Your current location" outline />
+            <LegendRow color="#22c55e" icon={<LocateFixed className="size-3.5" />} label="Your current location" pulse />
           </div>
         </aside>
       </div>
@@ -579,16 +579,21 @@ function LegendRow({
   icon,
   label,
   outline,
+  pulse,
 }: {
   color: string;
   icon: ReactNode;
   label: string;
   outline?: boolean;
+  pulse?: boolean;
 }) {
   return (
     <div className="flex items-center gap-2">
       <span
-        className="inline-flex size-5 items-center justify-center rounded-full text-white shrink-0"
+        className={cn(
+          "inline-flex size-5 items-center justify-center rounded-full text-white shrink-0",
+          pulse && "ring-4 ring-[color:color-mix(in_oklab,var(--success)_22%,transparent)]",
+        )}
         style={{
           backgroundColor: outline ? "transparent" : color,
           border: outline ? `2px solid ${color}` : `1px solid ${color}`,
