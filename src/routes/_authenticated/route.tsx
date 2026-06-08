@@ -21,6 +21,7 @@ export const Route = createFileRoute("/_authenticated")({
       if (error || !data.user) throw redirect({ to: "/auth" });
       return { user: data.user };
     } catch (e) {
+      if (isRedirect(e)) throw e;
       // Network failure with no local session: send to /auth.
       throw redirect({ to: "/auth" });
     }
