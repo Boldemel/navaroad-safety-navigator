@@ -342,18 +342,25 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function tomtomRequest(url: string): Promise<TomTomCall> {
   let last: TomTomCall = { url, status: 0, error: "TomTom request failed", results: [] };
-  for (let attempt = 0; attempt < 4; attempt++) {
+  // Keep total upstream budget small to avoid Cloudflare upstream timeouts.
+  // Two attempts, short fixed backoff on 429/5xx.
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const r = await fetch(url);
-      const j = (await r.json().catch(() => null)) as { results?: RawResult[] } | null;
-      last = { url, status: r.status, error: r.ok ? null : tomtomError(j), results: r.ok ? j?.results ?? [] : [] };
-      if (r.ok || (r.status !== 429 && r.status < 500) || attempt === 3) return last;
-      const retryAfter = Number(r.headers.get("retry-after"));
-      await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 700 * (attempt + 1) ** 2);
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 6_000);
+      try {
+        const r = await fetch(url, { signal: ctrl.signal });
+        const j = (await r.json().catch(() => null)) as { results?: RawResult[] } | null;
+        last = { url, status: r.status, error: r.ok ? null : tomtomError(j), results: r.ok ? j?.results ?? [] : [] };
+        if (r.ok || (r.status !== 429 && r.status < 500) || attempt === 1) return last;
+      } finally {
+        clearTimeout(timer);
+      }
+      await sleep(400);
     } catch {
       last = { url, status: 0, error: "TomTom request failed", results: [] };
-      if (attempt === 3) return last;
-      await sleep(700 * (attempt + 1) ** 2);
+      if (attempt === 1) return last;
+      await sleep(400);
     }
   }
   return last;
@@ -436,13 +443,12 @@ async function overpassAlongRoute(
 ): Promise<{ results: OsmPoi[]; error: string | null }> {
   const endpoints = [
     "https://overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
   ];
   const body = "data=" + encodeURIComponent(overpassQueryFor(kind, samples));
   let lastError: string | null = null;
   for (const url of endpoints) {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 12_000);
+    const timer = setTimeout(() => ctrl.abort(), 6_000);
     try {
       const r = await fetch(url, {
         method: "POST",
@@ -595,7 +601,7 @@ export async function searchTruckPoisForRoute(data: SearchTruckPoisInput): Promi
     // Sample the full corridor without flooding the POI provider. Prior runs
     // fired hundreds of truck-stop requests at once, hit rate limits, and then
     // displayed partial results, which caused inconsistent counts between runs.
-    const samples = sampleEveryMiles(data.geometry, 75, 24);
+    const samples = sampleEveryMiles(data.geometry, 120, 10);
 
     // TomTom POI categories:
     // 7311 = Truck Stop / Travel Center, 7311003 = Truck-friendly fuel,
@@ -765,11 +771,13 @@ export async function searchTruckPoisForRoute(data: SearchTruckPoisInput): Promi
       // Casey's Travel Center and CAT Scales are surfaced end-to-end.
       // Keep keyword searches targeted so repeated analyses do not get
       // throttled and return partial, inconsistent data.
-      const kwSamples = samples;
+      // Keyword fallback uses a strided subset of samples to avoid blowing the
+      // upstream timeout. Take every other sample, max 6.
+      const kwSamples = samples.filter((_, i) => i % 2 === 0).slice(0, 6);
       const kwList =
-        data.kind === "truck_stop" ? ["Love's Travel Stop", "TA Travel Center", "Petro Stopping Center", "truck stop", "travel center"]
-        : data.kind === "cat_scale" ? keywords.slice(0, 4)
-        : keywords.slice(0, 4);
+        data.kind === "truck_stop" ? ["Love's Travel Stop", "TA Travel Center", "Petro Stopping Center"]
+        : data.kind === "cat_scale" ? keywords.slice(0, 2)
+        : keywords.slice(0, 3);
       const keywordTasks: Array<() => Promise<TomTomCall>> = [];
       const keywordSamples: Array<{ lat: number; lon: number }> = [];
       for (const s of kwSamples) {
@@ -778,7 +786,7 @@ export async function searchTruckPoisForRoute(data: SearchTruckPoisInput): Promi
           keywordSamples.push(s);
         }
       }
-      const kwResults = await runLimited(keywordTasks, 6);
+      const kwResults = await runLimited(keywordTasks, 8);
       kwResults.forEach((call, i) =>
         call.results.forEach((r) => addRaw(r, keywordSamples[i].lat, keywordSamples[i].lon)),
       );
