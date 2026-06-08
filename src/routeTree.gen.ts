@@ -18,6 +18,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedTripsRouteImport } from './routes/_authenticated/trips'
 import { Route as AuthenticatedReportRouteImport } from './routes/_authenticated/report'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedParkingRouteImport } from './routes/_authenticated/parking'
+import { Route as AuthenticatedLoadsRouteImport } from './routes/_authenticated/loads'
+import { Route as AuthenticatedInspectionsRouteImport } from './routes/_authenticated/inspections'
 import { Route as AuthenticatedHosRouteImport } from './routes/_authenticated/hos'
 import { Route as AuthenticatedHazardMapRouteImport } from './routes/_authenticated/hazard-map'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -70,6 +73,22 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedParkingRoute = AuthenticatedParkingRouteImport.update({
+  id: '/parking',
+  path: '/parking',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLoadsRoute = AuthenticatedLoadsRouteImport.update({
+  id: '/loads',
+  path: '/loads',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInspectionsRoute =
+  AuthenticatedInspectionsRouteImport.update({
+    id: '/inspections',
+    path: '/inspections',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedHosRoute = AuthenticatedHosRouteImport.update({
   id: '/hos',
   path: '/hos',
@@ -118,6 +137,9 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/hazard-map': typeof AuthenticatedHazardMapRoute
   '/hos': typeof AuthenticatedHosRoute
+  '/inspections': typeof AuthenticatedInspectionsRoute
+  '/loads': typeof AuthenticatedLoadsRoute
+  '/parking': typeof AuthenticatedParkingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
   '/trips': typeof AuthenticatedTripsRoute
@@ -135,6 +157,9 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/hazard-map': typeof AuthenticatedHazardMapRoute
   '/hos': typeof AuthenticatedHosRoute
+  '/inspections': typeof AuthenticatedInspectionsRoute
+  '/loads': typeof AuthenticatedLoadsRoute
+  '/parking': typeof AuthenticatedParkingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
   '/trips': typeof AuthenticatedTripsRoute
@@ -154,6 +179,9 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/hazard-map': typeof AuthenticatedHazardMapRoute
   '/_authenticated/hos': typeof AuthenticatedHosRoute
+  '/_authenticated/inspections': typeof AuthenticatedInspectionsRoute
+  '/_authenticated/loads': typeof AuthenticatedLoadsRoute
+  '/_authenticated/parking': typeof AuthenticatedParkingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/report': typeof AuthenticatedReportRoute
   '/_authenticated/trips': typeof AuthenticatedTripsRoute
@@ -173,6 +201,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/hazard-map'
     | '/hos'
+    | '/inspections'
+    | '/loads'
+    | '/parking'
     | '/profile'
     | '/report'
     | '/trips'
@@ -190,6 +221,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/hazard-map'
     | '/hos'
+    | '/inspections'
+    | '/loads'
+    | '/parking'
     | '/profile'
     | '/report'
     | '/trips'
@@ -208,6 +242,9 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/hazard-map'
     | '/_authenticated/hos'
+    | '/_authenticated/inspections'
+    | '/_authenticated/loads'
+    | '/_authenticated/parking'
     | '/_authenticated/profile'
     | '/_authenticated/report'
     | '/_authenticated/trips'
@@ -290,6 +327,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/parking': {
+      id: '/_authenticated/parking'
+      path: '/parking'
+      fullPath: '/parking'
+      preLoaderRoute: typeof AuthenticatedParkingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/loads': {
+      id: '/_authenticated/loads'
+      path: '/loads'
+      fullPath: '/loads'
+      preLoaderRoute: typeof AuthenticatedLoadsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/inspections': {
+      id: '/_authenticated/inspections'
+      path: '/inspections'
+      fullPath: '/inspections'
+      preLoaderRoute: typeof AuthenticatedInspectionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/hos': {
       id: '/_authenticated/hos'
       path: '/hos'
@@ -347,6 +405,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedHazardMapRoute: typeof AuthenticatedHazardMapRoute
   AuthenticatedHosRoute: typeof AuthenticatedHosRoute
+  AuthenticatedInspectionsRoute: typeof AuthenticatedInspectionsRoute
+  AuthenticatedLoadsRoute: typeof AuthenticatedLoadsRoute
+  AuthenticatedParkingRoute: typeof AuthenticatedParkingRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReportRoute: typeof AuthenticatedReportRoute
   AuthenticatedTripsRoute: typeof AuthenticatedTripsRoute
@@ -360,6 +421,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedHazardMapRoute: AuthenticatedHazardMapRoute,
   AuthenticatedHosRoute: AuthenticatedHosRoute,
+  AuthenticatedInspectionsRoute: AuthenticatedInspectionsRoute,
+  AuthenticatedLoadsRoute: AuthenticatedLoadsRoute,
+  AuthenticatedParkingRoute: AuthenticatedParkingRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReportRoute: AuthenticatedReportRoute,
   AuthenticatedTripsRoute: AuthenticatedTripsRoute,
