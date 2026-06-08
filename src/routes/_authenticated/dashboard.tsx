@@ -736,6 +736,16 @@ function Dashboard() {
                     )}
                   </Button>
                 )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleSaveRoute}
+                  disabled={savingRoute || !origin.trim() || !destination.trim()}
+                  title="Save this route to your profile"
+                >
+                  <Bookmark className="size-4 mr-1" />
+                  {savingRoute ? "Saving…" : "Save route"}
+                </Button>
                 {geo.status === "denied" && (
                   <span className="text-[11px] text-destructive">Location access is needed for live route safety alerts.</span>
                 )}
