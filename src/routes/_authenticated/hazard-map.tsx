@@ -85,6 +85,7 @@ type Marker = {
   lon?: number | null;
   confirmCount?: number;
   disputeCount?: number;
+  photoUrl?: string | null;
 };
 
 function HazardMap() {
