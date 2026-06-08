@@ -9,6 +9,7 @@ import { ProximityAlertStack } from "@/components/proximity-alert-stack";
 import { OfflineBanner } from "@/components/offline-banner";
 import { NotificationBell } from "@/components/notification-bell";
 import { useIsAdmin } from "@/hooks/use-is-admin";
+import { useAllowedModules } from "@/hooks/use-allowed-modules";
 
 const nav = [
   { to: "/dashboard", label: "Route Analysis", icon: LayoutDashboard },
@@ -46,6 +47,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const isAdmin = useIsAdmin();
+  const { allowed } = useAllowedModules();
+  const visibleNav = allowed ? nav.filter((n) => allowed.has(n.to)) : nav;
+  const visibleMobileNav = allowed ? mobileNav.filter((n) => allowed.has(n.to)) : mobileNav;
 
   // Sign-out hygiene: cancel in-flight queries, drop cached protected data,
   // sign out, then REPLACE history so Back can't restore the protected route.
