@@ -2,16 +2,25 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listIfta, createIfta, deleteIfta, type IftaEntry } from "@/lib/ifta.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPinned, Plus, Trash2, Loader2, Download } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { MapPinned, Plus, Trash2, Loader2, Download, Printer, FileText } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/ifta")({ component: IftaPage });
 
 const US_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"];
+
+function quarterRange(year: number, q: number) {
+  const startMonth = (q - 1) * 3;
+  const start = new Date(year, startMonth, 1);
+  const end = new Date(year, startMonth + 3, 0);
+  return { start, end };
+}
 
 function currentQuarter(d = new Date()) {
   const q = Math.floor(d.getMonth() / 3) + 1;
