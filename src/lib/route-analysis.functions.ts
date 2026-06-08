@@ -9,6 +9,7 @@ import {
 import { computeSafety } from "./services/safety-score.service";
 import { fetchRoadAlerts, type RoadAlert } from "./services/road-alert.service";
 import { searchTruckPoisForRoute, type TruckPoiResult } from "./poi-search.functions";
+import { computeStateMileage, type StateSlice } from "./services/state-mileage.service";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const InputSchema = z.object({
@@ -241,7 +242,9 @@ export type RouteAnalysis = {
     } | null;
   };
   providers: { weather: string; weatherAlerts: string; road: string };
+  stateMileage: StateSlice[];
 };
+
 
 export const analyzeRoute = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => InputSchema.parse(d))
