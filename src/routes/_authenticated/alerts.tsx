@@ -74,6 +74,7 @@ function AlertsCenter() {
     category?: string;
     onRoute?: boolean;
     distanceMi?: number;
+    photoUrl?: string | null;
   };
 
   const items: Item[] = useMemo(() => {
