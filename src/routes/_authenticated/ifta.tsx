@@ -122,20 +122,23 @@ function IftaPage() {
         </div>
       </div>
 
-      <div className="flex gap-2 items-end flex-wrap">
-        <div>
-          <Label className="text-xs">Year</Label>
-          <Input type="number" className="w-24" value={filter.year} onChange={(e) => setFilter({ ...filter, year: parseInt(e.target.value) || filter.year })} />
+      <div className="space-y-2">
+        <div className="flex gap-2 items-end flex-wrap">
+          <div>
+            <Label className="text-xs">Year</Label>
+            <Input type="number" className="w-24" value={filter.year} onChange={(e) => setFilter({ ...filter, year: parseInt(e.target.value) || filter.year })} />
+          </div>
+          <div>
+            <Label className="text-xs">Quarter</Label>
+            <select value={filter.quarter} onChange={(e) => setFilter({ ...filter, quarter: parseInt(e.target.value) })} className="block h-9 rounded-md border border-input bg-background px-2 text-sm">
+              <option value={1}>Q1 (Jan–Mar)</option>
+              <option value={2}>Q2 (Apr–Jun)</option>
+              <option value={3}>Q3 (Jul–Sep)</option>
+              <option value={4}>Q4 (Oct–Dec)</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <Label className="text-xs">Quarter</Label>
-          <select value={filter.quarter} onChange={(e) => setFilter({ ...filter, quarter: parseInt(e.target.value) })} className="block h-9 rounded-md border border-input bg-background px-2 text-sm">
-            <option value={1}>Q1 (Jan–Mar)</option>
-            <option value={2}>Q2 (Apr–Jun)</option>
-            <option value={3}>Q3 (Jul–Sep)</option>
-            <option value={4}>Q4 (Oct–Dec)</option>
-          </select>
-        </div>
+        <FleetFilters value={fleet} onChange={setFleet} showDates={false} />
       </div>
 
       {showForm && <IftaForm onClose={() => setShowForm(false)} onSubmit={async (p) => {
