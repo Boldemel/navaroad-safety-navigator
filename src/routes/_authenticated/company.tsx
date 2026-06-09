@@ -242,8 +242,7 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
             <DialogHeader>
               <DialogTitle>Create user</DialogTitle>
               <DialogDescription>
-                You create the credentials directly — no email invitation is sent.
-                The user will be required to change this password on first login.
+                You assign the credentials directly — no email invitation is sent and the user is not required to change their password.
               </DialogDescription>
             </DialogHeader>
             <div className="grid sm:grid-cols-2 gap-3">
@@ -255,12 +254,22 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
                 <Label>Last name</Label>
                 <Input value={form.lastName} onChange={(e) => set({ lastName: e.target.value })} />
               </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label>Email (login ID)</Label>
-                <Input type="email" value={form.email} onChange={(e) => set({ email: e.target.value })} />
+              <div className="space-y-1.5">
+                <Label>Username</Label>
+                <Input
+                  value={form.username}
+                  autoCapitalize="none"
+                  onChange={(e) => set({ username: e.target.value.replace(/\s+/g, "") })}
+                  placeholder="jsmith"
+                />
+                <p className="text-[11px] text-muted-foreground">Letters, numbers, . _ -</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Email (optional)</Label>
+                <Input type="email" value={form.email} onChange={(e) => set({ email: e.target.value })} placeholder="optional" />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
-                <Label>Temporary password</Label>
+                <Label>Password</Label>
                 <div className="flex gap-2">
                   <Input value={form.tempPassword} onChange={(e) => set({ tempPassword: e.target.value })} />
                   <Button type="button" variant="outline" onClick={() => set({ tempPassword: genTempPassword() })}>
@@ -268,7 +277,7 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
                   </Button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Share with the user via your own channel. They'll be forced to change it on first login.
+                  Share with the user via your own channel. They can keep using it; no forced change.
                 </p>
               </div>
               <div className="space-y-1.5">
@@ -276,8 +285,12 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
                 <Input value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Label>Driver / Employee ID</Label>
+                <Label>Employee ID</Label>
                 <Input value={form.employeeId} onChange={(e) => set({ employeeId: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Driver ID</Label>
+                <Input value={form.driverIdNumber} onChange={(e) => set({ driverIdNumber: e.target.value })} placeholder="CDL / internal driver #" />
               </div>
               <div className="space-y-1.5">
                 <Label>Assigned truck</Label>
@@ -303,6 +316,55 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
                   ))}
                 </div>
               </div>
+
+              <div className="sm:col-span-2 rounded-md border border-border p-3 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Radio className="size-4" /> ELD credentials (optional)
+                </div>
+                <p className="text-[11px] text-muted-foreground -mt-2">
+                  Stored securely. Only company admins/managers can view or reset these.
+                  Drivers see them only if you mark them visible.
+                </p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>ELD system</Label>
+                    <Select
+                      value={form.eldSystem || "_none"}
+                      onValueChange={(v) => set({ eldSystem: v === "_none" ? "" : (v as EldSystem) })}
+                    >
+                      <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">None</SelectItem>
+                        {ELD_SYSTEMS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>ELD User ID</Label>
+                    <Input value={form.eldUserId} onChange={(e) => set({ eldUserId: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label>ELD Password</Label>
+                    <Input
+                      type="password"
+                      value={form.eldPassword}
+                      onChange={(e) => set({ eldPassword: e.target.value })}
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between sm:col-span-2 rounded-md border border-border/60 p-2">
+                    <div className="text-xs">
+                      <div className="font-medium">Show to driver</div>
+                      <div className="text-muted-foreground">Let this driver view their ELD login.</div>
+                    </div>
+                    <Switch
+                      checked={form.eldVisibleToDriver}
+                      onCheckedChange={(v) => set({ eldVisibleToDriver: v })}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between sm:col-span-2 rounded-md border border-border p-3">
                 <div>
                   <div className="text-sm font-medium">Active</div>
@@ -317,7 +379,8 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
                 onClick={() => createMut.mutate()}
                 disabled={
                   createMut.isPending ||
-                  !form.firstName || !form.lastName || !form.email ||
+                  !form.firstName || !form.lastName ||
+                  (!form.email && !form.username) ||
                   form.tempPassword.length < 8 || form.roles.length === 0
                 }
               >
