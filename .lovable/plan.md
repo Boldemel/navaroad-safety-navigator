@@ -1,48 +1,41 @@
 
-## Why you don't see Sample Company
+## Add "Fleet Profitability" page
 
-The `Platform Admin` page (`src/routes/_authenticated/admin/platform.tsx`) is currently all placeholders — every tab just renders "Wiring pending." Nothing actually queries `companies`, so your Sample Company can't appear there. (It does exist in the DB — `Sample Company`, owned by you.)
+### 1. Sidebar
+- Insert `{ to: "/fleet-profitability", label: "Fleet Profitability", icon: TrendingUp }` in `src/components/app-shell.tsx` `nav[]`, after `Logbook & HOS`.
+- Update `src/hooks/use-allowed-modules.ts`: add `/fleet-profitability` to the `fleet_owner` / `accountant` / `dispatcher` module lists (super_admin already bypasses). Keep hidden from `driver`.
 
-## Why it feels like only "Fleet Manager" access
+### 2. Route
+- New `src/routes/_authenticated/fleet-profitability.tsx`.
+- Page-level controls: date-range selector (defaults to current month; presets: This month, Last month, YTD, Custom) + truck filter.
+- Tabs: Overview · By Truck · By Load · By Driver · AI Insights.
 
-Two separate things:
+### 3. Server function
+- New `src/lib/fleet-profitability.functions.ts`:
+  - `getFleetProfitability({ from, to })` — `requireSupabaseAuth`; resolves the caller's `company_id` via `get_user_company`, then runs five RLS-scoped reads in parallel:
+    - `settlements` (delivered) → revenue, miles, by-driver, by-load, by-truck
+    - `fuel_purchases` → fuel cost (by truck/driver/load)
+    - `maintenance_records` → maintenance cost (by truck)
+    - `expenses` excluding Fuel + Maintenance → other expenses
+    - `loads` (delivered, joined for load number / customer)
+  - Aggregates in JS and returns:
+    - `overview`: revenue, fuel, maintenance, driverPay, otherExpenses, netProfit, totalMiles, profitPerMile
+    - `byTruck[]`: truckUnit, revenue, expenses, profit, profitPerMile
+    - `byLoad[]`: loadNumber, customer, revenue, expenses, netProfit, miles, profitPerMile
+    - `byDriver[]`: driverId, driverName, loadsCompleted, revenue, cost, profitContribution
+- Cost allocation rule (documented in code): driver-pay = `sum(settlements.net_settlement_usd)`; expenses are allocated to truck/load/driver only when the source row carries that key, otherwise rolled into "unallocated" but still counted in totals.
 
-1. On the company itself you already hold `company_owner` + `fleet_owner` roles, which grant every permission. So inside that company you should already have full access.
-2. But `super_admin` is a **platform** role — it isn't wired into the per-company permission checks (`has_company_permission`, `isOwner`, `myRoles` UI gates). So if you ever visit a company you're *not* a member of (or get downgraded), you'd be blocked. Super admins should bypass those checks everywhere.
+### 4. UI
+- Overview tab: 6 KPI cards (Revenue, Fuel Cost, Maintenance Cost, Driver Pay, Other Expenses, Net Profit) using existing `Card` + design tokens; one stacked bar/line chart (revenue vs expenses) using `recharts` if already installed, otherwise simple CSS bars to avoid adding deps.
+- By Truck / By Load / By Driver tabs: sortable tables with the exact columns the user listed. Profit values colored via semantic tokens (`text-primary` for positive, `text-destructive` for negative).
+- AI Insights tab: button "Generate insights" → calls a second server function `generateProfitabilityInsights({ from, to })` that posts the aggregated summary to Lovable AI Gateway (`google/gemini-2.5-flash`) with a strict prompt to return 4–6 short bullet insights. Renders the bullets in a list and caches via React Query.
 
-## Plan
+### 5. Verify
+- `/fleet-profitability` renders for the super_admin account on Sample Company with empty-state messages where no data exists yet.
+- Sidebar item appears between Logbook & HOS and Fleet AI Assistant.
+- A driver-only user does not see the link.
 
-### 1. Wire the Companies tab (real data)
-
-Replace the placeholder with a real list backed by a new server function.
-
-- New `src/lib/platform-admin.functions.ts`:
-  - `listAllCompanies()` — super-admin-only; uses `supabaseAdmin` to return every company with: `id, name, owner_id, owner_email, member_count, created_at, status` (suspended flag if present, otherwise just active).
-  - `setCompanySuspended({ companyId, suspended })` and `deleteCompany({ companyId })` — super-admin-only, guarded by `is_super_admin(auth.uid())`.
-  - All handlers verify super_admin via `requireSupabaseAuth` + a `has_role(userId, 'super_admin')` check before touching `supabaseAdmin`.
-- New `src/components/platform-admin/companies-tab.tsx`: searchable table (name, owner email, members, created, actions: View as / Suspend / Delete). "View as" links to existing impersonation flow (kept as placeholder if not yet wired).
-- Update `platform.tsx` to render `<CompaniesTab />` inside the Companies `TabsContent` instead of the placeholder string.
-
-### 2. Make super_admin a global override
-
-Front-end:
-- New helper `src/hooks/use-effective-company-access.ts` returning `{ isOwner, canManageMembers, canManageAll }` that ORs the existing checks with `useIsSuperAdmin()`.
-- Update `src/routes/_authenticated/company.tsx` so `isOwner`, `canManageMembers`, the rename input `disabled`, and the roles label all treat super_admin as full access (label shows "Super Admin (platform)" when the user isn't actually a company member).
-- Update `src/hooks/use-allowed-modules.ts` so super_admin gets all modules regardless of `FULL_ACCESS_ROLES`.
-
-Database:
-- New migration updating `public.has_company_permission(_user, _company, _permission)` to short-circuit `true` when `public.is_super_admin(_user)` is true. This is the single chokepoint every RLS policy already goes through, so it propagates platform-wide without touching individual policies.
-- Add an RLS policy on `public.companies` allowing super_admin to `SELECT/UPDATE/DELETE` any row (used by the platform admin queries that go through the user-scoped client).
-
-### 3. Verify
-
-- Reload `/admin/platform` → Companies tab lists Sample Company with you as owner.
-- Visit `/company` for Sample Company → header shows full owner controls (already true today, but now also true via the super_admin path).
-- Spot-check: a non-super-admin user still sees only their own companies.
-
-## Technical notes
-
-- `is_super_admin` already exists; no new SECURITY DEFINER function needed for the check.
-- The `has_company_permission` change is a function replacement (`CREATE OR REPLACE`) — no signature change, so existing policies keep working.
-- `listAllCompanies` uses `supabaseAdmin` because we want to see *all* companies including ones the caller isn't a member of; the super-admin gate is enforced in the handler before any admin query runs.
-- No new tables. No changes to auth flows.
+### Technical notes
+- All reads go through the user-scoped Supabase client; RLS already scopes rows to the user's company, so no `supabaseAdmin` needed.
+- Recharts is already in the project if other dashboards use it — check before adding; otherwise plain divs are fine and skip the dep.
+- No DB migration required — every needed column already exists on `settlements`, `loads`, `fuel_purchases`, `maintenance_records`, `expenses`, `trip_logs`.

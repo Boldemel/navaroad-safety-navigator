@@ -27,6 +27,7 @@ import { Route as AuthenticatedIftaRouteImport } from './routes/_authenticated/i
 import { Route as AuthenticatedHosRouteImport } from './routes/_authenticated/hos'
 import { Route as AuthenticatedHazardMapRouteImport } from './routes/_authenticated/hazard-map'
 import { Route as AuthenticatedFuelRouteImport } from './routes/_authenticated/fuel'
+import { Route as AuthenticatedFleetProfitabilityRouteImport } from './routes/_authenticated/fleet-profitability'
 import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticated/expenses'
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -131,6 +132,12 @@ const AuthenticatedFuelRoute = AuthenticatedFuelRouteImport.update({
   path: '/fuel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFleetProfitabilityRoute =
+  AuthenticatedFleetProfitabilityRouteImport.update({
+    id: '/fleet-profitability',
+    path: '/fleet-profitability',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedExpensesRoute = AuthenticatedExpensesRouteImport.update({
   id: '/expenses',
   path: '/expenses',
@@ -208,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/expenses': typeof AuthenticatedExpensesRoute
+  '/fleet-profitability': typeof AuthenticatedFleetProfitabilityRoute
   '/fuel': typeof AuthenticatedFuelRoute
   '/hazard-map': typeof AuthenticatedHazardMapRoute
   '/hos': typeof AuthenticatedHosRoute
@@ -239,6 +247,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/expenses': typeof AuthenticatedExpensesRoute
+  '/fleet-profitability': typeof AuthenticatedFleetProfitabilityRoute
   '/fuel': typeof AuthenticatedFuelRoute
   '/hazard-map': typeof AuthenticatedHazardMapRoute
   '/hos': typeof AuthenticatedHosRoute
@@ -271,6 +280,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
   '/_authenticated/expenses': typeof AuthenticatedExpensesRoute
+  '/_authenticated/fleet-profitability': typeof AuthenticatedFleetProfitabilityRoute
   '/_authenticated/fuel': typeof AuthenticatedFuelRoute
   '/_authenticated/hazard-map': typeof AuthenticatedHazardMapRoute
   '/_authenticated/hos': typeof AuthenticatedHosRoute
@@ -304,6 +314,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/documents'
     | '/expenses'
+    | '/fleet-profitability'
     | '/fuel'
     | '/hazard-map'
     | '/hos'
@@ -335,6 +346,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/documents'
     | '/expenses'
+    | '/fleet-profitability'
     | '/fuel'
     | '/hazard-map'
     | '/hos'
@@ -366,6 +378,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/documents'
     | '/_authenticated/expenses'
+    | '/_authenticated/fleet-profitability'
     | '/_authenticated/fuel'
     | '/_authenticated/hazard-map'
     | '/_authenticated/hos'
@@ -524,6 +537,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFuelRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/fleet-profitability': {
+      id: '/_authenticated/fleet-profitability'
+      path: '/fleet-profitability'
+      fullPath: '/fleet-profitability'
+      preLoaderRoute: typeof AuthenticatedFleetProfitabilityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/expenses': {
       id: '/_authenticated/expenses'
       path: '/expenses'
@@ -631,6 +651,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
   AuthenticatedExpensesRoute: typeof AuthenticatedExpensesRoute
+  AuthenticatedFleetProfitabilityRoute: typeof AuthenticatedFleetProfitabilityRoute
   AuthenticatedFuelRoute: typeof AuthenticatedFuelRoute
   AuthenticatedHazardMapRoute: typeof AuthenticatedHazardMapRoute
   AuthenticatedHosRoute: typeof AuthenticatedHosRoute
@@ -655,6 +676,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
   AuthenticatedExpensesRoute: AuthenticatedExpensesRoute,
+  AuthenticatedFleetProfitabilityRoute: AuthenticatedFleetProfitabilityRoute,
   AuthenticatedFuelRoute: AuthenticatedFuelRoute,
   AuthenticatedHazardMapRoute: AuthenticatedHazardMapRoute,
   AuthenticatedHosRoute: AuthenticatedHosRoute,
