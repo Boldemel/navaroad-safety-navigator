@@ -159,7 +159,18 @@ export const setMemberRoles = createServerFn({ method: "POST" })
     z.object({ memberId: z.string().uuid(), roles: z.array(z.enum(ROLES)) }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    // Look up company_id + target user for audit + permission check
+    const { data: mem, error: lookupErr } = await supabase
+      .from("company_members")
+      .select("company_id, user_id, company_member_roles(role)")
+      .eq("id", data.memberId)
+      .maybeSingle();
+    if (lookupErr) throw lookupErr;
+    if (!mem) throw new Error("Member not found");
+
+    const prevRoles = ((mem as any).company_member_roles ?? []).map((r: any) => r.role);
+
     const { error: delErr } = await supabase.from("company_member_roles").delete().eq("member_id", data.memberId);
     if (delErr) throw delErr;
     if (data.roles.length > 0) {
@@ -168,6 +179,13 @@ export const setMemberRoles = createServerFn({ method: "POST" })
         .insert(data.roles.map((r) => ({ member_id: data.memberId, role: r })));
       if (insErr) throw insErr;
     }
+    await supabase.from("team_audit_logs").insert({
+      company_id: mem.company_id,
+      actor_user_id: userId,
+      target_user_id: mem.user_id,
+      action: "role_changed",
+      details: { from: prevRoles, to: data.roles },
+    });
     return { ok: true };
   });
 
