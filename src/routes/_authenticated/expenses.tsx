@@ -12,6 +12,7 @@ import { Receipt, Plus, Trash2, Loader2, Download, DollarSign, TrendingUp, Trend
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
 
 export const Route = createFileRoute("/_authenticated/expenses")({ component: ExpensesPage });
 
@@ -19,8 +20,8 @@ type Tab = "expenses" | "earnings";
 
 function ExpensesPage() {
   const [tab, setTab] = useState<Tab>("expenses");
-  const [from, setFrom] = useState<string>("");
-  const [to, setTo] = useState<string>("");
+  const [filters, setFilters] = useState<FleetFilterValue>(emptyFleetFilters);
+  const { truck, driverId, from, to } = filters;
 
   const fetchExpenses = useServerFn(listExpenses);
   const fetchSettlements = useServerFn(listSettlements);
@@ -29,8 +30,22 @@ function ExpensesPage() {
   const allExp = expData?.expenses ?? [];
   const allSet = setData?.settlements ?? [];
 
-  const filtExp = useMemo(() => allExp.filter((e) => (!from || e.expense_date >= from) && (!to || e.expense_date <= to)), [allExp, from, to]);
-  const filtSet = useMemo(() => allSet.filter((s) => (!from || s.settlement_date >= from) && (!to || s.settlement_date <= to)), [allSet, from, to]);
+  const filtExp = useMemo(() => allExp.filter((e) => {
+    const r = e as unknown as Record<string, unknown>;
+    if (from && e.expense_date < from) return false;
+    if (to && e.expense_date > to) return false;
+    if (truck && r.vehicle_unit !== truck) return false;
+    if (driverId && r.driver_id !== driverId) return false;
+    return true;
+  }), [allExp, from, to, truck, driverId]);
+  const filtSet = useMemo(() => allSet.filter((s) => {
+    const r = s as unknown as Record<string, unknown>;
+    if (from && s.settlement_date < from) return false;
+    if (to && s.settlement_date > to) return false;
+    if (truck && r.vehicle_unit !== truck) return false;
+    if (driverId && r.driver_id !== driverId) return false;
+    return true;
+  }), [allSet, from, to, truck, driverId]);
 
   const expTotal = filtExp.reduce((a, e) => a + Number(e.amount_usd || 0), 0);
   const gross = filtSet.reduce((a, s) => a + Number(s.gross_pay_usd || 0), 0);
@@ -47,15 +62,12 @@ function ExpensesPage() {
         <p className="text-sm text-muted-foreground">Track deductible expenses and per-load settlements</p>
       </div>
 
+      <FleetFilters value={filters} onChange={setFilters} />
+
       {/* Net income summary */}
       <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Net Income {from || to ? `(${from || "…"} → ${to || "…"})` : "(all time)"}</div>
-          <div className="flex gap-2">
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-8 w-auto text-xs" />
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-8 w-auto text-xs" />
-            {(from || to) && <Button variant="ghost" size="sm" onClick={() => { setFrom(""); setTo(""); }}>Clear</Button>}
-          </div>
+        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Net Income {from || to ? `(${from || "…"} → ${to || "…"})` : "(all time)"}
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Stat label="Gross pay" value={`$${gross.toFixed(2)}`} icon={<TrendingUp className="size-3.5 text-green-500" />} />

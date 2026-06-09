@@ -16,6 +16,7 @@ const LOGBOOK_TABS = [
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
 
 export const Route = createFileRoute("/_authenticated/logbook")({ component: LogbookPage });
 
@@ -41,6 +42,7 @@ function LogbookPage() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<DutyLog | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [fleet, setFleet] = useState<FleetFilterValue>(emptyFleetFilters);
 
   // pull a wider window to catch entries crossing midnight
   const winFrom = new Date(dayStart.getTime() - 86_400_000).toISOString();
@@ -49,7 +51,13 @@ function LogbookPage() {
     queryKey: ["duty", fmtDate(date)],
     queryFn: () => fetchAll({ data: { fromIso: winFrom, toIso: winTo } }),
   });
-  const logs = data?.logs ?? [];
+  const allLogs = data?.logs ?? [];
+  const logs = useMemo(() => allLogs.filter((l) => {
+    const r = l as unknown as Record<string, unknown>;
+    if (fleet.truck && l.vehicle_unit !== fleet.truck) return false;
+    if (fleet.driverId && r.user_id !== fleet.driverId) return false;
+    return true;
+  }), [allLogs, fleet]);
 
   // Build segments clipped to today
   const segments = useMemo(() => {
@@ -104,6 +112,8 @@ function LogbookPage() {
           <Button onClick={() => { setEditing(null); setShowForm(true); }}><Plus className="size-4 mr-2" /> Entry</Button>
         </div>
       </div>
+
+      <FleetFilters value={fleet} onChange={setFleet} showDates={false} />
 
       {violations.length > 0 && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 space-y-1">

@@ -10,6 +10,9 @@ import { FolderLock, Plus, Trash2, Loader2, AlertTriangle, FileText, ExternalLin
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
+
+const DOC_CATEGORIES = ["", "CDL", "Medical", "Drug Testing", "Employment", "Training", "Safety"];
 
 export const Route = createFileRoute("/_authenticated/documents")({ component: DocumentsPage });
 
@@ -28,9 +31,17 @@ function DocumentsPage() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<WalletDoc | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [fleet, setFleet] = useState<FleetFilterValue>(emptyFleetFilters);
+  const [category, setCategory] = useState<string>("");
 
   const { data, isLoading } = useQuery({ queryKey: ["documents"], queryFn: () => fetchAll() });
-  const docs = data?.docs ?? [];
+  const allDocs = data?.docs ?? [];
+  const docs = useMemo(() => allDocs.filter((d) => {
+    const r = d as unknown as Record<string, unknown>;
+    if (fleet.driverId && r.driver_id !== fleet.driverId) return false;
+    if (category && r.category !== category) return false;
+    return true;
+  }), [allDocs, fleet, category]);
 
   const buckets = useMemo(() => {
     const expired: WalletDoc[] = [], soon: WalletDoc[] = [], ok: WalletDoc[] = [];
@@ -57,6 +68,20 @@ function DocumentsPage() {
           <p className="text-sm text-muted-foreground">Track expirations for CDL, medical, registration, insurance</p>
         </div>
         <Button onClick={() => { setEditing(null); setShowForm(true); }}><Plus className="size-4 mr-2" /> Add doc</Button>
+      </div>
+
+      <div className="flex flex-wrap items-end gap-2">
+        <FleetFilters value={fleet} onChange={setFleet} showTruck={false} showDates={false} />
+        <div>
+          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Category</Label>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="block h-9 rounded-md border border-input bg-background px-2 text-sm min-w-[140px]"
+          >
+            {DOC_CATEGORIES.map((c) => <option key={c} value={c}>{c || "All categories"}</option>)}
+          </select>
+        </div>
       </div>
 
       {(buckets.expired.length > 0 || buckets.soon.length > 0) && (

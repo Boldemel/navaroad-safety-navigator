@@ -11,6 +11,7 @@ import { ClipboardCheck, Plus, Trash2, AlertTriangle, CheckCircle2, Loader2, Pri
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
 
 export const Route = createFileRoute("/_authenticated/inspections")({
   component: InspectionsPage,
@@ -37,16 +38,23 @@ function InspectionsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
+  const [fleet, setFleet] = useState<FleetFilterValue>(emptyFleetFilters);
 
   const { data, isLoading } = useQuery({ queryKey: ["inspections"], queryFn: () => fetchAll() });
   const items = data?.inspections ?? [];
 
   const filtered = useMemo(() => items.filter((i) => {
-    if (filter === "pre") return i.inspection_type === "pre";
-    if (filter === "post") return i.inspection_type === "post";
-    if (filter === "open") return i.defects_correction_required && i.defects.length > 0;
+    if (filter === "pre" && i.inspection_type !== "pre") return false;
+    if (filter === "post" && i.inspection_type !== "post") return false;
+    if (filter === "open" && !(i.defects_correction_required && i.defects.length > 0)) return false;
+    const r = i as unknown as Record<string, unknown>;
+    if (fleet.truck && i.vehicle_unit !== fleet.truck) return false;
+    if (fleet.driverId && r.driver_id !== fleet.driverId) return false;
+    const day = i.created_at.slice(0, 10);
+    if (fleet.from && day < fleet.from) return false;
+    if (fleet.to && day > fleet.to) return false;
     return true;
-  }), [items, filter]);
+  }), [items, filter, fleet]);
 
   const openCount = items.filter((i) => i.defects_correction_required && i.defects.length > 0).length;
 
@@ -72,6 +80,8 @@ function InspectionsPage() {
             {openCount} DVIR{openCount === 1 ? "" : "s"} have defects flagged as needing correction.
           </div>
         )}
+
+        <FleetFilters value={fleet} onChange={setFleet} />
 
         {/* Filter tabs */}
         <div className="flex gap-1 border-b border-border overflow-x-auto">

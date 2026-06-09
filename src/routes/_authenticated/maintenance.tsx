@@ -10,6 +10,7 @@ import { Wrench, Plus, Trash2, Loader2, AlertTriangle, Calendar, Gauge } from "l
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
 
 export const Route = createFileRoute("/_authenticated/maintenance")({ component: MaintPage });
 
@@ -28,12 +29,16 @@ function MaintPage() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<MaintRecord | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [unitFilter, setUnitFilter] = useState<string>("");
+  const [fleet, setFleet] = useState<FleetFilterValue>(emptyFleetFilters);
 
   const { data, isLoading } = useQuery({ queryKey: ["maintenance"], queryFn: () => fetchAll() });
   const records = data?.records ?? [];
-  const units = Array.from(new Set(records.map((r) => r.vehicle_unit).filter(Boolean))) as string[];
-  const filtered = unitFilter ? records.filter((r) => r.vehicle_unit === unitFilter) : records;
+  const filtered = useMemo(() => records.filter((r) => {
+    if (fleet.truck && r.vehicle_unit !== fleet.truck) return false;
+    if (fleet.from && r.service_date < fleet.from) return false;
+    if (fleet.to && r.service_date > fleet.to) return false;
+    return true;
+  }), [records, fleet]);
 
   const upcoming = useMemo(() => {
     const items: { rec: MaintRecord; reason: string; tone: "soon" | "due" | "overdue" }[] = [];
@@ -73,15 +78,7 @@ function MaintPage() {
         </div>
       )}
 
-      {units.length > 0 && (
-        <div className="flex gap-2 flex-wrap items-center">
-          <span className="text-xs text-muted-foreground">Filter:</span>
-          <button onClick={() => setUnitFilter("")} className={cn("text-xs px-2.5 py-1 rounded-full border", unitFilter === "" ? "bg-primary text-primary-foreground border-primary" : "border-border")}>All</button>
-          {units.map((u) => (
-            <button key={u} onClick={() => setUnitFilter(u)} className={cn("text-xs px-2.5 py-1 rounded-full border", unitFilter === u ? "bg-primary text-primary-foreground border-primary" : "border-border")}>{u}</button>
-          ))}
-        </div>
-      )}
+      <FleetFilters value={fleet} onChange={setFleet} showDriver={false} />
 
       {showForm && (
         <MaintForm
