@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Package, Plus, Trash2, MapPin, Calendar, AlertTriangle, Loader2, Star } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
 
 export const Route = createFileRoute("/_authenticated/loads/")({
   component: LoadsPage,
