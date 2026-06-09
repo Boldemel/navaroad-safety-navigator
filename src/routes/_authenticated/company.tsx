@@ -547,10 +547,10 @@ function MemberRow({ member, canManage, companyId, isSelf }: { member: CompanyMe
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {canManage && (
+          {(canManage || isSelf) && (
             <Button size="sm" variant="outline" onClick={() => setExpanded((v) => !v)}>
               <ShieldCheck className="size-4 mr-1.5" />
-              {expanded ? "Close" : "Manage"}
+              {expanded ? "Close" : isSelf && !canManage ? "My details" : "Manage"}
             </Button>
           )}
           {canManage && !member.isOwner && (
