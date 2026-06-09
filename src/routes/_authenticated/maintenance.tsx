@@ -78,15 +78,7 @@ function MaintPage() {
         </div>
       )}
 
-      {units.length > 0 && (
-        <div className="flex gap-2 flex-wrap items-center">
-          <span className="text-xs text-muted-foreground">Filter:</span>
-          <button onClick={() => setUnitFilter("")} className={cn("text-xs px-2.5 py-1 rounded-full border", unitFilter === "" ? "bg-primary text-primary-foreground border-primary" : "border-border")}>All</button>
-          {units.map((u) => (
-            <button key={u} onClick={() => setUnitFilter(u)} className={cn("text-xs px-2.5 py-1 rounded-full border", unitFilter === u ? "bg-primary text-primary-foreground border-primary" : "border-border")}>{u}</button>
-          ))}
-        </div>
-      )}
+      <FleetFilters value={fleet} onChange={setFleet} showDriver={false} />
 
       {showForm && (
         <MaintForm
