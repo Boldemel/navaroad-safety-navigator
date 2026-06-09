@@ -11,6 +11,7 @@ import { ClipboardCheck, Plus, Trash2, AlertTriangle, CheckCircle2, Loader2, Pri
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
 
 export const Route = createFileRoute("/_authenticated/inspections")({
   component: InspectionsPage,
