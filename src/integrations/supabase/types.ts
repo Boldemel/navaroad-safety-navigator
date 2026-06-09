@@ -196,10 +196,12 @@ export type Database = {
       }
       documents: {
         Row: {
+          category: string | null
           company_id: string
           created_at: string
           doc_number: string | null
           doc_type: string
+          driver_id: string | null
           expires_on: string | null
           file_url: string | null
           id: string
@@ -211,10 +213,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string | null
           company_id: string
           created_at?: string
           doc_number?: string | null
           doc_type: string
+          driver_id?: string | null
           expires_on?: string | null
           file_url?: string | null
           id?: string
@@ -226,10 +230,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string | null
           company_id?: string
           created_at?: string
           doc_number?: string | null
           doc_type?: string
+          driver_id?: string | null
           expires_on?: string | null
           file_url?: string | null
           id?: string
@@ -395,6 +401,7 @@ export type Database = {
           category: string
           company_id: string
           created_at: string
+          driver_id: string | null
           expense_date: string
           fuel_purchase_id: string | null
           id: string
@@ -414,6 +421,7 @@ export type Database = {
           category: string
           company_id: string
           created_at?: string
+          driver_id?: string | null
           expense_date?: string
           fuel_purchase_id?: string | null
           id?: string
@@ -433,6 +441,7 @@ export type Database = {
           category?: string
           company_id?: string
           created_at?: string
+          driver_id?: string | null
           expense_date?: string
           fuel_purchase_id?: string | null
           id?: string
@@ -766,6 +775,7 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
+          driver_id: string | null
           entry_date: string
           fuel_cost_usd: number | null
           fuel_gallons: number
@@ -777,10 +787,12 @@ export type Database = {
           state_code: string
           trip_log_id: string | null
           user_id: string
+          vehicle_unit: string | null
         }
         Insert: {
           company_id: string
           created_at?: string
+          driver_id?: string | null
           entry_date?: string
           fuel_cost_usd?: number | null
           fuel_gallons?: number
@@ -792,10 +804,12 @@ export type Database = {
           state_code: string
           trip_log_id?: string | null
           user_id: string
+          vehicle_unit?: string | null
         }
         Update: {
           company_id?: string
           created_at?: string
+          driver_id?: string | null
           entry_date?: string
           fuel_cost_usd?: number | null
           fuel_gallons?: number
@@ -807,6 +821,7 @@ export type Database = {
           state_code?: string
           trip_log_id?: string | null
           user_id?: string
+          vehicle_unit?: string | null
         }
         Relationships: [
           {
@@ -859,6 +874,7 @@ export type Database = {
           created_at: string
           defects: Json
           defects_correction_required: boolean
+          driver_id: string | null
           id: string
           inspection_type: string
           notes: string | null
@@ -873,6 +889,7 @@ export type Database = {
           created_at?: string
           defects?: Json
           defects_correction_required?: boolean
+          driver_id?: string | null
           id?: string
           inspection_type?: string
           notes?: string | null
@@ -887,6 +904,7 @@ export type Database = {
           created_at?: string
           defects?: Json
           defects_correction_required?: boolean
+          driver_id?: string | null
           id?: string
           inspection_type?: string
           notes?: string | null
@@ -915,6 +933,7 @@ export type Database = {
           consignee_name: string | null
           created_at: string
           delivery_at: string | null
+          driver_id: string | null
           empty_miles: number | null
           id: string
           is_current: boolean
@@ -928,6 +947,7 @@ export type Database = {
           total_miles: number | null
           updated_at: string
           user_id: string
+          vehicle_unit: string | null
           weight_lbs: number | null
         }
         Insert: {
@@ -938,6 +958,7 @@ export type Database = {
           consignee_name?: string | null
           created_at?: string
           delivery_at?: string | null
+          driver_id?: string | null
           empty_miles?: number | null
           id?: string
           is_current?: boolean
@@ -951,6 +972,7 @@ export type Database = {
           total_miles?: number | null
           updated_at?: string
           user_id: string
+          vehicle_unit?: string | null
           weight_lbs?: number | null
         }
         Update: {
@@ -961,6 +983,7 @@ export type Database = {
           consignee_name?: string | null
           created_at?: string
           delivery_at?: string | null
+          driver_id?: string | null
           empty_miles?: number | null
           id?: string
           is_current?: boolean
@@ -974,6 +997,7 @@ export type Database = {
           total_miles?: number | null
           updated_at?: string
           user_id?: string
+          vehicle_unit?: string | null
           weight_lbs?: number | null
         }
         Relationships: [
