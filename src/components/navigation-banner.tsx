@@ -222,6 +222,34 @@ export function NavigationBanner() {
         </div>
       </div>
 
+      {/* HIGH-PRIORITY PROXIMITY FLASH */}
+      {flashAlert && (
+        <div className="bg-destructive text-destructive-foreground animate-pulse">
+          <div className="max-w-7xl mx-auto px-3 md:px-5 py-2 flex items-center gap-2">
+            <AlertTriangle className="size-5 shrink-0" strokeWidth={2.5} />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-bold uppercase tracking-wide leading-tight truncate">
+                {flashAlert.title}
+              </div>
+              <div className="text-[11px] leading-tight truncate opacity-90">
+                {flashAlert.distanceMi < 0.1
+                  ? "<0.1 mi"
+                  : `${Math.round(flashAlert.distanceMi * 10) / 10} mi`}{" "}
+                — {flashAlert.recommendedAction}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => dismissProximity(flashAlert.uid)}
+              className="size-7 rounded-full bg-destructive-foreground/15 hover:bg-destructive-foreground/25 flex items-center justify-center transition-colors shrink-0"
+              aria-label="Dismiss alert"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* DARK STATS FOOTER — speed · ETA · remaining */}
       <div className="bg-zinc-900 text-zinc-100 dark:bg-zinc-950">
         <div className="max-w-7xl mx-auto px-3 md:px-5 py-2 grid grid-cols-4 gap-3 text-center">
