@@ -39,10 +39,11 @@ function ExpensesPage() {
     return true;
   }), [allExp, from, to, truck, driverId]);
   const filtSet = useMemo(() => allSet.filter((s) => {
+    const r = s as unknown as Record<string, unknown>;
     if (from && s.settlement_date < from) return false;
     if (to && s.settlement_date > to) return false;
-    if (truck && s.vehicle_unit !== truck) return false;
-    if (driverId && s.driver_id !== driverId) return false;
+    if (truck && r.vehicle_unit !== truck) return false;
+    if (driverId && r.driver_id !== driverId) return false;
     return true;
   }), [allSet, from, to, truck, driverId]);
 
