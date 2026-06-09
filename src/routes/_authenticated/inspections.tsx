@@ -38,16 +38,23 @@ function InspectionsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
+  const [fleet, setFleet] = useState<FleetFilterValue>(emptyFleetFilters);
 
   const { data, isLoading } = useQuery({ queryKey: ["inspections"], queryFn: () => fetchAll() });
   const items = data?.inspections ?? [];
 
   const filtered = useMemo(() => items.filter((i) => {
-    if (filter === "pre") return i.inspection_type === "pre";
-    if (filter === "post") return i.inspection_type === "post";
-    if (filter === "open") return i.defects_correction_required && i.defects.length > 0;
+    if (filter === "pre" && i.inspection_type !== "pre") return false;
+    if (filter === "post" && i.inspection_type !== "post") return false;
+    if (filter === "open" && !(i.defects_correction_required && i.defects.length > 0)) return false;
+    const r = i as unknown as Record<string, unknown>;
+    if (fleet.truck && i.vehicle_unit !== fleet.truck) return false;
+    if (fleet.driverId && r.driver_id !== fleet.driverId) return false;
+    const day = i.created_at.slice(0, 10);
+    if (fleet.from && day < fleet.from) return false;
+    if (fleet.to && day > fleet.to) return false;
     return true;
-  }), [items, filter]);
+  }), [items, filter, fleet]);
 
   const openCount = items.filter((i) => i.defects_correction_required && i.defects.length > 0).length;
 
