@@ -70,6 +70,20 @@ function DocumentsPage() {
         <Button onClick={() => { setEditing(null); setShowForm(true); }}><Plus className="size-4 mr-2" /> Add doc</Button>
       </div>
 
+      <div className="flex flex-wrap items-end gap-2">
+        <FleetFilters value={fleet} onChange={setFleet} showTruck={false} showDates={false} />
+        <div>
+          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Category</Label>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="block h-9 rounded-md border border-input bg-background px-2 text-sm min-w-[140px]"
+          >
+            {DOC_CATEGORIES.map((c) => <option key={c} value={c}>{c || "All categories"}</option>)}
+          </select>
+        </div>
+      </div>
+
       {(buckets.expired.length > 0 || buckets.soon.length > 0) && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive flex items-start gap-2">
           <AlertTriangle className="size-4 mt-0.5" />
