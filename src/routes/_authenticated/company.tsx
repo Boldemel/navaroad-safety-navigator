@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -678,11 +678,8 @@ function EldCredentialsButton({
 
   // Hydrate form when dialog opens / data loads
   const data = q.data;
-  const hydratedRef = useMemo(() => ({ key: "" }), []);
-  if (data && open) {
-    const key = `${data.eld_user_id ?? ""}|${data.eld_system ?? ""}|${data.visible_to_driver}`;
-    if (hydratedRef.key !== key) {
-      hydratedRef.key = key;
+  useEffect(() => {
+    if (open && data) {
       setForm({
         eldSystem: (data.eld_system as EldSystem) || "",
         eldUserId: data.eld_user_id ?? "",
@@ -690,7 +687,7 @@ function EldCredentialsButton({
         visibleToDriver: !!data.visible_to_driver,
       });
     }
-  }
+  }, [open, data]);
 
   const saveMut = useMutation({
     mutationFn: () =>
