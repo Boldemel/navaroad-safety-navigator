@@ -95,6 +95,27 @@ function CompanyPage() {
     enabled: !!companyId,
   });
 
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+  }, []);
+
+  const [roleFilter, setRoleFilter] = useState<"all" | CompanyRole>("all");
+  const [search, setSearch] = useState("");
+  const filteredMembers = useMemo(() => {
+    const list = members.data ?? [];
+    const q = search.trim().toLowerCase();
+    return list.filter((m) => {
+      if (roleFilter !== "all" && !m.roles.includes(roleFilter)) return false;
+      if (!q) return true;
+      const hay = [
+        m.firstName, m.lastName, m.driverName, m.email, m.username,
+        m.employeeId, m.driverIdNumber, m.assignedTruck, m.assignedTrailer,
+      ].filter(Boolean).join(" ").toLowerCase();
+      return hay.includes(q);
+    });
+  }, [members.data, roleFilter, search]);
+
   const [name, setName] = useState("");
   const renameMut = useMutation({
     mutationFn: (v: { companyId: string; name: string }) => updateNameFn({ data: v }),
