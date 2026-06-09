@@ -39,6 +39,7 @@ import { Route as AuthenticatedAssistantRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
 import { Route as AuthenticatedTrucksIndexRouteImport } from './routes/_authenticated/trucks.index'
 import { Route as AuthenticatedLoadsIndexRouteImport } from './routes/_authenticated/loads.index'
+import { Route as AuthenticatedTrucksVehicleUnitRouteImport } from './routes/_authenticated/trucks.$vehicleUnit'
 import { Route as AuthenticatedLoadsHistoryRouteImport } from './routes/_authenticated/loads.history'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminPlatformRouteImport } from './routes/_authenticated/admin/platform'
@@ -199,6 +200,12 @@ const AuthenticatedLoadsIndexRoute = AuthenticatedLoadsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedLoadsRoute,
 } as any)
+const AuthenticatedTrucksVehicleUnitRoute =
+  AuthenticatedTrucksVehicleUnitRouteImport.update({
+    id: '/$vehicleUnit',
+    path: '/$vehicleUnit',
+    getParentRoute: () => AuthenticatedTrucksRoute,
+  } as any)
 const AuthenticatedLoadsHistoryRoute =
   AuthenticatedLoadsHistoryRouteImport.update({
     id: '/history',
@@ -262,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/admin/platform': typeof AuthenticatedAdminPlatformRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/loads/history': typeof AuthenticatedLoadsHistoryRoute
+  '/trucks/$vehicleUnit': typeof AuthenticatedTrucksVehicleUnitRoute
   '/loads/': typeof AuthenticatedLoadsIndexRoute
   '/trucks/': typeof AuthenticatedTrucksIndexRoute
 }
@@ -296,6 +304,7 @@ export interface FileRoutesByTo {
   '/admin/platform': typeof AuthenticatedAdminPlatformRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/loads/history': typeof AuthenticatedLoadsHistoryRoute
+  '/trucks/$vehicleUnit': typeof AuthenticatedTrucksVehicleUnitRoute
   '/loads': typeof AuthenticatedLoadsIndexRoute
   '/trucks': typeof AuthenticatedTrucksIndexRoute
 }
@@ -334,6 +343,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/platform': typeof AuthenticatedAdminPlatformRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/loads/history': typeof AuthenticatedLoadsHistoryRoute
+  '/_authenticated/trucks/$vehicleUnit': typeof AuthenticatedTrucksVehicleUnitRoute
   '/_authenticated/loads/': typeof AuthenticatedLoadsIndexRoute
   '/_authenticated/trucks/': typeof AuthenticatedTrucksIndexRoute
 }
@@ -372,6 +382,7 @@ export interface FileRouteTypes {
     | '/admin/platform'
     | '/admin/users'
     | '/loads/history'
+    | '/trucks/$vehicleUnit'
     | '/loads/'
     | '/trucks/'
   fileRoutesByTo: FileRoutesByTo
@@ -406,6 +417,7 @@ export interface FileRouteTypes {
     | '/admin/platform'
     | '/admin/users'
     | '/loads/history'
+    | '/trucks/$vehicleUnit'
     | '/loads'
     | '/trucks'
   id:
@@ -443,6 +455,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/platform'
     | '/_authenticated/admin/users'
     | '/_authenticated/loads/history'
+    | '/_authenticated/trucks/$vehicleUnit'
     | '/_authenticated/loads/'
     | '/_authenticated/trucks/'
   fileRoutesById: FileRoutesById
@@ -669,6 +682,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLoadsIndexRouteImport
       parentRoute: typeof AuthenticatedLoadsRoute
     }
+    '/_authenticated/trucks/$vehicleUnit': {
+      id: '/_authenticated/trucks/$vehicleUnit'
+      path: '/$vehicleUnit'
+      fullPath: '/trucks/$vehicleUnit'
+      preLoaderRoute: typeof AuthenticatedTrucksVehicleUnitRouteImport
+      parentRoute: typeof AuthenticatedTrucksRoute
+    }
     '/_authenticated/loads/history': {
       id: '/_authenticated/loads/history'
       path: '/history'
@@ -721,10 +741,12 @@ const AuthenticatedLoadsRouteWithChildren =
   AuthenticatedLoadsRoute._addFileChildren(AuthenticatedLoadsRouteChildren)
 
 interface AuthenticatedTrucksRouteChildren {
+  AuthenticatedTrucksVehicleUnitRoute: typeof AuthenticatedTrucksVehicleUnitRoute
   AuthenticatedTrucksIndexRoute: typeof AuthenticatedTrucksIndexRoute
 }
 
 const AuthenticatedTrucksRouteChildren: AuthenticatedTrucksRouteChildren = {
+  AuthenticatedTrucksVehicleUnitRoute: AuthenticatedTrucksVehicleUnitRoute,
   AuthenticatedTrucksIndexRoute: AuthenticatedTrucksIndexRoute,
 }
 
