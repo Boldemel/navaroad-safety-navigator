@@ -210,9 +210,10 @@ function DocForm({ initial, onClose, onSubmit }: { initial: WalletDoc | null; on
   const [driverId, setDriverId] = useState<string>((initialAny?.driver_id as string) ?? "");
   const [submitting, setSubmitting] = useState(false);
 
+  const fetchFleetOpts = useServerFn(listFleetFilterOptions);
   const { data: filterOpts } = useQuery({
     queryKey: ["fleet-filter-options"],
-    queryFn: () => fetchFleetOptsClient(),
+    queryFn: () => fetchFleetOpts(),
     staleTime: 60_000,
   });
 
