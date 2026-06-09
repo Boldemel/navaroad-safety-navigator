@@ -62,6 +62,9 @@ function LoadsPage() {
       rateUsd: l.rate_usd,
       notes: l.notes,
       isCurrent: true,
+      loadedMiles: l.loaded_miles,
+      emptyMiles: l.empty_miles,
+      totalMiles: l.total_miles,
     } }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["loads"] }); toast.success("Marked as current"); },
   });
@@ -126,6 +129,7 @@ function LoadsPage() {
 function LoadCard({ load, onEdit, onDelete, onMakeCurrent }: { load: Load; onEdit: () => void; onDelete: () => void; onMakeCurrent?: () => void }) {
   const deliveryIn = hoursUntil(load.delivery_at);
   const lateRisk = deliveryIn != null && deliveryIn < 6 && load.status !== "delivered";
+  const hasMiles = load.loaded_miles != null || load.empty_miles != null || load.total_miles != null;
   return (
     <div className="space-y-2.5">
       <div className="flex items-start justify-between gap-3">
@@ -148,12 +152,35 @@ function LoadCard({ load, onEdit, onDelete, onMakeCurrent }: { load: Load; onEdi
           {load.pickup_at && <div className="flex items-center gap-1 text-muted-foreground"><Calendar className="size-3" /> {fmtDate(load.pickup_at)}</div>}
         </div>
         <div className="space-y-1">
-          <div className="flex items-center gap-1.5 font-medium"><MapPin className="size-3.5 text-muted-foreground" /> Delivery</div>
+          <div className="flex items-center gap-1.5 font-medium"><MapPin className="size-3.5 text-muted-foreground" /> Destination</div>
           {load.consignee_name && <div>{load.consignee_name}</div>}
           {load.consignee_address && <div className="text-muted-foreground">{load.consignee_address}</div>}
           {load.delivery_at && <div className="flex items-center gap-1 text-muted-foreground"><Calendar className="size-3" /> {fmtDate(load.delivery_at)}</div>}
         </div>
       </div>
+
+      {hasMiles && (
+        <div className="flex flex-wrap gap-3 text-xs">
+          {load.loaded_miles != null && (
+            <div className="rounded-md border border-border bg-muted/40 px-2.5 py-1">
+              <span className="text-muted-foreground">Loaded</span>{" "}
+              <span className="font-semibold">{load.loaded_miles.toLocaleString()} mi</span>
+            </div>
+          )}
+          {load.empty_miles != null && (
+            <div className="rounded-md border border-border bg-muted/40 px-2.5 py-1">
+              <span className="text-muted-foreground">Empty</span>{" "}
+              <span className="font-semibold">{load.empty_miles.toLocaleString()} mi</span>
+            </div>
+          )}
+          {load.total_miles != null && (
+            <div className="rounded-md border border-border bg-muted/40 px-2.5 py-1">
+              <span className="text-muted-foreground">Total</span>{" "}
+              <span className="font-semibold">{load.total_miles.toLocaleString()} mi</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {lateRisk && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive flex items-center gap-2">
@@ -182,6 +209,9 @@ type LoadPayload = {
   rateUsd: number | null;
   notes: string | null;
   isCurrent: boolean;
+  loadedMiles: number | null;
+  emptyMiles: number | null;
+  totalMiles: number | null;
 };
 
 function toLocalInputValue(s: string | null) {
