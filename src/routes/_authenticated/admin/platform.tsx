@@ -4,6 +4,7 @@ import { useIsSuperAdmin } from "@/hooks/use-is-super-admin";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldAlert } from "lucide-react";
+import { CompaniesTab } from "@/components/platform-admin/companies-tab";
 
 export const Route = createFileRoute("/_authenticated/admin/platform")({
   component: PlatformAdminPage,
@@ -47,12 +48,16 @@ function PlatformAdminPage() {
         </TabsList>
         {TABS.map((t) => (
           <TabsContent key={t.value} value={t.value} className="mt-4">
-            <Card>
-              <CardHeader><CardTitle className="text-base">{t.label}</CardTitle></CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                {placeholderFor(t.value)}
-              </CardContent>
-            </Card>
+            {t.value === "companies" ? (
+              <CompaniesTab />
+            ) : (
+              <Card>
+                <CardHeader><CardTitle className="text-base">{t.label}</CardTitle></CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  {placeholderFor(t.value)}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         ))}
       </Tabs>

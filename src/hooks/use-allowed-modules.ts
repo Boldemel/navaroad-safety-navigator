@@ -30,6 +30,17 @@ export function useAllowedModules() {
         if (!cancelled) setState({ loading: false, allowed: new Set(ALWAYS_VISIBLE) });
         return;
       }
+      // Super admins get full access regardless of company membership.
+      const { data: saRow } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", u.user.id)
+        .eq("role", "super_admin")
+        .maybeSingle();
+      if (saRow) {
+        if (!cancelled) setState({ loading: false, allowed: null });
+        return;
+      }
       const { data: members } = await supabase
         .from("company_members")
         .select("id")

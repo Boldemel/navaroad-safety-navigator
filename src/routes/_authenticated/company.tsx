@@ -35,6 +35,7 @@ import {
   getMyCompany, listCompanyMembers, updateCompanyName,
   removeCompanyMember, setMemberRoles, setPermissionOverride,
 } from "@/lib/company.functions";
+import { useIsSuperAdmin } from "@/hooks/use-is-super-admin";
 import {
   createCompanyUser, resetUserPassword, setUserActive, listTeamAuditLogs,
   getEldCredentials, setEldCredentials,
@@ -73,9 +74,10 @@ function CompanyPage() {
   const listMembersFn = useServerFn(listCompanyMembers);
   const updateNameFn = useServerFn(updateCompanyName);
 
+  const { isSuperAdmin } = useIsSuperAdmin();
   const company = useQuery({ queryKey: ["my-company"], queryFn: () => getCompanyFn() });
   const companyId = company.data?.id;
-  const isOwner = company.data?.isOwner ?? false;
+  const isOwner = (company.data?.isOwner ?? false) || isSuperAdmin;
   const canManageMembers = isOwner || (company.data?.myRoles.includes("fleet_owner") ?? false)
     || (company.data?.myRoles.includes("fleet_manager") ?? false);
 
@@ -104,7 +106,9 @@ function CompanyPage() {
         <div className="min-w-0">
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight truncate">{company.data.name}</h1>
           <p className="text-muted-foreground text-sm">
-            {company.data.myRoles.map((r) => ROLE_LABELS[r]).join(" · ") || "Member"}
+            {isSuperAdmin && company.data.myRoles.length === 0
+              ? "Super Admin (platform)"
+              : (company.data.myRoles.map((r) => ROLE_LABELS[r]).join(" · ") || "Member")}
           </p>
         </div>
       </div>
