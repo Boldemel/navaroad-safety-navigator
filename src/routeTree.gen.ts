@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedReportRouteImport } from './routes/_authenticated/report'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedParkingRouteImport } from './routes/_authenticated/parking'
@@ -74,6 +75,11 @@ const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedReportRoute = AuthenticatedReportRouteImport.update({
   id: '/report',
@@ -227,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/parking': typeof AuthenticatedParkingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
+  '/reports': typeof AuthenticatedReportsRoute
   '/api/chat': typeof ApiChatRoute
   '/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/admin/moderation': typeof AuthenticatedAdminModerationRoute
@@ -258,6 +265,7 @@ export interface FileRoutesByTo {
   '/parking': typeof AuthenticatedParkingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
+  '/reports': typeof AuthenticatedReportsRoute
   '/api/chat': typeof ApiChatRoute
   '/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/admin/moderation': typeof AuthenticatedAdminModerationRoute
@@ -292,6 +300,7 @@ export interface FileRoutesById {
   '/_authenticated/parking': typeof AuthenticatedParkingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/report': typeof AuthenticatedReportRoute
+  '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/api/chat': typeof ApiChatRoute
   '/_authenticated/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/_authenticated/admin/moderation': typeof AuthenticatedAdminModerationRoute
@@ -326,6 +335,7 @@ export interface FileRouteTypes {
     | '/parking'
     | '/profile'
     | '/report'
+    | '/reports'
     | '/api/chat'
     | '/admin/error-logs'
     | '/admin/moderation'
@@ -357,6 +367,7 @@ export interface FileRouteTypes {
     | '/parking'
     | '/profile'
     | '/report'
+    | '/reports'
     | '/api/chat'
     | '/admin/error-logs'
     | '/admin/moderation'
@@ -390,6 +401,7 @@ export interface FileRouteTypes {
     | '/_authenticated/parking'
     | '/_authenticated/profile'
     | '/_authenticated/report'
+    | '/_authenticated/reports'
     | '/api/chat'
     | '/_authenticated/admin/error-logs'
     | '/_authenticated/admin/moderation'
@@ -459,6 +471,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/reports': {
+      id: '/_authenticated/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AuthenticatedReportsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/report': {
       id: '/_authenticated/report'
@@ -663,6 +682,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedParkingRoute: typeof AuthenticatedParkingRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReportRoute: typeof AuthenticatedReportRoute
+  AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedAdminErrorLogsRoute: typeof AuthenticatedAdminErrorLogsRoute
   AuthenticatedAdminModerationRoute: typeof AuthenticatedAdminModerationRoute
   AuthenticatedAdminPlatformRoute: typeof AuthenticatedAdminPlatformRoute
@@ -688,6 +708,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedParkingRoute: AuthenticatedParkingRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReportRoute: AuthenticatedReportRoute,
+  AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedAdminErrorLogsRoute: AuthenticatedAdminErrorLogsRoute,
   AuthenticatedAdminModerationRoute: AuthenticatedAdminModerationRoute,
   AuthenticatedAdminPlatformRoute: AuthenticatedAdminPlatformRoute,
