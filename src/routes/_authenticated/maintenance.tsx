@@ -29,12 +29,16 @@ function MaintPage() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<MaintRecord | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [unitFilter, setUnitFilter] = useState<string>("");
+  const [fleet, setFleet] = useState<FleetFilterValue>(emptyFleetFilters);
 
   const { data, isLoading } = useQuery({ queryKey: ["maintenance"], queryFn: () => fetchAll() });
   const records = data?.records ?? [];
-  const units = Array.from(new Set(records.map((r) => r.vehicle_unit).filter(Boolean))) as string[];
-  const filtered = unitFilter ? records.filter((r) => r.vehicle_unit === unitFilter) : records;
+  const filtered = useMemo(() => records.filter((r) => {
+    if (fleet.truck && r.vehicle_unit !== fleet.truck) return false;
+    if (fleet.from && r.service_date < fleet.from) return false;
+    if (fleet.to && r.service_date > fleet.to) return false;
+    return true;
+  }), [records, fleet]);
 
   const upcoming = useMemo(() => {
     const items: { rec: MaintRecord; reason: string; tone: "soon" | "due" | "overdue" }[] = [];
