@@ -113,6 +113,8 @@ function LogbookPage() {
         </div>
       </div>
 
+      <FleetFilters value={fleet} onChange={setFleet} showDates={false} />
+
       {violations.length > 0 && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 space-y-1">
           {violations.map((v) => (
