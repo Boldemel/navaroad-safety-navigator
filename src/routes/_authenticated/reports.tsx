@@ -68,17 +68,26 @@ function ReportsPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            <Kpi label="Revenue" value={fmt$(data.totals.revenue)} />
-            <Kpi label="Miles" value={data.totals.miles.toLocaleString()} />
-            <Kpi label="Loads" value={data.totals.loads.toLocaleString()} />
-            <Kpi label="Fuel" value={fmt$(data.totals.fuelCost)} />
-            <Kpi label="Maintenance" value={fmt$(data.totals.maintenanceCost)} />
-            <Kpi
-              label="Doc alerts"
-              value={`${data.totals.expiredDocs + data.totals.expiringDocs}`}
-              tone={data.totals.expiredDocs > 0 ? "bad" : undefined}
-            />
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 flex-1">
+              <Kpi label="Revenue" value={fmt$(data.totals.revenue)} />
+              <Kpi label="Miles" value={data.totals.miles.toLocaleString()} />
+              <Kpi label="Loads" value={data.totals.loads.toLocaleString()} />
+              <Kpi label="Fuel" value={fmt$(data.totals.fuelCost)} />
+              <Kpi label="Maintenance" value={fmt$(data.totals.maintenanceCost)} />
+              <Kpi
+                label="Doc alerts"
+                value={`${data.totals.expiredDocs + data.totals.expiringDocs}`}
+                tone={data.totals.expiredDocs > 0 ? "bad" : undefined}
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportFullPdf(data, filters)}
+            >
+              <Download className="size-4 mr-1.5" /> Full PDF
+            </Button>
           </div>
 
           <Tabs defaultValue="truck" className="w-full">
