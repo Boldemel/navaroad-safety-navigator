@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { FolderLock, Plus, Trash2, Loader2, AlertTriangle, FileText, ExternalLink, CheckCircle2 } from "lucide-react";
+import { FolderLock, Plus, Trash2, Loader2, AlertTriangle, FileText, ExternalLink, CheckCircle2, LayoutGrid, List } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
+import { ComplianceDashboard } from "@/components/compliance-dashboard";
 
 const DOC_CATEGORIES = ["", "CDL", "Medical", "Drug Testing", "Employment", "Training", "Safety"];
 
@@ -33,6 +34,7 @@ function DocumentsPage() {
   const [showForm, setShowForm] = useState(false);
   const [fleet, setFleet] = useState<FleetFilterValue>(emptyFleetFilters);
   const [category, setCategory] = useState<string>("");
+  const [view, setView] = useState<"compliance" | "list">("compliance");
 
   const { data, isLoading } = useQuery({ queryKey: ["documents"], queryFn: () => fetchAll() });
   const allDocs = data?.docs ?? [];
