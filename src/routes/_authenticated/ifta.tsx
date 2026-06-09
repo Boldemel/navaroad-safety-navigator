@@ -40,6 +40,7 @@ function IftaPage() {
   const { data, isLoading } = useQuery({ queryKey: ["ifta"], queryFn: () => fetchAll() });
   const entries = data?.entries ?? [];
   const [filter, setFilter] = useState(currentQuarter());
+  const [fleet, setFleet] = useState<FleetFilterValue>(emptyFleetFilters);
   const [showForm, setShowForm] = useState(false);
   const [showReport, setShowReport] = useState(false);
 
@@ -53,7 +54,14 @@ function IftaPage() {
     },
   });
 
-  const filtered = useMemo(() => entries.filter((e) => inQuarter(e.entry_date, filter.year, filter.quarter)), [entries, filter]);
+  const filtered = useMemo(() => entries.filter((e) => {
+    if (!inQuarter(e.entry_date, filter.year, filter.quarter)) return false;
+    if (fleet.truck && (e as any).vehicle_unit !== fleet.truck) return false;
+    if (fleet.driverId && (e as any).driver_id !== fleet.driverId) return false;
+    if (fleet.from && e.entry_date < fleet.from) return false;
+    if (fleet.to && e.entry_date > fleet.to) return false;
+    return true;
+  }), [entries, filter, fleet]);
   const summary = useMemo(() => {
     const map = new Map<string, { miles: number; gallons: number; cost: number }>();
     for (const e of filtered) {
