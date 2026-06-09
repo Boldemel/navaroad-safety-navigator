@@ -60,23 +60,37 @@ export const listCompanyMembers = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [profilesRes, authRes] = await Promise.all([
-      supabaseAdmin.from("profiles").select("id, driver_name").in("id", userIds),
+      supabaseAdmin
+        .from("profiles")
+        .select("id, driver_name, first_name, last_name, phone, employee_id, assigned_truck, assigned_trailer, active, must_change_password")
+        .in("id", userIds),
       supabaseAdmin.auth.admin.listUsers({ perPage: 200 }),
     ]);
     const emails = new Map<string, string>();
     for (const u of authRes.data?.users ?? []) if (userIds.includes(u.id)) emails.set(u.id, u.email ?? "");
-    const names = new Map<string, string>();
-    for (const p of profilesRes.data ?? []) names.set(p.id, p.driver_name ?? "");
+    const profileMap = new Map<string, any>();
+    for (const p of profilesRes.data ?? []) profileMap.set(p.id, p);
 
-    return members.map((m) => ({
-      memberId: m.id,
-      userId: m.user_id,
-      driverName: names.get(m.user_id) ?? null,
-      email: emails.get(m.user_id) ?? null,
-      isOwner: (m as any).companies.owner_id === m.user_id,
-      roles: (rolesRes.data ?? []).filter((r: any) => r.member_id === m.id).map((r: any) => r.role),
-      overrides: (overridesRes.data ?? []).filter((o: any) => o.member_id === m.id).map((o: any) => ({ permission: o.permission, granted: o.granted })),
-    }));
+    return members.map((m) => {
+      const p = profileMap.get(m.user_id) ?? {};
+      return {
+        memberId: m.id,
+        userId: m.user_id,
+        driverName: p.driver_name ?? null,
+        email: emails.get(m.user_id) ?? null,
+        isOwner: (m as any).companies.owner_id === m.user_id,
+        roles: (rolesRes.data ?? []).filter((r: any) => r.member_id === m.id).map((r: any) => r.role),
+        overrides: (overridesRes.data ?? []).filter((o: any) => o.member_id === m.id).map((o: any) => ({ permission: o.permission, granted: o.granted })),
+        firstName: p.first_name ?? null,
+        lastName: p.last_name ?? null,
+        phone: p.phone ?? null,
+        employeeId: p.employee_id ?? null,
+        assignedTruck: p.assigned_truck ?? null,
+        assignedTrailer: p.assigned_trailer ?? null,
+        active: p.active ?? true,
+        mustChangePassword: p.must_change_password ?? false,
+      };
+    });
   });
 
 export const updateCompanyName = createServerFn({ method: "POST" })
@@ -145,7 +159,18 @@ export const setMemberRoles = createServerFn({ method: "POST" })
     z.object({ memberId: z.string().uuid(), roles: z.array(z.enum(ROLES)) }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    // Look up company_id + target user for audit + permission check
+    const { data: mem, error: lookupErr } = await supabase
+      .from("company_members")
+      .select("company_id, user_id, company_member_roles(role)")
+      .eq("id", data.memberId)
+      .maybeSingle();
+    if (lookupErr) throw lookupErr;
+    if (!mem) throw new Error("Member not found");
+
+    const prevRoles = ((mem as any).company_member_roles ?? []).map((r: any) => r.role);
+
     const { error: delErr } = await supabase.from("company_member_roles").delete().eq("member_id", data.memberId);
     if (delErr) throw delErr;
     if (data.roles.length > 0) {
@@ -154,6 +179,13 @@ export const setMemberRoles = createServerFn({ method: "POST" })
         .insert(data.roles.map((r) => ({ member_id: data.memberId, role: r })));
       if (insErr) throw insErr;
     }
+    await supabase.from("team_audit_logs").insert({
+      company_id: mem.company_id,
+      actor_user_id: userId,
+      target_user_id: mem.user_id,
+      action: "role_changed",
+      details: { from: prevRoles, to: data.roles },
+    });
     return { ok: true };
   });
 

@@ -1,5 +1,6 @@
 export const ROLES = [
   "fleet_owner",
+  "fleet_manager",
   "dispatcher",
   "safety_manager",
   "maintenance_manager",
@@ -31,6 +32,14 @@ export type CompanyMember = {
   isOwner: boolean;
   roles: CompanyRole[];
   overrides: { permission: AppPermission; granted: boolean }[];
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  employeeId: string | null;
+  assignedTruck: string | null;
+  assignedTrailer: string | null;
+  active: boolean;
+  mustChangePassword: boolean;
 };
 
 export type CompanySummary = {
