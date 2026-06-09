@@ -1,5 +1,5 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Map, Bell, User, LogOut, Truck, Shield, Users, FileWarning, BookOpen, ClipboardCheck, Package, ParkingCircle, MapPinned, FolderLock, Wrench, Receipt, Fuel, ClipboardList, Building2, Sparkles } from "lucide-react";
+import { LayoutDashboard, Map, Bell, User, LogOut, Truck, Shield, ShieldAlert, Users, FileWarning, BookOpen, ClipboardCheck, Package, ParkingCircle, MapPinned, FolderLock, Wrench, Receipt, Fuel, ClipboardList, Building2, Sparkles } from "lucide-react";
 import { ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,7 @@ import { ProximityAlertStack } from "@/components/proximity-alert-stack";
 import { OfflineBanner } from "@/components/offline-banner";
 import { NotificationBell } from "@/components/notification-bell";
 import { useIsAdmin } from "@/hooks/use-is-admin";
+import { useIsSuperAdmin } from "@/hooks/use-is-super-admin";
 import { useAllowedModules } from "@/hooks/use-allowed-modules";
 
 const nav = [
@@ -41,6 +42,10 @@ const adminNav = [
   { to: "/admin/moderation", label: "Moderation", icon: Shield },
   { to: "/admin/users", label: "User roles", icon: Users },
   { to: "/admin/error-logs", label: "Error logs", icon: FileWarning },
+];
+
+const superAdminNav = [
+  { to: "/admin/platform", label: "Platform Admin", icon: ShieldAlert },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
