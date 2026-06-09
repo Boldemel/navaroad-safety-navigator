@@ -168,9 +168,10 @@ export const adminSetCompanyStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: Record<string, unknown> = { subscription_status: data.status };
-    if (isReadOnly(data.status)) patch.read_only_at = new Date().toISOString();
-    else { patch.read_only_at = null; patch.cancelled_at = null; }
+    const nowIso = new Date().toISOString();
+    const patch = isReadOnly(data.status)
+      ? { subscription_status: data.status, read_only_at: nowIso }
+      : { subscription_status: data.status, read_only_at: null, cancelled_at: null };
     const { error } = await supabaseAdmin.from("companies").update(patch).eq("id", data.companyId);
     if (error) throw error;
     return { ok: true };
