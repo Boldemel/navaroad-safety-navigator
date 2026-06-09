@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listDocuments, createDocument, updateDocument, deleteDocument, type WalletDoc } from "@/lib/documents.functions";
+import { listFleetFilterOptions } from "@/lib/fleet-filters.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
