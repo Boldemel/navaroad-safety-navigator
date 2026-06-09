@@ -235,6 +235,9 @@ function LoadForm({ initial, onClose, onSubmit }: { initial: Load | null; onClos
   const [rate, setRate] = useState(initial?.rate_usd?.toString() ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [isCurrent, setIsCurrent] = useState(initial?.is_current ?? false);
+  const [loadedMiles, setLoadedMiles] = useState(initial?.loaded_miles?.toString() ?? "");
+  const [emptyMiles, setEmptyMiles] = useState(initial?.empty_miles?.toString() ?? "");
+  const [totalMiles, setTotalMiles] = useState(initial?.total_miles?.toString() ?? "");
   const [submitting, setSubmitting] = useState(false);
 
   async function submit() {
@@ -254,6 +257,9 @@ function LoadForm({ initial, onClose, onSubmit }: { initial: Load | null; onClos
         rateUsd: rate ? parseFloat(rate) : null,
         notes: notes || null,
         isCurrent,
+        loadedMiles: loadedMiles ? parseFloat(loadedMiles) : null,
+        emptyMiles: emptyMiles ? parseFloat(emptyMiles) : null,
+        totalMiles: totalMiles ? parseFloat(totalMiles) : null,
       });
     } finally { setSubmitting(false); }
   }
@@ -284,11 +290,17 @@ function LoadForm({ initial, onClose, onSubmit }: { initial: Load | null; onClos
           <div><Label className="text-xs">Pickup appointment</Label><Input type="datetime-local" value={pickupAt} onChange={(e) => setPickupAt(e.target.value)} /></div>
         </div>
         <div className="space-y-2">
-          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Consignee</div>
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Destination</div>
           <Input value={consName} onChange={(e) => setConsName(e.target.value)} placeholder="Name" maxLength={200} />
           <Input value={consAddr} onChange={(e) => setConsAddr(e.target.value)} placeholder="Address" maxLength={400} />
           <div><Label className="text-xs">Delivery appointment</Label><Input type="datetime-local" value={deliveryAt} onChange={(e) => setDeliveryAt(e.target.value)} /></div>
         </div>
+      </div>
+
+      <div className="grid sm:grid-cols-3 gap-2">
+        <div><Label className="text-xs">Loaded miles</Label><Input type="number" min={0} value={loadedMiles} onChange={(e) => setLoadedMiles(e.target.value)} /></div>
+        <div><Label className="text-xs">Empty miles</Label><Input type="number" min={0} value={emptyMiles} onChange={(e) => setEmptyMiles(e.target.value)} /></div>
+        <div><Label className="text-xs">Total miles</Label><Input type="number" min={0} value={totalMiles} onChange={(e) => setTotalMiles(e.target.value)} /></div>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-2">
