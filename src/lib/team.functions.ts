@@ -126,7 +126,7 @@ export const resetUserPassword = createServerFn({ method: "POST" })
 
     await supabaseAdmin
       .from("profiles")
-      .update({ must_change_password: true })
+      .update({ must_change_password: false })
       .eq("id", data.targetUserId);
 
     await supabaseAdmin.from("team_audit_logs").insert({
