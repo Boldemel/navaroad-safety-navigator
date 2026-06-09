@@ -1951,7 +1951,7 @@ export type Database = {
         | "hos.manage"
         | "hos.view"
         | "drive"
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "super_admin"
       company_role:
         | "fleet_owner"
         | "dispatcher"
@@ -2120,7 +2120,7 @@ export const Constants = {
         "hos.view",
         "drive",
       ],
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "super_admin"],
       company_role: [
         "fleet_owner",
         "dispatcher",
