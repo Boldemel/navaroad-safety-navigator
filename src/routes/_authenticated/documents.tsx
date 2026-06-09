@@ -63,28 +63,49 @@ function DocumentsPage() {
   });
 
   return (
-    <div className="container max-w-3xl py-6 space-y-5">
+    <div className={cn("container py-6 space-y-5", view === "compliance" ? "max-w-6xl" : "max-w-3xl")}>
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><FolderLock className="size-6 text-primary" /> Document Wallet</h1>
-          <p className="text-sm text-muted-foreground">Track expirations for CDL, medical, registration, insurance</p>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><FolderLock className="size-6 text-primary" /> Driver Documents</h1>
+          <p className="text-sm text-muted-foreground">Per-driver compliance dashboard with expiration alerts</p>
         </div>
         <Button onClick={() => { setEditing(null); setShowForm(true); }}><Plus className="size-4 mr-2" /> Add doc</Button>
       </div>
 
-      <div className="flex flex-wrap items-end gap-2">
-        <FleetFilters value={fleet} onChange={setFleet} showTruck={false} showDates={false} />
-        <div>
-          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Category</Label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="block h-9 rounded-md border border-input bg-background px-2 text-sm min-w-[140px]"
-          >
-            {DOC_CATEGORIES.map((c) => <option key={c} value={c}>{c || "All categories"}</option>)}
-          </select>
-        </div>
+      <div className="inline-flex rounded-lg border border-border bg-card p-1">
+        <button
+          onClick={() => setView("compliance")}
+          className={cn("inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+            view === "compliance" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+        >
+          <LayoutGrid className="size-3.5" /> Compliance
+        </button>
+        <button
+          onClick={() => setView("list")}
+          className={cn("inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+            view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+        >
+          <List className="size-3.5" /> All documents
+        </button>
       </div>
+
+      {view === "compliance" && !showForm && <ComplianceDashboard />}
+
+      {view === "list" && (
+        <div className="flex flex-wrap items-end gap-2">
+          <FleetFilters value={fleet} onChange={setFleet} showTruck={false} showDates={false} />
+          <div>
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Category</Label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="block h-9 rounded-md border border-input bg-background px-2 text-sm min-w-[140px]"
+            >
+              {DOC_CATEGORIES.map((c) => <option key={c} value={c}>{c || "All categories"}</option>)}
+            </select>
+          </div>
+        </div>
+      )}
 
       {(buckets.expired.length > 0 || buckets.soon.length > 0) && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive flex items-start gap-2">
