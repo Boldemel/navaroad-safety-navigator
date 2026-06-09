@@ -1,5 +1,5 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Map, Bell, User, LogOut, Truck, Shield, ShieldAlert, Users, FileWarning, BookOpen, ClipboardCheck, Package, ParkingCircle, MapPinned, FolderLock, Wrench, Receipt, Fuel, ClipboardList, Building2, Sparkles, TrendingUp, FileBarChart } from "lucide-react";
+import { LayoutDashboard, Map, Bell, User, LogOut, Truck, Shield, ShieldAlert, Users, FileWarning, BookOpen, ClipboardCheck, Package, ParkingCircle, MapPinned, FolderLock, Wrench, Receipt, Fuel, ClipboardList, Building2, Sparkles, TrendingUp, FileBarChart, UserCheck } from "lucide-react";
 import { ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +26,7 @@ const nav = [
   { to: "/logbook", label: "Logbook & HOS", icon: ClipboardList },
   { to: "/fleet-profitability", label: "Profitability Analysis", icon: TrendingUp },
   { to: "/reports", label: "Reports", icon: FileBarChart },
+  { to: "/driver-performance", label: "Driver Performance", icon: UserCheck },
   { to: "/assistant", label: "Fleet AI Assistant", icon: Sparkles },
   
   { to: "/company", label: "Company & Team", icon: Building2 },
