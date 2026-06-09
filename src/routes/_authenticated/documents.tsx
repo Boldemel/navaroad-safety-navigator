@@ -191,9 +191,13 @@ function DocumentsPage() {
 type DocPayload = {
   docType: string; title: string; issuer: string | null; docNumber: string | null;
   issuedOn: string | null; expiresOn: string | null; notes: string | null; fileUrl: string | null;
+  category: string | null; driverId: string | null;
 };
 
+const FORM_CATEGORIES = ["", "CDL", "Medical", "Drug Testing", "Employment", "Training", "Safety"];
+
 function DocForm({ initial, onClose, onSubmit }: { initial: WalletDoc | null; onClose: () => void; onSubmit: (p: DocPayload) => void | Promise<void> }) {
+  const initialAny = initial as unknown as Record<string, unknown> | null;
   const [docType, setDocType] = useState(initial?.doc_type ?? "CDL");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [issuer, setIssuer] = useState(initial?.issuer ?? "");
@@ -202,12 +206,33 @@ function DocForm({ initial, onClose, onSubmit }: { initial: WalletDoc | null; on
   const [expiresOn, setExpiresOn] = useState(initial?.expires_on ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [fileUrl, setFileUrl] = useState(initial?.file_url ?? "");
+  const [category, setCategory] = useState<string>((initialAny?.category as string) ?? "");
+  const [driverId, setDriverId] = useState<string>((initialAny?.driver_id as string) ?? "");
   const [submitting, setSubmitting] = useState(false);
+
+  const { data: filterOpts } = useQuery({
+    queryKey: ["fleet-filter-options"],
+    queryFn: () => fetchFleetOptsClient(),
+    staleTime: 60_000,
+  });
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 space-y-3">
       <div className="text-sm font-medium">{initial ? "Edit document" : "New document"}</div>
       <div className="grid sm:grid-cols-2 gap-2">
+        <div>
+          <Label className="text-xs">Driver</Label>
+          <select value={driverId} onChange={(e) => setDriverId(e.target.value)} className="block h-9 w-full rounded-md border border-input bg-background px-2 text-sm">
+            <option value="">Unassigned</option>
+            {(filterOpts?.drivers ?? []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <Label className="text-xs">Category</Label>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className="block h-9 w-full rounded-md border border-input bg-background px-2 text-sm">
+            {FORM_CATEGORIES.map((c) => <option key={c} value={c}>{c || "Uncategorized"}</option>)}
+          </select>
+        </div>
         <div>
           <Label className="text-xs">Type</Label>
           <select value={docType} onChange={(e) => setDocType(e.target.value)} className="block h-9 w-full rounded-md border border-input bg-background px-2 text-sm">
@@ -233,10 +258,21 @@ function DocForm({ initial, onClose, onSubmit }: { initial: WalletDoc | null; on
               issuer: issuer || null, docNumber: docNumber || null,
               issuedOn: issuedOn || null, expiresOn: expiresOn || null,
               notes: notes || null, fileUrl: fileUrl || null,
+              category: category || null, driverId: driverId || null,
             });
           } finally { setSubmitting(false); }
         }}>{submitting && <Loader2 className="size-4 mr-2 animate-spin" />}{initial ? "Save" : "Add"}</Button>
       </div>
     </div>
   );
+}
+
+// Helper to fetch fleet options without re-importing useServerFn here (avoids hook ordering with conditional render).
+let fleetOptsFetcher: (() => Promise<{ drivers: { id: string; name: string }[]; trucks: string[] }>) | null = null;
+async function fetchFleetOptsClient() {
+  if (!fleetOptsFetcher) {
+    const { listFleetFilterOptions } = await import("@/lib/fleet-filters.functions");
+    fleetOptsFetcher = () => listFleetFilterOptions() as any;
+  }
+  return fleetOptsFetcher();
 }
