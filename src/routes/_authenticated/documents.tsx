@@ -2,15 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listDocuments, createDocument, updateDocument, deleteDocument, type WalletDoc } from "@/lib/documents.functions";
+import { listFleetFilterOptions } from "@/lib/fleet-filters.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { FolderLock, Plus, Trash2, Loader2, AlertTriangle, FileText, ExternalLink, CheckCircle2 } from "lucide-react";
+import { FolderLock, Plus, Trash2, Loader2, AlertTriangle, FileText, ExternalLink, CheckCircle2, LayoutGrid, List } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
+import { ComplianceDashboard } from "@/components/compliance-dashboard";
 
 const DOC_CATEGORIES = ["", "CDL", "Medical", "Drug Testing", "Employment", "Training", "Safety"];
 
@@ -33,6 +35,7 @@ function DocumentsPage() {
   const [showForm, setShowForm] = useState(false);
   const [fleet, setFleet] = useState<FleetFilterValue>(emptyFleetFilters);
   const [category, setCategory] = useState<string>("");
+  const [view, setView] = useState<"compliance" | "list">("compliance");
 
   const { data, isLoading } = useQuery({ queryKey: ["documents"], queryFn: () => fetchAll() });
   const allDocs = data?.docs ?? [];
@@ -61,30 +64,51 @@ function DocumentsPage() {
   });
 
   return (
-    <div className="container max-w-3xl py-6 space-y-5">
+    <div className={cn("container py-6 space-y-5", view === "compliance" ? "max-w-6xl" : "max-w-3xl")}>
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><FolderLock className="size-6 text-primary" /> Document Wallet</h1>
-          <p className="text-sm text-muted-foreground">Track expirations for CDL, medical, registration, insurance</p>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><FolderLock className="size-6 text-primary" /> Driver Documents</h1>
+          <p className="text-sm text-muted-foreground">Per-driver compliance dashboard with expiration alerts</p>
         </div>
         <Button onClick={() => { setEditing(null); setShowForm(true); }}><Plus className="size-4 mr-2" /> Add doc</Button>
       </div>
 
-      <div className="flex flex-wrap items-end gap-2">
-        <FleetFilters value={fleet} onChange={setFleet} showTruck={false} showDates={false} />
-        <div>
-          <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Category</Label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="block h-9 rounded-md border border-input bg-background px-2 text-sm min-w-[140px]"
-          >
-            {DOC_CATEGORIES.map((c) => <option key={c} value={c}>{c || "All categories"}</option>)}
-          </select>
-        </div>
+      <div className="inline-flex rounded-lg border border-border bg-card p-1">
+        <button
+          onClick={() => setView("compliance")}
+          className={cn("inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+            view === "compliance" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+        >
+          <LayoutGrid className="size-3.5" /> Compliance
+        </button>
+        <button
+          onClick={() => setView("list")}
+          className={cn("inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+            view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+        >
+          <List className="size-3.5" /> All documents
+        </button>
       </div>
 
-      {(buckets.expired.length > 0 || buckets.soon.length > 0) && (
+      {view === "compliance" && !showForm && <ComplianceDashboard />}
+
+      {view === "list" && (
+        <div className="flex flex-wrap items-end gap-2">
+          <FleetFilters value={fleet} onChange={setFleet} showTruck={false} showDates={false} />
+          <div>
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Category</Label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="block h-9 rounded-md border border-input bg-background px-2 text-sm min-w-[140px]"
+            >
+              {DOC_CATEGORIES.map((c) => <option key={c} value={c}>{c || "All categories"}</option>)}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {view === "list" && (buckets.expired.length > 0 || buckets.soon.length > 0) && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive flex items-start gap-2">
           <AlertTriangle className="size-4 mt-0.5" />
           <div>
@@ -110,54 +134,56 @@ function DocumentsPage() {
         />
       )}
 
-      {isLoading ? (
-        <div className="flex justify-center py-12"><Loader2 className="size-6 animate-spin text-muted-foreground" /></div>
-      ) : docs.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No documents saved yet.</div>
-      ) : (
-        <div className="space-y-2">
-          {[...buckets.expired, ...buckets.soon, ...buckets.ok].map((d) => {
-            const n = daysUntil(d.expires_on);
-            const tone = n === null ? "muted" : n < 0 ? "destructive" : n <= 30 ? "amber" : "ok";
-            return (
-              <div key={d.id} className={cn(
-                "rounded-lg border bg-card p-3 flex items-start gap-3",
-                tone === "destructive" && "border-destructive/40",
-                tone === "amber" && "border-amber-500/40",
-                tone === "ok" && "border-border",
-                tone === "muted" && "border-border",
-              )}>
-                <FileText className="size-5 mt-0.5 text-muted-foreground shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm">{d.title}</span>
-                    <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{d.doc_type}</span>
+      {view === "list" && (
+        isLoading ? (
+          <div className="flex justify-center py-12"><Loader2 className="size-6 animate-spin text-muted-foreground" /></div>
+        ) : docs.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No documents saved yet.</div>
+        ) : (
+          <div className="space-y-2">
+            {[...buckets.expired, ...buckets.soon, ...buckets.ok].map((d) => {
+              const n = daysUntil(d.expires_on);
+              const tone = n === null ? "muted" : n < 0 ? "destructive" : n <= 30 ? "amber" : "ok";
+              return (
+                <div key={d.id} className={cn(
+                  "rounded-lg border bg-card p-3 flex items-start gap-3",
+                  tone === "destructive" && "border-destructive/40",
+                  tone === "amber" && "border-amber-500/40",
+                  tone === "ok" && "border-border",
+                  tone === "muted" && "border-border",
+                )}>
+                  <FileText className="size-5 mt-0.5 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-sm">{d.title}</span>
+                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{d.doc_type}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5 flex gap-2 flex-wrap">
+                      {d.issuer && <span>{d.issuer}</span>}
+                      {d.doc_number && <span>· #{d.doc_number}</span>}
+                      {d.expires_on && (
+                        <span className={cn(
+                          "font-medium",
+                          n != null && n < 0 && "text-destructive",
+                          n != null && n >= 0 && n <= 30 && "text-amber-600 dark:text-amber-400",
+                        )}>
+                          {n == null ? null : n < 0 ? `Expired ${-n}d ago` : n === 0 ? "Expires today" : `Expires in ${n}d (${d.expires_on})`}
+                        </span>
+                      )}
+                      {!d.expires_on && <span className="flex items-center gap-1"><CheckCircle2 className="size-3" /> No expiry</span>}
+                    </div>
+                    {d.file_url && <a href={d.file_url} target="_blank" rel="noreferrer" className="text-xs text-primary inline-flex items-center gap-1 mt-1"><ExternalLink className="size-3" /> Open file</a>}
+                    {d.notes && <div className="text-xs text-muted-foreground italic mt-1">"{d.notes}"</div>}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-0.5 flex gap-2 flex-wrap">
-                    {d.issuer && <span>{d.issuer}</span>}
-                    {d.doc_number && <span>· #{d.doc_number}</span>}
-                    {d.expires_on && (
-                      <span className={cn(
-                        "font-medium",
-                        n != null && n < 0 && "text-destructive",
-                        n != null && n >= 0 && n <= 30 && "text-amber-600 dark:text-amber-400",
-                      )}>
-                        {n == null ? null : n < 0 ? `Expired ${-n}d ago` : n === 0 ? "Expires today" : `Expires in ${n}d (${d.expires_on})`}
-                      </span>
-                    )}
-                    {!d.expires_on && <span className="flex items-center gap-1"><CheckCircle2 className="size-3" /> No expiry</span>}
+                  <div className="flex gap-1 shrink-0">
+                    <Button variant="ghost" size="sm" onClick={() => { setEditing(d); setShowForm(true); }}>Edit</Button>
+                    <Button variant="ghost" size="icon" onClick={() => { if (confirm("Delete?")) del.mutate(d.id); }}><Trash2 className="size-4 text-muted-foreground" /></Button>
                   </div>
-                  {d.file_url && <a href={d.file_url} target="_blank" rel="noreferrer" className="text-xs text-primary inline-flex items-center gap-1 mt-1"><ExternalLink className="size-3" /> Open file</a>}
-                  {d.notes && <div className="text-xs text-muted-foreground italic mt-1">"{d.notes}"</div>}
                 </div>
-                <div className="flex gap-1 shrink-0">
-                  <Button variant="ghost" size="sm" onClick={() => { setEditing(d); setShowForm(true); }}>Edit</Button>
-                  <Button variant="ghost" size="icon" onClick={() => { if (confirm("Delete?")) del.mutate(d.id); }}><Trash2 className="size-4 text-muted-foreground" /></Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )
       )}
     </div>
   );
@@ -166,9 +192,13 @@ function DocumentsPage() {
 type DocPayload = {
   docType: string; title: string; issuer: string | null; docNumber: string | null;
   issuedOn: string | null; expiresOn: string | null; notes: string | null; fileUrl: string | null;
+  category: string | null; driverId: string | null;
 };
 
+const FORM_CATEGORIES = ["", "CDL", "Medical", "Drug Testing", "Employment", "Training", "Safety"];
+
 function DocForm({ initial, onClose, onSubmit }: { initial: WalletDoc | null; onClose: () => void; onSubmit: (p: DocPayload) => void | Promise<void> }) {
+  const initialAny = initial as unknown as Record<string, unknown> | null;
   const [docType, setDocType] = useState(initial?.doc_type ?? "CDL");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [issuer, setIssuer] = useState(initial?.issuer ?? "");
@@ -177,12 +207,34 @@ function DocForm({ initial, onClose, onSubmit }: { initial: WalletDoc | null; on
   const [expiresOn, setExpiresOn] = useState(initial?.expires_on ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [fileUrl, setFileUrl] = useState(initial?.file_url ?? "");
+  const [category, setCategory] = useState<string>((initialAny?.category as string) ?? "");
+  const [driverId, setDriverId] = useState<string>((initialAny?.driver_id as string) ?? "");
   const [submitting, setSubmitting] = useState(false);
+
+  const fetchFleetOpts = useServerFn(listFleetFilterOptions);
+  const { data: filterOpts } = useQuery({
+    queryKey: ["fleet-filter-options"],
+    queryFn: () => fetchFleetOpts(),
+    staleTime: 60_000,
+  });
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 space-y-3">
       <div className="text-sm font-medium">{initial ? "Edit document" : "New document"}</div>
       <div className="grid sm:grid-cols-2 gap-2">
+        <div>
+          <Label className="text-xs">Driver</Label>
+          <select value={driverId} onChange={(e) => setDriverId(e.target.value)} className="block h-9 w-full rounded-md border border-input bg-background px-2 text-sm">
+            <option value="">Unassigned</option>
+            {(filterOpts?.drivers ?? []).map((d: { id: string; name: string }) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <Label className="text-xs">Category</Label>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className="block h-9 w-full rounded-md border border-input bg-background px-2 text-sm">
+            {FORM_CATEGORIES.map((c) => <option key={c} value={c}>{c || "Uncategorized"}</option>)}
+          </select>
+        </div>
         <div>
           <Label className="text-xs">Type</Label>
           <select value={docType} onChange={(e) => setDocType(e.target.value)} className="block h-9 w-full rounded-md border border-input bg-background px-2 text-sm">
@@ -208,6 +260,7 @@ function DocForm({ initial, onClose, onSubmit }: { initial: WalletDoc | null; on
               issuer: issuer || null, docNumber: docNumber || null,
               issuedOn: issuedOn || null, expiresOn: expiresOn || null,
               notes: notes || null, fileUrl: fileUrl || null,
+              category: category || null, driverId: driverId || null,
             });
           } finally { setSubmitting(false); }
         }}>{submitting && <Loader2 className="size-4 mr-2 animate-spin" />}{initial ? "Save" : "Add"}</Button>
