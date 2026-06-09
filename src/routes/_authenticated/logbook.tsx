@@ -42,6 +42,7 @@ function LogbookPage() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<DutyLog | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [fleet, setFleet] = useState<FleetFilterValue>(emptyFleetFilters);
 
   // pull a wider window to catch entries crossing midnight
   const winFrom = new Date(dayStart.getTime() - 86_400_000).toISOString();
@@ -50,7 +51,13 @@ function LogbookPage() {
     queryKey: ["duty", fmtDate(date)],
     queryFn: () => fetchAll({ data: { fromIso: winFrom, toIso: winTo } }),
   });
-  const logs = data?.logs ?? [];
+  const allLogs = data?.logs ?? [];
+  const logs = useMemo(() => allLogs.filter((l) => {
+    const r = l as unknown as Record<string, unknown>;
+    if (fleet.truck && l.vehicle_unit !== fleet.truck) return false;
+    if (fleet.driverId && r.user_id !== fleet.driverId) return false;
+    return true;
+  }), [allLogs, fleet]);
 
   // Build segments clipped to today
   const segments = useMemo(() => {
