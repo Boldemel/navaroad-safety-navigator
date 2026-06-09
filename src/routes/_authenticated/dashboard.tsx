@@ -451,8 +451,29 @@ function Dashboard() {
     : activeRouteForQueries
       ? `${activeRouteForQueries.origin} → ${activeRouteForQueries.destination}`
       : "No active route";
-  const feed = result ? { weatherAlerts: result.weatherAlerts, roadAlerts: result.roadAlerts, providers: result.providers } : undefined;
-  const feedLoading = analysis.isPending;
+  // Live safety feed — refetches NWS weather + DOT road alerts every 5 minutes
+  // against the active route geometry, so the dashboard reflects newly-issued
+  // alerts without forcing the driver to click Analyze again. We prefer this
+  // feed's alerts over the (potentially stale) `result.weatherAlerts` baked
+  // in at analyze time.
+  const liveFeedFn = useServerFn(getSafetyFeed);
+  const liveFeedQuery = useQuery({
+    queryKey: ["dashboard-safety-feed", result?.routeId ?? "none"],
+    queryFn: () => liveFeedFn({ data: { geometry: result?.geometry ?? [] } }),
+    enabled: !!result && (result.geometry?.length ?? 0) >= 2,
+    refetchInterval: 5 * 60_000,
+    refetchOnWindowFocus: true,
+    staleTime: 60_000,
+  });
+  const live = liveFeedQuery.data;
+  const feed = result
+    ? {
+        weatherAlerts: live?.weatherAlerts ?? result.weatherAlerts,
+        roadAlerts: live?.roadAlerts ?? result.roadAlerts,
+        providers: result.providers,
+      }
+    : undefined;
+  const feedLoading = analysis.isPending || (!!result && liveFeedQuery.isLoading && !live);
   const parkingStops = result?.restAreas;
   const truckStops = result?.truckStops;
   const weighStations = result?.weighStations;
