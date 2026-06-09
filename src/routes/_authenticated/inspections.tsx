@@ -81,6 +81,8 @@ function InspectionsPage() {
           </div>
         )}
 
+        <FleetFilters value={fleet} onChange={setFleet} />
+
         {/* Filter tabs */}
         <div className="flex gap-1 border-b border-border overflow-x-auto">
           {([
