@@ -16,6 +16,7 @@ const LOGBOOK_TABS = [
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
 
 export const Route = createFileRoute("/_authenticated/logbook")({ component: LogbookPage });
 
