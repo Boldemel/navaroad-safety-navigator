@@ -154,6 +154,17 @@ export function NavigationBanner() {
     ? minsLeft < 60 ? `${minsLeft} min` : `${Math.floor(minsLeft / 60)}h ${minsLeft % 60}m`
     : "—";
 
+  // Proximity flash: highest-severity alert within 1 mile
+  const flashAlert = useMemo(() => {
+    const nearby = proximityAlerts.filter((a) => a.distanceMi <= 1 && (a.severity === "high" || a.severity === "critical"));
+    if (nearby.length === 0) return null;
+    nearby.sort((a, b) => {
+      const rank = { critical: 4, high: 3, medium: 2, low: 1 } as const;
+      return (rank[b.severity] ?? 0) - (rank[a.severity] ?? 0);
+    });
+    return nearby[0];
+  }, [proximityAlerts]);
+
   return (
     <div className="sticky top-0 z-40 shadow-lg">
       {/* GARMIN-STYLE GREEN TURN BANNER */}
