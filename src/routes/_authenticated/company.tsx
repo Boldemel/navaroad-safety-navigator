@@ -521,6 +521,9 @@ function MemberRow({ member, canManage, companyId }: { member: CompanyMember; ca
             </Dialog>
           )}
           {canManage && !member.isOwner && (
+            <EldCredentialsButton companyId={companyId} targetUserId={member.userId} displayName={displayName} />
+          )}
+          {canManage && !member.isOwner && (
             <Button
               size="sm"
               variant={member.active ? "outline" : "default"}
