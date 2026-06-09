@@ -19,6 +19,9 @@ export type Load = {
   rate_usd: number | null;
   notes: string | null;
   is_current: boolean;
+  loaded_miles: number | null;
+  empty_miles: number | null;
+  total_miles: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -37,6 +40,9 @@ const LoadSchema = z.object({
   rateUsd: z.number().min(0).max(1_000_000).nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
   isCurrent: z.boolean().default(false),
+  loadedMiles: z.number().min(0).max(50_000).nullable().optional(),
+  emptyMiles: z.number().min(0).max(50_000).nullable().optional(),
+  totalMiles: z.number().min(0).max(50_000).nullable().optional(),
 });
 
 function rowFromInput(d: z.infer<typeof LoadSchema>) {
@@ -54,6 +60,9 @@ function rowFromInput(d: z.infer<typeof LoadSchema>) {
     rate_usd: d.rateUsd ?? null,
     notes: d.notes ?? null,
     is_current: d.isCurrent,
+    loaded_miles: d.loadedMiles ?? null,
+    empty_miles: d.emptyMiles ?? null,
+    total_miles: d.totalMiles ?? null,
   };
 }
 
