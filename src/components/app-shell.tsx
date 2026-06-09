@@ -53,6 +53,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const isAdmin = useIsAdmin();
+  const { isSuperAdmin } = useIsSuperAdmin();
   const { allowed } = useAllowedModules();
   const visibleNav = allowed ? nav.filter((n) => allowed.has(n.to)) : nav;
   const visibleMobileNav = allowed ? mobileNav.filter((n) => allowed.has(n.to)) : mobileNav;
@@ -102,6 +103,29 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="pt-3 mt-3 border-t border-sidebar-border space-y-1">
               <div className="px-3 pb-1 text-[10px] uppercase tracking-wider text-sidebar-foreground/50">Admin</div>
               {adminNav.map((n) => {
+                const active = pathname === n.to || pathname.startsWith(n.to + "/");
+                return (
+                  <Link
+                    key={n.to}
+                    to={n.to}
+                    className={cn(
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      active
+                        ? "bg-primary/15 text-primary"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                    )}
+                  >
+                    <n.icon className="size-4" />
+                    {n.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+          {isSuperAdmin && (
+            <div className="pt-3 mt-3 border-t border-sidebar-border space-y-1">
+              <div className="px-3 pb-1 text-[10px] uppercase tracking-wider text-sidebar-foreground/50">Platform</div>
+              {superAdminNav.map((n) => {
                 const active = pathname === n.to || pathname.startsWith(n.to + "/");
                 return (
                   <Link
