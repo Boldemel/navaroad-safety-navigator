@@ -25,6 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { analyzeRoute, type RouteAnalysis } from "@/lib/route-analysis.functions";
+import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { useActiveRoute, saveActiveRoute, clearActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { reverseGeocode } from "@/lib/geo.functions";
