@@ -8,6 +8,7 @@ import { NavigationBanner } from "@/components/navigation-banner";
 import { ProximityAlertStack } from "@/components/proximity-alert-stack";
 import { OfflineBanner } from "@/components/offline-banner";
 import { NotificationBell } from "@/components/notification-bell";
+import { SubscriptionBanner } from "@/components/subscription-banner";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useIsSuperAdmin } from "@/hooks/use-is-super-admin";
 import { useAllowedModules } from "@/hooks/use-allowed-modules";
@@ -175,6 +176,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
 
         <OfflineBanner />
+        <SubscriptionBanner />
         <NavigationBanner />
         <ProximityAlertStack />
         <main className="flex-1 overflow-x-hidden">{children}</main>
