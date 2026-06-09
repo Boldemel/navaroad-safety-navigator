@@ -856,14 +856,17 @@ export type Database = {
           consignee_name: string | null
           created_at: string
           delivery_at: string | null
+          empty_miles: number | null
           id: string
           is_current: boolean
+          loaded_miles: number | null
           notes: string | null
           pickup_at: string | null
           rate_usd: number | null
           shipper_address: string | null
           shipper_name: string | null
           status: string
+          total_miles: number | null
           updated_at: string
           user_id: string
           weight_lbs: number | null
@@ -876,14 +879,17 @@ export type Database = {
           consignee_name?: string | null
           created_at?: string
           delivery_at?: string | null
+          empty_miles?: number | null
           id?: string
           is_current?: boolean
+          loaded_miles?: number | null
           notes?: string | null
           pickup_at?: string | null
           rate_usd?: number | null
           shipper_address?: string | null
           shipper_name?: string | null
           status?: string
+          total_miles?: number | null
           updated_at?: string
           user_id: string
           weight_lbs?: number | null
@@ -896,14 +902,17 @@ export type Database = {
           consignee_name?: string | null
           created_at?: string
           delivery_at?: string | null
+          empty_miles?: number | null
           id?: string
           is_current?: boolean
+          loaded_miles?: number | null
           notes?: string | null
           pickup_at?: string | null
           rate_usd?: number | null
           shipper_address?: string | null
           shipper_name?: string | null
           status?: string
+          total_miles?: number | null
           updated_at?: string
           user_id?: string
           weight_lbs?: number | null
