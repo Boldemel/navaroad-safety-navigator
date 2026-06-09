@@ -740,17 +740,22 @@ function Dashboard() {
                 <div className="text-xs font-medium text-muted-foreground inline-flex items-center gap-1.5">
                   <Cloud className="size-3.5" />
                   Active weather alerts on this route
-                  {result.weatherAlerts.length > 0 && (
-                    <span>({result.weatherAlerts.length} total, grouped by type & region)</span>
+                  {feedWeatherAlerts.length > 0 && (
+                    <span>({feedWeatherAlerts.length} total, grouped by type & region)</span>
+                  )}
+                  {liveFeedQuery.isFetching && (
+                    <span className="text-[10px] text-muted-foreground/70 inline-flex items-center gap-1">
+                      <Loader2 className="size-3 animate-spin" /> refreshing
+                    </span>
                   )}
                 </div>
-                {result.weatherAlerts.length === 0 ? (
+                {feedWeatherAlerts.length === 0 ? (
                   <div className="rounded-md border border-border bg-background p-3 text-sm text-success inline-flex items-center gap-2">
                     <ShieldAlert className="size-4" />
                     No active NWS weather alerts on this route corridor.
                   </div>
                 ) : (
-                  groupAlerts(result.weatherAlerts).map((g) => (
+                  groupAlerts(feedWeatherAlerts).map((g) => (
                     <div key={g.key} className="rounded-md border border-border bg-background p-3 text-sm">
                       <div className="flex items-start gap-2">
                         <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(g.severity)}`}>{g.severity}</span>
@@ -767,6 +772,11 @@ function Dashboard() {
                       </div>
                     </div>
                   ))
+                )}
+                {live?.generatedAt && (
+                  <div className="text-[10px] text-muted-foreground/70">
+                    Updated {new Date(live.generatedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · auto-refreshes every 5 min
+                  </div>
                 )}
               </div>
               {result.risks.length > 0 ? (
