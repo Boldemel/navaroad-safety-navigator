@@ -292,15 +292,21 @@ export const analyzeRoute = createServerFn({ method: "POST" })
       }),
     );
 
-    // Per-point NWS alerts — sample densely along the route corridor so we
-    // catch alerts between origin/midpoint/destination. Only alerts whose
-    // polygon covers a route sample are returned.
-    const alertSamples = sampleRoute(r.geometry, 20);
-    const perPointAlerts = await Promise.all(
-      alertSamples.map((s) => fetchAlertsForPoint(s.lat, s.lon).catch(() => [] as WeatherAlert[])),
-    );
+    // Per-point NWS alerts — sample along the route corridor so we catch
+    // alerts between origin/midpoint/destination. Only alerts whose polygon
+    // covers a route sample are returned. We keep the sample count modest
+    // and run requests in small sequential batches so NWS does not throttle
+    // (which previously caused alerts to silently drop to zero).
+    const alertSamples = sampleRoute(r.geometry, 8);
     const dedup = new Map<string, WeatherAlert>();
-    for (const list of perPointAlerts) for (const a of list) dedup.set(a.id, a);
+    const batchSize = 3;
+    for (let i = 0; i < alertSamples.length; i += batchSize) {
+      const batch = alertSamples.slice(i, i + batchSize);
+      const lists = await Promise.all(
+        batch.map((s) => fetchAlertsForPoint(s.lat, s.lon).catch(() => [] as WeatherAlert[])),
+      );
+      for (const list of lists) for (const a of list) dedup.set(a.id, a);
+    }
     const weatherAlerts = Array.from(dedup.values());
 
     // Compute route bbox so the DOT provider only returns incidents on/near the path.
