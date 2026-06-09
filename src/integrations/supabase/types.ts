@@ -238,6 +238,53 @@ export type Database = {
           },
         ]
       }
+      driver_eld_credentials: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by_user_id: string | null
+          eld_password: string | null
+          eld_system: string | null
+          eld_user_id: string | null
+          id: string
+          updated_at: string
+          user_id: string
+          visible_to_driver: boolean
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by_user_id?: string | null
+          eld_password?: string | null
+          eld_system?: string | null
+          eld_user_id?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+          visible_to_driver?: boolean
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          eld_password?: string | null
+          eld_system?: string | null
+          eld_user_id?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+          visible_to_driver?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_eld_credentials_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       duty_status_logs: {
         Row: {
           company_id: string
@@ -1090,7 +1137,9 @@ export type Database = {
           assigned_truck: string | null
           created_at: string
           created_by_user_id: string | null
+          driver_id_number: string | null
           driver_name: string | null
+          eld_system: string | null
           employee_id: string | null
           first_name: string | null
           id: string
@@ -1126,6 +1175,7 @@ export type Database = {
           truck_weight_lbs: number | null
           truck_year: number | null
           updated_at: string
+          username: string | null
         }
         Insert: {
           active?: boolean
@@ -1133,7 +1183,9 @@ export type Database = {
           assigned_truck?: string | null
           created_at?: string
           created_by_user_id?: string | null
+          driver_id_number?: string | null
           driver_name?: string | null
+          eld_system?: string | null
           employee_id?: string | null
           first_name?: string | null
           id: string
@@ -1169,6 +1221,7 @@ export type Database = {
           truck_weight_lbs?: number | null
           truck_year?: number | null
           updated_at?: string
+          username?: string | null
         }
         Update: {
           active?: boolean
@@ -1176,7 +1229,9 @@ export type Database = {
           assigned_truck?: string | null
           created_at?: string
           created_by_user_id?: string | null
+          driver_id_number?: string | null
           driver_name?: string | null
+          eld_system?: string | null
           employee_id?: string | null
           first_name?: string | null
           id?: string
@@ -1212,6 +1267,7 @@ export type Database = {
           truck_weight_lbs?: number | null
           truck_year?: number | null
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }

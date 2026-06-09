@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
+import { usernameToSyntheticEmail } from "@/lib/company.shared";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { Truck } from "lucide-react";
@@ -40,11 +41,14 @@ function AuthPage() {
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    // Allow login by email OR company-assigned username.
+    const id = email.trim();
+    const loginEmail = id.includes("@") ? id : usernameToSyntheticEmail(id);
+    const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
     setLoading(false);
     if (error) {
       if (/confirm/i.test(error.message)) {
-        setPendingConfirmEmail(email);
+        setPendingConfirmEmail(loginEmail);
       }
       return toast.error(error.message);
     }
@@ -204,8 +208,17 @@ function AuthPage() {
               <TabsContent value="signin" className="mt-6">
                 <form onSubmit={signIn} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="s-email">Email</Label>
-                    <Input id="s-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <Label htmlFor="s-email">Email or username</Label>
+                    <Input
+                      id="s-email"
+                      type="text"
+                      autoCapitalize="none"
+                      autoComplete="username"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@company.com or driver username"
+                    />
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import {
   KeyRound,
   Power,
   History,
+  Radio,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,10 +37,11 @@ import {
 } from "@/lib/company.functions";
 import {
   createCompanyUser, resetUserPassword, setUserActive, listTeamAuditLogs,
+  getEldCredentials, setEldCredentials,
 } from "@/lib/team.functions";
 import {
-  ROLES, PERMISSIONS,
-  type CompanyRole, type AppPermission, type CompanyMember,
+  ROLES, PERMISSIONS, ELD_SYSTEMS,
+  type CompanyRole, type AppPermission, type CompanyMember, type EldSystem,
 } from "@/lib/company.shared";
 
 export const Route = createFileRoute("/_authenticated/company")({
@@ -173,27 +175,56 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
     firstName: "",
     lastName: "",
     email: "",
+    username: "",
     tempPassword: genTempPassword(),
     phone: "",
     employeeId: "",
+    driverIdNumber: "",
     assignedTruck: "",
     assignedTrailer: "",
     active: true,
     roles: ["driver"] as CompanyRole[],
+    eldSystem: "" as "" | EldSystem,
+    eldUserId: "",
+    eldPassword: "",
+    eldVisibleToDriver: false,
   });
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
 
   const createMut = useMutation({
-    mutationFn: () => createFn({ data: { companyId, ...form } }),
+    mutationFn: () =>
+      createFn({
+        data: {
+          companyId,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email || undefined,
+          username: form.username || undefined,
+          tempPassword: form.tempPassword,
+          phone: form.phone,
+          employeeId: form.employeeId,
+          driverIdNumber: form.driverIdNumber,
+          assignedTruck: form.assignedTruck,
+          assignedTrailer: form.assignedTrailer,
+          active: form.active,
+          roles: form.roles,
+          eldSystem: form.eldSystem || undefined,
+          eldUserId: form.eldUserId,
+          eldPassword: form.eldPassword,
+          eldVisibleToDriver: form.eldVisibleToDriver,
+        },
+      }),
     onSuccess: () => {
-      toast.success("User created. Share the temporary password with them.");
+      toast.success("User created. Share the credentials with them.");
       onCreated();
       setOpen(false);
       setForm({
-        firstName: "", lastName: "", email: "",
+        firstName: "", lastName: "", email: "", username: "",
         tempPassword: genTempPassword(),
-        phone: "", employeeId: "", assignedTruck: "", assignedTrailer: "",
+        phone: "", employeeId: "", driverIdNumber: "",
+        assignedTruck: "", assignedTrailer: "",
         active: true, roles: ["driver"],
+        eldSystem: "", eldUserId: "", eldPassword: "", eldVisibleToDriver: false,
       });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to create user"),
@@ -211,8 +242,7 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
             <DialogHeader>
               <DialogTitle>Create user</DialogTitle>
               <DialogDescription>
-                You create the credentials directly — no email invitation is sent.
-                The user will be required to change this password on first login.
+                You assign the credentials directly — no email invitation is sent and the user is not required to change their password.
               </DialogDescription>
             </DialogHeader>
             <div className="grid sm:grid-cols-2 gap-3">
@@ -224,12 +254,22 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
                 <Label>Last name</Label>
                 <Input value={form.lastName} onChange={(e) => set({ lastName: e.target.value })} />
               </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label>Email (login ID)</Label>
-                <Input type="email" value={form.email} onChange={(e) => set({ email: e.target.value })} />
+              <div className="space-y-1.5">
+                <Label>Username</Label>
+                <Input
+                  value={form.username}
+                  autoCapitalize="none"
+                  onChange={(e) => set({ username: e.target.value.replace(/\s+/g, "") })}
+                  placeholder="jsmith"
+                />
+                <p className="text-[11px] text-muted-foreground">Letters, numbers, . _ -</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Email (optional)</Label>
+                <Input type="email" value={form.email} onChange={(e) => set({ email: e.target.value })} placeholder="optional" />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
-                <Label>Temporary password</Label>
+                <Label>Password</Label>
                 <div className="flex gap-2">
                   <Input value={form.tempPassword} onChange={(e) => set({ tempPassword: e.target.value })} />
                   <Button type="button" variant="outline" onClick={() => set({ tempPassword: genTempPassword() })}>
@@ -237,7 +277,7 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
                   </Button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Share with the user via your own channel. They'll be forced to change it on first login.
+                  Share with the user via your own channel. They can keep using it; no forced change.
                 </p>
               </div>
               <div className="space-y-1.5">
@@ -245,8 +285,12 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
                 <Input value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Label>Driver / Employee ID</Label>
+                <Label>Employee ID</Label>
                 <Input value={form.employeeId} onChange={(e) => set({ employeeId: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Driver ID</Label>
+                <Input value={form.driverIdNumber} onChange={(e) => set({ driverIdNumber: e.target.value })} placeholder="CDL / internal driver #" />
               </div>
               <div className="space-y-1.5">
                 <Label>Assigned truck</Label>
@@ -272,6 +316,55 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
                   ))}
                 </div>
               </div>
+
+              <div className="sm:col-span-2 rounded-md border border-border p-3 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Radio className="size-4" /> ELD credentials (optional)
+                </div>
+                <p className="text-[11px] text-muted-foreground -mt-2">
+                  Stored securely. Only company admins/managers can view or reset these.
+                  Drivers see them only if you mark them visible.
+                </p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>ELD system</Label>
+                    <Select
+                      value={form.eldSystem || "_none"}
+                      onValueChange={(v) => set({ eldSystem: v === "_none" ? "" : (v as EldSystem) })}
+                    >
+                      <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">None</SelectItem>
+                        {ELD_SYSTEMS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>ELD User ID</Label>
+                    <Input value={form.eldUserId} onChange={(e) => set({ eldUserId: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label>ELD Password</Label>
+                    <Input
+                      type="password"
+                      value={form.eldPassword}
+                      onChange={(e) => set({ eldPassword: e.target.value })}
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between sm:col-span-2 rounded-md border border-border/60 p-2">
+                    <div className="text-xs">
+                      <div className="font-medium">Show to driver</div>
+                      <div className="text-muted-foreground">Let this driver view their ELD login.</div>
+                    </div>
+                    <Switch
+                      checked={form.eldVisibleToDriver}
+                      onCheckedChange={(v) => set({ eldVisibleToDriver: v })}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between sm:col-span-2 rounded-md border border-border p-3">
                 <div>
                   <div className="text-sm font-medium">Active</div>
@@ -286,7 +379,8 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
                 onClick={() => createMut.mutate()}
                 disabled={
                   createMut.isPending ||
-                  !form.firstName || !form.lastName || !form.email ||
+                  !form.firstName || !form.lastName ||
+                  (!form.email && !form.username) ||
                   form.tempPassword.length < 8 || form.roles.length === 0
                 }
               >
@@ -365,12 +459,18 @@ function MemberRow({ member, canManage, companyId }: { member: CompanyMember; ca
             {member.isOwner && <Badge variant="outline" className="ml-2">Owner</Badge>}
             {!member.active && <Badge variant="destructive" className="ml-2">Inactive</Badge>}
             {member.mustChangePassword && <Badge variant="outline" className="ml-2">Pwd reset pending</Badge>}
+            {member.eldSystem && <Badge variant="outline" className="ml-2"><Radio className="size-3 mr-1" />{member.eldSystem}</Badge>}
           </div>
-          <div className="text-[11px] text-muted-foreground truncate">{member.email || member.userId}</div>
-          {(member.employeeId || member.assignedTruck || member.assignedTrailer || member.phone) && (
+          <div className="text-[11px] text-muted-foreground truncate">
+            {member.username ? `@${member.username}` : null}
+            {member.username && member.email ? " · " : null}
+            {member.email || (member.username ? null : member.userId)}
+          </div>
+          {(member.employeeId || member.driverIdNumber || member.assignedTruck || member.assignedTrailer || member.phone) && (
             <div className="text-[11px] text-muted-foreground truncate">
               {[
-                member.employeeId && `ID ${member.employeeId}`,
+                member.driverIdNumber && `Driver ${member.driverIdNumber}`,
+                member.employeeId && `Emp ${member.employeeId}`,
                 member.assignedTruck && `Truck ${member.assignedTruck}`,
                 member.assignedTrailer && `Trailer ${member.assignedTrailer}`,
                 member.phone,
@@ -419,6 +519,9 @@ function MemberRow({ member, canManage, companyId }: { member: CompanyMember; ca
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+          )}
+          {canManage && !member.isOwner && (
+            <EldCredentialsButton companyId={companyId} targetUserId={member.userId} displayName={displayName} />
           )}
           {canManage && !member.isOwner && (
             <Button
@@ -545,3 +648,135 @@ function AuditCard({ companyId }: { companyId: string }) {
     </Card>
   );
 }
+
+function EldCredentialsButton({
+  companyId,
+  targetUserId,
+  displayName,
+}: {
+  companyId: string;
+  targetUserId: string;
+  displayName: string;
+}) {
+  const qc = useQueryClient();
+  const getFn = useServerFn(getEldCredentials);
+  const saveFn = useServerFn(setEldCredentials);
+  const [open, setOpen] = useState(false);
+  const [show, setShow] = useState(false);
+  const [form, setForm] = useState({
+    eldSystem: "" as "" | EldSystem,
+    eldUserId: "",
+    eldPassword: "",
+    visibleToDriver: false,
+  });
+
+  const q = useQuery({
+    queryKey: ["eld-creds", companyId, targetUserId],
+    queryFn: () => getFn({ data: { companyId, targetUserId } }),
+    enabled: open,
+  });
+
+  // Hydrate form when dialog opens / data loads
+  const data = q.data;
+  useEffect(() => {
+    if (open && data) {
+      setForm({
+        eldSystem: (data.eld_system as EldSystem) || "",
+        eldUserId: data.eld_user_id ?? "",
+        eldPassword: data.eld_password ?? "",
+        visibleToDriver: !!data.visible_to_driver,
+      });
+    }
+  }, [open, data]);
+
+  const saveMut = useMutation({
+    mutationFn: () =>
+      saveFn({
+        data: {
+          companyId,
+          targetUserId,
+          eldSystem: form.eldSystem || undefined,
+          eldUserId: form.eldUserId,
+          eldPassword: form.eldPassword,
+          visibleToDriver: form.visibleToDriver,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("ELD credentials saved.");
+      qc.invalidateQueries({ queryKey: ["eld-creds", companyId, targetUserId] });
+      qc.invalidateQueries({ queryKey: ["company-members", companyId] });
+      setOpen(false);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to save"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" title="ELD credentials"><Radio className="size-4" /></Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>ELD credentials</DialogTitle>
+          <DialogDescription>
+            Stored securely. Only managers see these. {displayName} can view them only if "Show to driver" is on.
+          </DialogDescription>
+        </DialogHeader>
+        {q.isLoading ? (
+          <div className="text-sm text-muted-foreground">Loading…</div>
+        ) : (
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>ELD system</Label>
+              <Select
+                value={form.eldSystem || "_none"}
+                onValueChange={(v) => setForm((f) => ({ ...f, eldSystem: v === "_none" ? "" : (v as EldSystem) }))}
+              >
+                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">None</SelectItem>
+                  {ELD_SYSTEMS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>ELD User ID</Label>
+              <Input value={form.eldUserId} onChange={(e) => setForm((f) => ({ ...f, eldUserId: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>ELD Password</Label>
+              <div className="flex gap-2">
+                <Input
+                  type={show ? "text" : "password"}
+                  value={form.eldPassword}
+                  onChange={(e) => setForm((f) => ({ ...f, eldPassword: e.target.value }))}
+                  autoComplete="new-password"
+                />
+                <Button type="button" variant="outline" onClick={() => setShow((v) => !v)}>
+                  {show ? "Hide" : "Show"}
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between rounded-md border border-border p-3">
+              <div className="text-xs">
+                <div className="font-medium">Show to driver</div>
+                <div className="text-muted-foreground">Let this driver view their ELD login.</div>
+              </div>
+              <Switch
+                checked={form.visibleToDriver}
+                onCheckedChange={(v) => setForm((f) => ({ ...f, visibleToDriver: v }))}
+              />
+            </div>
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+            {saveMut.isPending ? "Saving…" : "Save"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
