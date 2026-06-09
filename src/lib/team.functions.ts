@@ -87,7 +87,7 @@ export const createCompanyUser = createServerFn({ method: "POST" })
       assigned_truck: data.assignedTruck || null,
       assigned_trailer: data.assignedTrailer || null,
       active: data.active,
-      must_change_password: true,
+      must_change_password: false,
       created_by_user_id: userId,
     });
 
