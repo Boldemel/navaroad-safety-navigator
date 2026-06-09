@@ -24,7 +24,7 @@ const nav = [
   { to: "/expenses", label: "Expenses & Earnings", icon: Receipt },
   { to: "/ifta", label: "IFTA Mileage", icon: MapPinned },
   { to: "/logbook", label: "Logbook & HOS", icon: ClipboardList },
-  { to: "/fleet-profitability", label: "Fleet Profitability", icon: TrendingUp },
+  { to: "/fleet-profitability", label: "Profitability Analysis", icon: TrendingUp },
   { to: "/assistant", label: "Fleet AI Assistant", icon: Sparkles },
   
   { to: "/company", label: "Company & Team", icon: Building2 },
