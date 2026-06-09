@@ -1,41 +1,24 @@
+## Verification plan
 
-## Add "Fleet Profitability" page
+I'll use the preview browser (with your existing session) to confirm each item end-to-end. No code changes unless something fails.
 
-### 1. Sidebar
-- Insert `{ to: "/fleet-profitability", label: "Fleet Profitability", icon: TrendingUp }` in `src/components/app-shell.tsx` `nav[]`, after `Logbook & HOS`.
-- Update `src/hooks/use-allowed-modules.ts`: add `/fleet-profitability` to the `fleet_owner` / `accountant` / `dispatcher` module lists (super_admin already bypasses). Keep hidden from `driver`.
+### Checks
+1. **Sidebar — Fleet Profitability link**
+   - Open `/dashboard`, expand sidebar, confirm "Fleet Profitability" appears between "Logbook & HOS" and "Fleet AI Assistant", and the link routes to `/fleet-profitability`.
 
-### 2. Route
-- New `src/routes/_authenticated/fleet-profitability.tsx`.
-- Page-level controls: date-range selector (defaults to current month; presets: This month, Last month, YTD, Custom) + truck filter.
-- Tabs: Overview · By Truck · By Load · By Driver · AI Insights.
+2. **Sample Company data flows into profitability**
+   - On `/fleet-profitability`, switch range to "YTD" (sample data may predate this month).
+   - Confirm KPI cards render numbers (Revenue / Fuel / Maintenance / Driver pay / Other / Net) and at least one of By Truck / By Load / By Driver tabs lists rows tied to the Sample Company.
 
-### 3. Server function
-- New `src/lib/fleet-profitability.functions.ts`:
-  - `getFleetProfitability({ from, to })` — `requireSupabaseAuth`; resolves the caller's `company_id` via `get_user_company`, then runs five RLS-scoped reads in parallel:
-    - `settlements` (delivered) → revenue, miles, by-driver, by-load, by-truck
-    - `fuel_purchases` → fuel cost (by truck/driver/load)
-    - `maintenance_records` → maintenance cost (by truck)
-    - `expenses` excluding Fuel + Maintenance → other expenses
-    - `loads` (delivered, joined for load number / customer)
-  - Aggregates in JS and returns:
-    - `overview`: revenue, fuel, maintenance, driverPay, otherExpenses, netProfit, totalMiles, profitPerMile
-    - `byTruck[]`: truckUnit, revenue, expenses, profit, profitPerMile
-    - `byLoad[]`: loadNumber, customer, revenue, expenses, netProfit, miles, profitPerMile
-    - `byDriver[]`: driverId, driverName, loadsCompleted, revenue, cost, profitContribution
-- Cost allocation rule (documented in code): driver-pay = `sum(settlements.net_settlement_usd)`; expenses are allocated to truck/load/driver only when the source row carries that key, otherwise rolled into "unallocated" but still counted in totals.
+3. **Fleet AI Assistant can access profitability data**
+   - I already inspected `src/lib/ai/fleet-context.server.ts` — the assistant's context builder aggregates loads, fuel, expenses, settlements, maintenance, and trips for the last 90 days (same tables Fleet Profitability uses) and passes them to the model. That is the wiring.
+   - To verify at runtime, open `/assistant` and send a question like *"Which truck is the most profitable in the last 90 days?"* Confirm a non-empty answer that references the data.
 
-### 4. UI
-- Overview tab: 6 KPI cards (Revenue, Fuel Cost, Maintenance Cost, Driver Pay, Other Expenses, Net Profit) using existing `Card` + design tokens; one stacked bar/line chart (revenue vs expenses) using `recharts` if already installed, otherwise simple CSS bars to avoid adding deps.
-- By Truck / By Load / By Driver tabs: sortable tables with the exact columns the user listed. Profit values colored via semantic tokens (`text-primary` for positive, `text-destructive` for negative).
-- AI Insights tab: button "Generate insights" → calls a second server function `generateProfitabilityInsights({ from, to })` that posts the aggregated summary to Lovable AI Gateway (`google/gemini-2.5-flash`) with a strict prompt to return 4–6 short bullet insights. Renders the bullets in a list and caches via React Query.
+4. **Company & Team**
+   - Open `/company`. Confirm the page renders, the current company is selected, members table loads, and (since you're super_admin) the rename/manage controls are visible.
 
-### 5. Verify
-- `/fleet-profitability` renders for the super_admin account on Sample Company with empty-state messages where no data exists yet.
-- Sidebar item appears between Logbook & HOS and Fleet AI Assistant.
-- A driver-only user does not see the link.
+5. **Platform Admin**
+   - Open `/admin/platform`. Confirm the dashboard renders, the Companies tab lists the Sample Company with owner email + member count, and actions (View as / Suspend / Delete) are present.
 
-### Technical notes
-- All reads go through the user-scoped Supabase client; RLS already scopes rows to the user's company, so no `supabaseAdmin` needed.
-- Recharts is already in the project if other dashboards use it — check before adding; otherwise plain divs are fine and skip the dep.
-- No DB migration required — every needed column already exists on `settlements`, `loads`, `fuel_purchases`, `maintenance_records`, `expenses`, `trip_logs`.
+### If something fails
+I'll stop, report the exact failure (screenshot + console/network), then ask for approval before changing code.
