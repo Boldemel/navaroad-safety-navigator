@@ -226,7 +226,7 @@ function DocForm({ initial, onClose, onSubmit }: { initial: WalletDoc | null; on
           <Label className="text-xs">Driver</Label>
           <select value={driverId} onChange={(e) => setDriverId(e.target.value)} className="block h-9 w-full rounded-md border border-input bg-background px-2 text-sm">
             <option value="">Unassigned</option>
-            {(filterOpts?.drivers ?? []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            {(filterOpts?.drivers ?? []).map((d: { id: string; name: string }) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </div>
         <div>
@@ -268,13 +268,4 @@ function DocForm({ initial, onClose, onSubmit }: { initial: WalletDoc | null; on
     </div>
   );
 }
-
-// Helper to fetch fleet options without re-importing useServerFn here (avoids hook ordering with conditional render).
-let fleetOptsFetcher: (() => Promise<{ drivers: { id: string; name: string }[]; trucks: string[] }>) | null = null;
-async function fetchFleetOptsClient() {
-  if (!fleetOptsFetcher) {
-    const { listFleetFilterOptions } = await import("@/lib/fleet-filters.functions");
-    fleetOptsFetcher = () => listFleetFilterOptions() as any;
-  }
-  return fleetOptsFetcher();
 }
