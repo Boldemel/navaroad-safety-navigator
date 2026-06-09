@@ -60,23 +60,37 @@ export const listCompanyMembers = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [profilesRes, authRes] = await Promise.all([
-      supabaseAdmin.from("profiles").select("id, driver_name").in("id", userIds),
+      supabaseAdmin
+        .from("profiles")
+        .select("id, driver_name, first_name, last_name, phone, employee_id, assigned_truck, assigned_trailer, active, must_change_password")
+        .in("id", userIds),
       supabaseAdmin.auth.admin.listUsers({ perPage: 200 }),
     ]);
     const emails = new Map<string, string>();
     for (const u of authRes.data?.users ?? []) if (userIds.includes(u.id)) emails.set(u.id, u.email ?? "");
-    const names = new Map<string, string>();
-    for (const p of profilesRes.data ?? []) names.set(p.id, p.driver_name ?? "");
+    const profileMap = new Map<string, any>();
+    for (const p of profilesRes.data ?? []) profileMap.set(p.id, p);
 
-    return members.map((m) => ({
-      memberId: m.id,
-      userId: m.user_id,
-      driverName: names.get(m.user_id) ?? null,
-      email: emails.get(m.user_id) ?? null,
-      isOwner: (m as any).companies.owner_id === m.user_id,
-      roles: (rolesRes.data ?? []).filter((r: any) => r.member_id === m.id).map((r: any) => r.role),
-      overrides: (overridesRes.data ?? []).filter((o: any) => o.member_id === m.id).map((o: any) => ({ permission: o.permission, granted: o.granted })),
-    }));
+    return members.map((m) => {
+      const p = profileMap.get(m.user_id) ?? {};
+      return {
+        memberId: m.id,
+        userId: m.user_id,
+        driverName: p.driver_name ?? null,
+        email: emails.get(m.user_id) ?? null,
+        isOwner: (m as any).companies.owner_id === m.user_id,
+        roles: (rolesRes.data ?? []).filter((r: any) => r.member_id === m.id).map((r: any) => r.role),
+        overrides: (overridesRes.data ?? []).filter((o: any) => o.member_id === m.id).map((o: any) => ({ permission: o.permission, granted: o.granted })),
+        firstName: p.first_name ?? null,
+        lastName: p.last_name ?? null,
+        phone: p.phone ?? null,
+        employeeId: p.employee_id ?? null,
+        assignedTruck: p.assigned_truck ?? null,
+        assignedTrailer: p.assigned_trailer ?? null,
+        active: p.active ?? true,
+        mustChangePassword: p.must_change_password ?? false,
+      };
+    });
   });
 
 export const updateCompanyName = createServerFn({ method: "POST" })
