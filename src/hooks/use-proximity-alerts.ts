@@ -8,8 +8,10 @@ import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { hazardLabel } from "@/lib/navaroad";
 import { recommendedActionFor } from "@/lib/hazard-proximity";
 import { useBrowserNotifications } from "@/hooks/use-browser-notifications";
+import { findNearbyTruckStops } from "@/lib/nearby-poi.functions";
+import { useWeighStationStatuses } from "@/lib/weigh-stations";
 
-export type ProximityAlertKind = "high_wind" | "road_closure" | "severe_weather" | "driver_report";
+export type ProximityAlertKind = "high_wind" | "road_closure" | "severe_weather" | "driver_report" | "weigh_station";
 
 export type ProximityAlert = {
   uid: string; // hazard id, stable
