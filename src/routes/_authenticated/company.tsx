@@ -12,7 +12,10 @@ import {
   Power,
   History,
   Radio,
+  Search,
+  DollarSign,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +47,11 @@ import {
   ROLES, PERMISSIONS, ELD_SYSTEMS,
   type CompanyRole, type AppPermission, type CompanyMember, type EldSystem,
 } from "@/lib/company.shared";
+import { TruckProfileCard } from "@/components/truck-profile-card";
+import { TruckRegistrationCard } from "@/components/truck-registration-card";
+import { FavoriteLocationsCard } from "@/components/favorite-locations-card";
+import { SavedRoutesCard } from "@/components/saved-routes-card";
+import { VoiceSettingsCard } from "@/components/voice-settings-card";
 
 export const Route = createFileRoute("/_authenticated/company")({
   component: CompanyPage,
@@ -86,6 +94,27 @@ function CompanyPage() {
     queryFn: () => listMembersFn({ data: { companyId: companyId! } }),
     enabled: !!companyId,
   });
+
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+  }, []);
+
+  const [roleFilter, setRoleFilter] = useState<"all" | CompanyRole>("all");
+  const [search, setSearch] = useState("");
+  const filteredMembers = useMemo(() => {
+    const list = members.data ?? [];
+    const q = search.trim().toLowerCase();
+    return list.filter((m) => {
+      if (roleFilter !== "all" && !m.roles.includes(roleFilter)) return false;
+      if (!q) return true;
+      const hay = [
+        m.firstName, m.lastName, m.driverName, m.email, m.username,
+        m.employeeId, m.driverIdNumber, m.assignedTruck, m.assignedTrailer,
+      ].filter(Boolean).join(" ").toLowerCase();
+      return hay.includes(q);
+    });
+  }, [members.data, roleFilter, search]);
 
   const [name, setName] = useState("");
   const renameMut = useMutation({
@@ -145,15 +174,43 @@ function CompanyPage() {
           )}
 
           <Card className="p-5 space-y-3">
-            <div className="font-medium">Members ({members.data?.length ?? 0})</div>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="font-medium">Members ({filteredMembers.length}{filteredMembers.length !== (members.data?.length ?? 0) ? ` of ${members.data?.length ?? 0}` : ""})</div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative">
+                  <Search className="size-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search name, truck, ID…"
+                    className="h-9 pl-8 w-56"
+                  />
+                </div>
+                <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as "all" | CompanyRole)}>
+                  <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All roles</SelectItem>
+                    {ROLES.map((r) => <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             {members.isLoading ? (
               <div className="text-sm text-muted-foreground">Loading members…</div>
-            ) : (members.data ?? []).length === 0 ? (
-              <div className="text-sm text-muted-foreground">No members yet.</div>
+            ) : filteredMembers.length === 0 ? (
+              <div className="text-sm text-muted-foreground">
+                {(members.data ?? []).length === 0 ? "No members yet." : "No members match your filters."}
+              </div>
             ) : (
               <div className="space-y-2">
-                {(members.data ?? []).map((m) => (
-                  <MemberRow key={m.memberId} member={m} canManage={canManageMembers} companyId={companyId!} />
+                {filteredMembers.map((m) => (
+                  <MemberRow
+                    key={m.memberId}
+                    member={m}
+                    canManage={canManageMembers}
+                    companyId={companyId!}
+                    isSelf={currentUserId === m.userId}
+                  />
                 ))}
               </div>
             )}
@@ -401,7 +458,7 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
   );
 }
 
-function MemberRow({ member, canManage, companyId }: { member: CompanyMember; canManage: boolean; companyId: string }) {
+function MemberRow({ member, canManage, companyId, isSelf }: { member: CompanyMember; canManage: boolean; companyId: string; isSelf: boolean }) {
   const qc = useQueryClient();
   const setRolesFn = useServerFn(setMemberRoles);
   const removeFn = useServerFn(removeCompanyMember);
@@ -490,10 +547,10 @@ function MemberRow({ member, canManage, companyId }: { member: CompanyMember; ca
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {canManage && (
+          {(canManage || isSelf) && (
             <Button size="sm" variant="outline" onClick={() => setExpanded((v) => !v)}>
               <ShieldCheck className="size-4 mr-1.5" />
-              {expanded ? "Close" : "Manage"}
+              {expanded ? "Close" : isSelf && !canManage ? "My details" : "Manage"}
             </Button>
           )}
           {canManage && !member.isOwner && (
@@ -560,51 +617,67 @@ function MemberRow({ member, canManage, companyId }: { member: CompanyMember; ca
         </div>
       </div>
 
-      {expanded && canManage && (
+      {expanded && (canManage || isSelf) && (
         <div className="p-3 border-t border-border space-y-4">
-          <div>
-            <div className="text-xs font-medium text-muted-foreground mb-2">Roles</div>
-            <div className="flex flex-wrap gap-3">
-              {ROLES.map((r) => (
-                <label key={r} className={`flex items-center gap-2 text-sm cursor-pointer ${member.isOwner && r === "fleet_owner" ? "opacity-60" : ""}`}>
-                  <Checkbox
-                    checked={member.roles.includes(r)}
-                    onCheckedChange={(v) => toggleRole(r, !!v)}
-                    disabled={rolesMut.isPending || (member.isOwner && r === "fleet_owner")}
-                  />
-                  {ROLE_LABELS[r]}
-                </label>
-              ))}
+          {canManage && (
+            <>
+              <div>
+                <div className="text-xs font-medium text-muted-foreground mb-2">Roles</div>
+                <div className="flex flex-wrap gap-3">
+                  {ROLES.map((r) => (
+                    <label key={r} className={`flex items-center gap-2 text-sm cursor-pointer ${member.isOwner && r === "fleet_owner" ? "opacity-60" : ""}`}>
+                      <Checkbox
+                        checked={member.roles.includes(r)}
+                        onCheckedChange={(v) => toggleRole(r, !!v)}
+                        disabled={rolesMut.isPending || (member.isOwner && r === "fleet_owner")}
+                      />
+                      {ROLE_LABELS[r]}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-muted-foreground mb-2">Permission overrides</div>
+                <p className="text-[11px] text-muted-foreground mb-2">
+                  Default = use what their roles allow. Grant = always allow. Deny = always block.
+                </p>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  {PERMISSIONS.map((p) => {
+                    const has = overrideMap.has(p);
+                    const value: "grant" | "deny" | "default" = !has ? "default" : overrideMap.get(p) ? "grant" : "deny";
+                    return (
+                      <div key={p} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="font-mono truncate">{p}</span>
+                        <Select
+                          value={value}
+                          onValueChange={(v) => overrideMut.mutate({ permission: p, value: v as any })}
+                        >
+                          <SelectTrigger className="h-7 w-28"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="default">Default</SelectItem>
+                            <SelectItem value="grant">Grant</SelectItem>
+                            <SelectItem value="deny">Deny</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          {isSelf && member.roles.includes("driver") && (
+            <div className="space-y-4 pt-2">
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Your driver setup</div>
+              <DriverPayCard />
+              <TruckProfileCard />
+              <TruckRegistrationCard />
+              <FavoriteLocationsCard />
+              <SavedRoutesCard />
+              <VoiceSettingsCard />
             </div>
-          </div>
-          <div>
-            <div className="text-xs font-medium text-muted-foreground mb-2">Permission overrides</div>
-            <p className="text-[11px] text-muted-foreground mb-2">
-              Default = use what their roles allow. Grant = always allow. Deny = always block.
-            </p>
-            <div className="grid sm:grid-cols-2 gap-2">
-              {PERMISSIONS.map((p) => {
-                const has = overrideMap.has(p);
-                const value: "grant" | "deny" | "default" = !has ? "default" : overrideMap.get(p) ? "grant" : "deny";
-                return (
-                  <div key={p} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="font-mono truncate">{p}</span>
-                    <Select
-                      value={value}
-                      onValueChange={(v) => overrideMut.mutate({ permission: p, value: v as any })}
-                    >
-                      <SelectTrigger className="h-7 w-28"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="default">Default</SelectItem>
-                        <SelectItem value="grant">Grant</SelectItem>
-                        <SelectItem value="deny">Deny</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          )}
         </div>
       )}
     </div>
@@ -784,3 +857,104 @@ function EldCredentialsButton({
   );
 }
 
+
+function DriverPayCard() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [model, setModel] = useState<"" | "per_mile" | "percentage" | "flat">("");
+  const [rate, setRate] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("driver_pay_model, driver_pay_rate")
+        .eq("id", u.user.id)
+        .maybeSingle();
+      if (data) {
+        setModel(((data as any).driver_pay_model as typeof model) || "");
+        setRate((data as any).driver_pay_rate != null ? String((data as any).driver_pay_rate) : "");
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  async function save() {
+    setSaving(true);
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) { setSaving(false); return; }
+    const rateNum = rate === "" ? null : Number(rate);
+    if (model && (rateNum == null || Number.isNaN(rateNum) || rateNum < 0)) {
+      setSaving(false);
+      return toast.error("Enter a valid pay rate (0 or greater).");
+    }
+    if (model === "percentage" && rateNum != null && rateNum > 100) {
+      setSaving(false);
+      return toast.error("Percentage cannot exceed 100.");
+    }
+    const { error } = await supabase.from("profiles").upsert({
+      id: u.user.id,
+      driver_pay_model: model || null,
+      driver_pay_rate: model ? rateNum : null,
+      updated_at: new Date().toISOString(),
+    } as never);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Pay setup saved.");
+  }
+
+  if (loading) return <div className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">Loading pay setup…</div>;
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+      <div className="flex items-center gap-2 font-medium"><DollarSign className="size-4" /> Driver pay setup</div>
+      <p className="text-xs text-muted-foreground">
+        When a load is marked delivered, settlement pay is calculated automatically from this setup.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label>Pay model</Label>
+          <select
+            className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+            value={model}
+            onChange={(e) => setModel(e.target.value as typeof model)}
+          >
+            <option value="">No auto-pay (use load rate)</option>
+            <option value="per_mile">Per mile ($/mi × miles)</option>
+            <option value="percentage">Percentage of load revenue</option>
+            <option value="flat">Flat amount per load</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>
+            {model === "percentage" ? "Percent (0–100)"
+              : model === "per_mile" ? "Rate ($ per mile)"
+              : model === "flat" ? "Flat amount ($)"
+              : "Rate"}
+          </Label>
+          <Input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            max={model === "percentage" ? 100 : undefined}
+            step="0.01"
+            placeholder={
+              model === "percentage" ? "e.g. 25"
+              : model === "per_mile" ? "e.g. 0.65"
+              : model === "flat" ? "e.g. 500"
+              : "Select a pay model first"
+            }
+            value={rate}
+            onChange={(e) => setRate(e.target.value)}
+            disabled={!model}
+          />
+        </div>
+      </div>
+      <Button onClick={save} disabled={saving} className="w-full sm:w-auto">
+        {saving ? "Saving…" : "Save pay setup"}
+      </Button>
+    </div>
+  );
+}
