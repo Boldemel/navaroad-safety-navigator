@@ -83,6 +83,8 @@ function FuelPage() {
         </div>
       </div>
 
+      <FleetFilters value={fleet} onChange={setFleet} />
+
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-lg border border-border bg-card p-3"><div className="text-xs text-muted-foreground">Gallons</div><div className="text-xl font-bold">{summary.gallons.toFixed(1)}</div></div>
         <div className="rounded-lg border border-border bg-card p-3"><div className="text-xs text-muted-foreground">Spent</div><div className="text-xl font-bold">${summary.cost.toFixed(2)}</div></div>
