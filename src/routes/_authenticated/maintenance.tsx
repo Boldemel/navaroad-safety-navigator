@@ -10,6 +10,7 @@ import { Wrench, Plus, Trash2, Loader2, AlertTriangle, Calendar, Gauge } from "l
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
 
 export const Route = createFileRoute("/_authenticated/maintenance")({ component: MaintPage });
 
