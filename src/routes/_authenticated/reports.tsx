@@ -237,7 +237,10 @@ function TruckTable({ rows }: { rows: TruckReportRow[] }) {
 
   return (
     <Card className="overflow-x-auto">
-      <div className="flex justify-end p-2 border-b border-border">
+      <div className="flex justify-end gap-2 p-2 border-b border-border">
+        <Button variant="outline" size="sm" onClick={() => exportSectionPdf("truck-report", truckSection(rows))} disabled={!rows.length}>
+          <Download className="size-4 mr-1.5" /> PDF
+        </Button>
         <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length}>
           <Download className="size-4 mr-1.5" /> CSV
         </Button>
