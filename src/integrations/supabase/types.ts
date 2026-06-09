@@ -1531,6 +1531,88 @@ export type Database = {
           },
         ]
       }
+      super_admin_impersonation_log: {
+        Row: {
+          admin_user_id: string
+          ended_at: string | null
+          id: string
+          reason: string | null
+          started_at: string
+          target_company_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          ended_at?: string | null
+          id?: string
+          reason?: string | null
+          started_at?: string
+          target_company_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          ended_at?: string | null
+          id?: string
+          reason?: string | null
+          started_at?: string
+          target_company_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "super_admin_impersonation_log_target_company_id_fkey"
+            columns: ["target_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_requests: {
+        Row: {
+          admin_notes: string | null
+          body: string
+          company_id: string | null
+          created_at: string
+          id: string
+          priority: string
+          requester_user_id: string
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          body: string
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          priority?: string
+          requester_user_id: string
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          body?: string
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          priority?: string
+          requester_user_id?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_audit_logs: {
         Row: {
           action: string
@@ -1923,6 +2005,7 @@ export type Database = {
         Args: { _company: string; _user: string }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user: string }; Returns: boolean }
       shares_company_with: {
         Args: { _target: string; _viewer: string }
         Returns: boolean
@@ -1951,7 +2034,7 @@ export type Database = {
         | "hos.manage"
         | "hos.view"
         | "drive"
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "super_admin"
       company_role:
         | "fleet_owner"
         | "dispatcher"
@@ -2120,7 +2203,7 @@ export const Constants = {
         "hos.view",
         "drive",
       ],
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "super_admin"],
       company_role: [
         "fleet_owner",
         "dispatcher",

@@ -36,6 +36,7 @@ import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedLoadsIndexRouteImport } from './routes/_authenticated/loads.index'
 import { Route as AuthenticatedLoadsHistoryRouteImport } from './routes/_authenticated/loads.history'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
+import { Route as AuthenticatedAdminPlatformRouteImport } from './routes/_authenticated/admin/platform'
 import { Route as AuthenticatedAdminModerationRouteImport } from './routes/_authenticated/admin/moderation'
 import { Route as AuthenticatedAdminErrorLogsRouteImport } from './routes/_authenticated/admin/error-logs'
 
@@ -176,6 +177,12 @@ const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminPlatformRoute =
+  AuthenticatedAdminPlatformRouteImport.update({
+    id: '/admin/platform',
+    path: '/admin/platform',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminModerationRoute =
   AuthenticatedAdminModerationRouteImport.update({
     id: '/admin/moderation',
@@ -215,6 +222,7 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRoute
   '/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/admin/moderation': typeof AuthenticatedAdminModerationRoute
+  '/admin/platform': typeof AuthenticatedAdminPlatformRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/loads/history': typeof AuthenticatedLoadsHistoryRoute
   '/loads/': typeof AuthenticatedLoadsIndexRoute
@@ -244,6 +252,7 @@ export interface FileRoutesByTo {
   '/api/chat': typeof ApiChatRoute
   '/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/admin/moderation': typeof AuthenticatedAdminModerationRoute
+  '/admin/platform': typeof AuthenticatedAdminPlatformRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/loads/history': typeof AuthenticatedLoadsHistoryRoute
   '/loads': typeof AuthenticatedLoadsIndexRoute
@@ -276,6 +285,7 @@ export interface FileRoutesById {
   '/api/chat': typeof ApiChatRoute
   '/_authenticated/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/_authenticated/admin/moderation': typeof AuthenticatedAdminModerationRoute
+  '/_authenticated/admin/platform': typeof AuthenticatedAdminPlatformRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/loads/history': typeof AuthenticatedLoadsHistoryRoute
   '/_authenticated/loads/': typeof AuthenticatedLoadsIndexRoute
@@ -308,6 +318,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/admin/error-logs'
     | '/admin/moderation'
+    | '/admin/platform'
     | '/admin/users'
     | '/loads/history'
     | '/loads/'
@@ -337,6 +348,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/admin/error-logs'
     | '/admin/moderation'
+    | '/admin/platform'
     | '/admin/users'
     | '/loads/history'
     | '/loads'
@@ -368,6 +380,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/_authenticated/admin/error-logs'
     | '/_authenticated/admin/moderation'
+    | '/_authenticated/admin/platform'
     | '/_authenticated/admin/users'
     | '/_authenticated/loads/history'
     | '/_authenticated/loads/'
@@ -574,6 +587,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/platform': {
+      id: '/_authenticated/admin/platform'
+      path: '/admin/platform'
+      fullPath: '/admin/platform'
+      preLoaderRoute: typeof AuthenticatedAdminPlatformRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/moderation': {
       id: '/_authenticated/admin/moderation'
       path: '/admin/moderation'
@@ -624,6 +644,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReportRoute: typeof AuthenticatedReportRoute
   AuthenticatedAdminErrorLogsRoute: typeof AuthenticatedAdminErrorLogsRoute
   AuthenticatedAdminModerationRoute: typeof AuthenticatedAdminModerationRoute
+  AuthenticatedAdminPlatformRoute: typeof AuthenticatedAdminPlatformRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
 }
 
@@ -647,6 +668,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReportRoute: AuthenticatedReportRoute,
   AuthenticatedAdminErrorLogsRoute: AuthenticatedAdminErrorLogsRoute,
   AuthenticatedAdminModerationRoute: AuthenticatedAdminModerationRoute,
+  AuthenticatedAdminPlatformRoute: AuthenticatedAdminPlatformRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
 }
 

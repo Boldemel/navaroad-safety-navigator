@@ -1,5 +1,5 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Map, Bell, User, LogOut, Truck, Shield, Users, FileWarning, BookOpen, ClipboardCheck, Package, ParkingCircle, MapPinned, FolderLock, Wrench, Receipt, Fuel, ClipboardList, Building2, Sparkles } from "lucide-react";
+import { LayoutDashboard, Map, Bell, User, LogOut, Truck, Shield, ShieldAlert, Users, FileWarning, BookOpen, ClipboardCheck, Package, ParkingCircle, MapPinned, FolderLock, Wrench, Receipt, Fuel, ClipboardList, Building2, Sparkles } from "lucide-react";
 import { ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,7 @@ import { ProximityAlertStack } from "@/components/proximity-alert-stack";
 import { OfflineBanner } from "@/components/offline-banner";
 import { NotificationBell } from "@/components/notification-bell";
 import { useIsAdmin } from "@/hooks/use-is-admin";
+import { useIsSuperAdmin } from "@/hooks/use-is-super-admin";
 import { useAllowedModules } from "@/hooks/use-allowed-modules";
 
 const nav = [
@@ -43,11 +44,16 @@ const adminNav = [
   { to: "/admin/error-logs", label: "Error logs", icon: FileWarning },
 ];
 
+const superAdminNav = [
+  { to: "/admin/platform", label: "Platform Admin", icon: ShieldAlert },
+];
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const router = useRouter();
   const queryClient = useQueryClient();
   const isAdmin = useIsAdmin();
+  const { isSuperAdmin } = useIsSuperAdmin();
   const { allowed } = useAllowedModules();
   const visibleNav = allowed ? nav.filter((n) => allowed.has(n.to)) : nav;
   const visibleMobileNav = allowed ? mobileNav.filter((n) => allowed.has(n.to)) : mobileNav;
@@ -97,6 +103,29 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="pt-3 mt-3 border-t border-sidebar-border space-y-1">
               <div className="px-3 pb-1 text-[10px] uppercase tracking-wider text-sidebar-foreground/50">Admin</div>
               {adminNav.map((n) => {
+                const active = pathname === n.to || pathname.startsWith(n.to + "/");
+                return (
+                  <Link
+                    key={n.to}
+                    to={n.to}
+                    className={cn(
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      active
+                        ? "bg-primary/15 text-primary"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                    )}
+                  >
+                    <n.icon className="size-4" />
+                    {n.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+          {isSuperAdmin && (
+            <div className="pt-3 mt-3 border-t border-sidebar-border space-y-1">
+              <div className="px-3 pb-1 text-[10px] uppercase tracking-wider text-sidebar-foreground/50">Platform</div>
+              {superAdminNav.map((n) => {
                 const active = pathname === n.to || pathname.startsWith(n.to + "/");
                 return (
                   <Link
