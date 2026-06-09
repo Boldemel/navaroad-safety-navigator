@@ -8,8 +8,10 @@ import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { hazardLabel } from "@/lib/navaroad";
 import { recommendedActionFor } from "@/lib/hazard-proximity";
 import { useBrowserNotifications } from "@/hooks/use-browser-notifications";
+import { findNearbyTruckStops } from "@/lib/nearby-poi.functions";
+import { useWeighStationStatuses } from "@/lib/weigh-stations";
 
-export type ProximityAlertKind = "high_wind" | "road_closure" | "severe_weather" | "driver_report";
+export type ProximityAlertKind = "high_wind" | "road_closure" | "severe_weather" | "driver_report" | "weigh_station";
 
 export type ProximityAlert = {
   uid: string; // hazard id, stable
@@ -30,6 +32,7 @@ const RADIUS_MI: Record<ProximityAlertKind, number> = {
   road_closure: 25,
   severe_weather: 25,
   driver_report: 10,
+  weigh_station: 1,
 };
 
 const SESSION_KEY = "navaroad.proximityFiredIds";
@@ -94,6 +97,19 @@ export function useProximityAlerts() {
     refetchInterval: 2 * 60_000,
   });
 
+  // Coarse coord bucket (~3 mi cells) so weigh-station refetches don't churn.
+  const cellLat = here ? Math.round(here.lat * 20) / 20 : null;
+  const cellLon = here ? Math.round(here.lon * 20) / 20 : null;
+  const findPoi = useServerFn(findNearbyTruckStops);
+  const { data: weighData } = useQuery({
+    queryKey: ["nearby-weigh-stations", cellLat, cellLon],
+    queryFn: () => findPoi({ data: { lat: here!.lat, lon: here!.lon, radiusMi: 50, kind: "weigh_station" } }),
+    enabled: !!here,
+    staleTime: 10 * 60_000,
+    refetchInterval: 10 * 60_000,
+  });
+  const { data: weighStatus } = useWeighStationStatuses();
+
   // Build candidate list (id, kind, severity, lat/lon, title, source, action helper).
   type Candidate = {
     uid: string; kind: ProximityAlertKind; severity: ProximityAlert["severity"];
@@ -130,8 +146,24 @@ export function useProximityAlerts() {
         lat: h.latitude, lon: h.longitude, category: h.hazard_type, description: h.description ?? undefined,
       });
     }
+    for (const w of weighData?.pois ?? []) {
+      const status = weighStatus?.get(w.id);
+      const isOpen = status?.status === "open";
+      const isClosed = status?.status === "closed";
+      out.push({
+        uid: "ws-" + w.id,
+        kind: "weigh_station",
+        severity: isOpen ? "high" : isClosed ? "low" : "medium",
+        title: isOpen ? `Weigh station OPEN — ${w.name}` : isClosed ? `Weigh station closed — ${w.name}` : `Weigh station ahead — ${w.name}`,
+        source: status ? "Driver report" : "TomTom",
+        lat: w.lat,
+        lon: w.lon,
+        category: "weigh_station",
+        description: [w.address, w.city, w.state].filter(Boolean).join(", "),
+      });
+    }
     return out;
-  }, [feed, hazards]);
+  }, [feed, hazards, weighData, weighStatus]);
 
   const firedRef = useRef<Set<string>>(readFired());
   const [active, setActive] = useState<ProximityAlert[]>([]);
@@ -153,10 +185,16 @@ export function useProximityAlerts() {
         title: c.title,
         source: c.source,
         distanceMi: d,
-        recommendedAction: recommendedActionFor(
-          { id: c.uid, title: c.title, category: c.category, severity: c.severity, lat: c.lat, lon: c.lon, source: c.source, description: c.description },
-          d,
-        ),
+        recommendedAction: c.kind === "weigh_station"
+          ? (c.severity === "high"
+              ? "Weigh station reported OPEN — slow down and prepare to pull in."
+              : c.severity === "low"
+                ? "Weigh station reported CLOSED — proceed with caution; conditions can change."
+                : "Weigh station ahead within 1 mile — confirm status and be ready to enter.")
+          : recommendedActionFor(
+              { id: c.uid, title: c.title, category: c.category, severity: c.severity, lat: c.lat, lon: c.lon, source: c.source, description: c.description },
+              d,
+            ),
         lat: c.lat,
         lon: c.lon,
         enteredAt: new Date().toISOString(),
