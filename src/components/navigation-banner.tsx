@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   Navigation2, X, Clock, MapPin, Volume2, VolumeX,
   ArrowUp, ArrowUpRight, ArrowUpLeft, ArrowRight, ArrowLeft, CornerUpRight, CornerUpLeft, RotateCw,
+  AlertTriangle,
 } from "lucide-react";
 import { useNavigationSession, updateNavigationRoute, stopNavigation } from "@/hooks/use-navigation-session";
 import { useGeolocation, distanceMiles } from "@/hooks/use-geolocation";
@@ -12,6 +13,7 @@ import { saveActiveRoute, clearActiveRoute } from "@/hooks/use-active-route";
 import { useVoiceGuidance } from "@/hooks/use-voice-guidance";
 import { useVoiceSettings } from "@/lib/voice/voice-settings";
 import { cancelSpeech } from "@/lib/voice/voice-engine";
+import { useProximityAlerts } from "@/hooks/use-proximity-alerts";
 
 function nearestIndex(here: { lat: number; lon: number }, geometry: Array<[number, number]>): number {
   let best = 0, bestD = Infinity;
@@ -59,6 +61,7 @@ export function NavigationBanner() {
   const refetchFn = useServerFn(getTruckRoute);
   const [voice, setVoice] = useVoiceSettings();
   useVoiceGuidance();
+  const { alerts: proximityAlerts, dismiss: dismissProximity } = useProximityAlerts();
 
   const here = geo.coords ? { lat: geo.coords.lat, lon: geo.coords.lon } : null;
 
@@ -151,6 +154,17 @@ export function NavigationBanner() {
     ? minsLeft < 60 ? `${minsLeft} min` : `${Math.floor(minsLeft / 60)}h ${minsLeft % 60}m`
     : "—";
 
+  // Proximity flash: highest-severity alert within 1 mile
+  const flashAlert = useMemo(() => {
+    const nearby = proximityAlerts.filter((a) => a.distanceMi <= 1 && (a.severity === "high" || a.severity === "critical"));
+    if (nearby.length === 0) return null;
+    nearby.sort((a, b) => {
+      const rank = { critical: 4, high: 3, medium: 2, low: 1 } as const;
+      return (rank[b.severity] ?? 0) - (rank[a.severity] ?? 0);
+    });
+    return nearby[0];
+  }, [proximityAlerts]);
+
   return (
     <div className="sticky top-0 z-40 shadow-lg">
       {/* GARMIN-STYLE GREEN TURN BANNER */}
@@ -207,6 +221,34 @@ export function NavigationBanner() {
           </button>
         </div>
       </div>
+
+      {/* HIGH-PRIORITY PROXIMITY FLASH */}
+      {flashAlert && (
+        <div className="bg-destructive text-destructive-foreground animate-pulse">
+          <div className="max-w-7xl mx-auto px-3 md:px-5 py-2 flex items-center gap-2">
+            <AlertTriangle className="size-5 shrink-0" strokeWidth={2.5} />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-bold uppercase tracking-wide leading-tight truncate">
+                {flashAlert.title}
+              </div>
+              <div className="text-[11px] leading-tight truncate opacity-90">
+                {flashAlert.distanceMi < 0.1
+                  ? "<0.1 mi"
+                  : `${Math.round(flashAlert.distanceMi * 10) / 10} mi`}{" "}
+                — {flashAlert.recommendedAction}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => dismissProximity(flashAlert.uid)}
+              className="size-7 rounded-full bg-destructive-foreground/15 hover:bg-destructive-foreground/25 flex items-center justify-center transition-colors shrink-0"
+              aria-label="Dismiss alert"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* DARK STATS FOOTER — speed · ETA · remaining */}
       <div className="bg-zinc-900 text-zinc-100 dark:bg-zinc-950">
