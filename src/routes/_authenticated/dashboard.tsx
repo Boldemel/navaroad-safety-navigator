@@ -714,12 +714,21 @@ function Dashboard() {
                   );
                 })}
               </div>
-              {result.weatherAlerts.length > 0 && (
-                <div className="space-y-2">
-                  <div className="text-xs font-medium text-muted-foreground">
-                    Active alerts on this route ({result.weatherAlerts.length} total, grouped by type & region)
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-muted-foreground inline-flex items-center gap-1.5">
+                  <Cloud className="size-3.5" />
+                  Active weather alerts on this route
+                  {result.weatherAlerts.length > 0 && (
+                    <span>({result.weatherAlerts.length} total, grouped by type & region)</span>
+                  )}
+                </div>
+                {result.weatherAlerts.length === 0 ? (
+                  <div className="rounded-md border border-border bg-background p-3 text-sm text-success inline-flex items-center gap-2">
+                    <ShieldAlert className="size-4" />
+                    No active NWS weather alerts on this route corridor.
                   </div>
-                  {groupAlerts(result.weatherAlerts).map((g) => (
+                ) : (
+                  groupAlerts(result.weatherAlerts).map((g) => (
                     <div key={g.key} className="rounded-md border border-border bg-background p-3 text-sm">
                       <div className="flex items-start gap-2">
                         <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(g.severity)}`}>{g.severity}</span>
@@ -735,9 +744,9 @@ function Dashboard() {
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
               {result.risks.length > 0 ? (
                 <ul className="space-y-1.5">
                   {result.risks.slice(0, 8).map((r, i) => (
