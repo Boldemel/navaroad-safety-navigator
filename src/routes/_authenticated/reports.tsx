@@ -113,6 +113,104 @@ function ReportsPage() {
   );
 }
 
+function filtersSummary(f: FleetFilterValue): string {
+  const parts: string[] = [];
+  if (f.from || f.to) parts.push(`Period: ${f.from || "…"} → ${f.to || "…"}`);
+  if (f.truck) parts.push(`Truck: ${f.truck}`);
+  if (f.driverId) parts.push(`Driver: ${f.driverId.slice(0, 8)}…`);
+  return parts.length ? parts.join("  ·  ") : "All trucks · all drivers · all time";
+}
+
+function truckSection(rows: TruckReportRow[]): PdfTableSection {
+  return {
+    title: "By Truck",
+    columns: [
+      { header: "Vehicle" },
+      { header: "Loads", align: "right" },
+      { header: "Miles", align: "right" },
+      { header: "Revenue", align: "right" },
+      { header: "Fuel", align: "right" },
+      { header: "Maintenance", align: "right" },
+      { header: "DVIRs", align: "right" },
+      { header: "Open defects", align: "right" },
+      { header: "Last DVIR", align: "right" },
+    ],
+    rows: rows.map((r) => [
+      r.vehicleUnit, r.loads, r.miles.toLocaleString(),
+      fmt$(r.revenue), fmt$(r.fuelCost), fmt$(r.maintenanceCost),
+      r.inspections, r.openDefects,
+      r.lastInspectionAt ? new Date(r.lastInspectionAt).toLocaleDateString() : "—",
+    ]),
+  };
+}
+
+function driverSection(rows: DriverReportRow[]): PdfTableSection {
+  return {
+    title: "By Driver",
+    columns: [
+      { header: "Driver" },
+      { header: "Loads", align: "right" },
+      { header: "Miles", align: "right" },
+      { header: "Revenue", align: "right" },
+      { header: "Pre-trip", align: "right" },
+      { header: "Post-trip", align: "right" },
+      { header: "Open defects", align: "right" },
+      { header: "Expiring docs", align: "right" },
+    ],
+    rows: rows.map((r) => [
+      r.name, r.loads, r.miles.toLocaleString(), fmt$(r.revenue),
+      r.preTrip, r.postTrip, r.openDefects, r.expiringDocs,
+    ]),
+  };
+}
+
+function docsSection(rows: DocExpirationRow[]): PdfTableSection {
+  return {
+    title: "Document expirations",
+    columns: [
+      { header: "Document" },
+      { header: "Type" },
+      { header: "Category" },
+      { header: "Driver" },
+      { header: "Expires", align: "right" },
+      { header: "Days", align: "right" },
+      { header: "Status", align: "right" },
+    ],
+    rows: rows.map((r) => [
+      r.title, r.docType, r.category ?? "—", r.driverName ?? "—",
+      r.expiresOn ?? "—", r.daysUntil ?? "—", r.status,
+    ]),
+  };
+}
+
+function exportFullPdf(
+  data: { totals: { revenue: number; miles: number; loads: number; fuelCost: number; maintenanceCost: number; expiredDocs: number; expiringDocs: number }; byTruck: TruckReportRow[]; byDriver: DriverReportRow[]; docExpirations: DocExpirationRow[] },
+  f: FleetFilterValue,
+) {
+  downloadFleetReportPdf(`fleet-report-${new Date().toISOString().slice(0, 10)}.pdf`, {
+    title: "Fleet Report",
+    subtitle: "Operational, financial, and compliance summary",
+    filtersSummary: filtersSummary(f),
+    kpis: [
+      { label: "Revenue", value: fmt$(data.totals.revenue) },
+      { label: "Miles", value: data.totals.miles.toLocaleString() },
+      { label: "Loads", value: data.totals.loads.toLocaleString() },
+      { label: "Fuel", value: fmt$(data.totals.fuelCost) },
+      { label: "Maintenance", value: fmt$(data.totals.maintenanceCost) },
+      { label: "Doc alerts", value: String(data.totals.expiredDocs + data.totals.expiringDocs) },
+    ],
+    sections: [truckSection(data.byTruck), driverSection(data.byDriver), docsSection(data.docExpirations)],
+  });
+}
+
+function exportSectionPdf(name: string, section: PdfTableSection) {
+  downloadFleetReportPdf(`${name}-${new Date().toISOString().slice(0, 10)}.pdf`, {
+    title: section.title,
+    kpis: [],
+    sections: [section],
+  });
+}
+
 function Kpi({ label, value, tone }: { label: string; value: string; tone?: "good" | "bad" }) {
   return (
     <Card className="p-3 space-y-1">
