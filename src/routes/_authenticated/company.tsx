@@ -459,12 +459,18 @@ function MemberRow({ member, canManage, companyId }: { member: CompanyMember; ca
             {member.isOwner && <Badge variant="outline" className="ml-2">Owner</Badge>}
             {!member.active && <Badge variant="destructive" className="ml-2">Inactive</Badge>}
             {member.mustChangePassword && <Badge variant="outline" className="ml-2">Pwd reset pending</Badge>}
+            {member.eldSystem && <Badge variant="outline" className="ml-2"><Radio className="size-3 mr-1" />{member.eldSystem}</Badge>}
           </div>
-          <div className="text-[11px] text-muted-foreground truncate">{member.email || member.userId}</div>
-          {(member.employeeId || member.assignedTruck || member.assignedTrailer || member.phone) && (
+          <div className="text-[11px] text-muted-foreground truncate">
+            {member.username ? `@${member.username}` : null}
+            {member.username && member.email ? " · " : null}
+            {member.email || (member.username ? null : member.userId)}
+          </div>
+          {(member.employeeId || member.driverIdNumber || member.assignedTruck || member.assignedTrailer || member.phone) && (
             <div className="text-[11px] text-muted-foreground truncate">
               {[
-                member.employeeId && `ID ${member.employeeId}`,
+                member.driverIdNumber && `Driver ${member.driverIdNumber}`,
+                member.employeeId && `Emp ${member.employeeId}`,
                 member.assignedTruck && `Truck ${member.assignedTruck}`,
                 member.assignedTrailer && `Trailer ${member.assignedTrailer}`,
                 member.phone,
