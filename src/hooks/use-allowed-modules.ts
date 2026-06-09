@@ -7,8 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
  */
 const ROLE_MODULES: Record<string, string[]> = {
   driver: ["/dashboard", "/hazard-map", "/parking", "/loads", "/inspections", "/documents", "/fuel", "/logbook"],
-  dispatcher: ["/loads", "/dashboard", "/hazard-map", "/fleet-profitability", "/reports"],
-  safety_manager: ["/inspections", "/documents", "/logbook", "/hazard-map", "/assistant", "/reports"],
+  dispatcher: ["/loads", "/dashboard", "/hazard-map", "/fleet-profitability", "/reports", "/driver-performance"],
+  safety_manager: ["/inspections", "/documents", "/logbook", "/hazard-map", "/assistant", "/reports", "/driver-performance"],
   maintenance_manager: ["/maintenance", "/inspections", "/reports"],
   accountant: ["/fuel", "/expenses", "/ifta", "/assistant", "/fleet-profitability", "/reports"],
 };

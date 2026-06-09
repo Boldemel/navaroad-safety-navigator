@@ -30,6 +30,7 @@ import { Route as AuthenticatedHazardMapRouteImport } from './routes/_authentica
 import { Route as AuthenticatedFuelRouteImport } from './routes/_authenticated/fuel'
 import { Route as AuthenticatedFleetProfitabilityRouteImport } from './routes/_authenticated/fleet-profitability'
 import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticated/expenses'
+import { Route as AuthenticatedDriverPerformanceRouteImport } from './routes/_authenticated/driver-performance'
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCompanyRouteImport } from './routes/_authenticated/company'
@@ -149,6 +150,12 @@ const AuthenticatedExpensesRoute = AuthenticatedExpensesRouteImport.update({
   path: '/expenses',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDriverPerformanceRoute =
+  AuthenticatedDriverPerformanceRouteImport.update({
+    id: '/driver-performance',
+    path: '/driver-performance',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDocumentsRoute = AuthenticatedDocumentsRouteImport.update({
   id: '/documents',
   path: '/documents',
@@ -220,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/company': typeof AuthenticatedCompanyRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
+  '/driver-performance': typeof AuthenticatedDriverPerformanceRoute
   '/expenses': typeof AuthenticatedExpensesRoute
   '/fleet-profitability': typeof AuthenticatedFleetProfitabilityRoute
   '/fuel': typeof AuthenticatedFuelRoute
@@ -253,6 +261,7 @@ export interface FileRoutesByTo {
   '/company': typeof AuthenticatedCompanyRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
+  '/driver-performance': typeof AuthenticatedDriverPerformanceRoute
   '/expenses': typeof AuthenticatedExpensesRoute
   '/fleet-profitability': typeof AuthenticatedFleetProfitabilityRoute
   '/fuel': typeof AuthenticatedFuelRoute
@@ -287,6 +296,7 @@ export interface FileRoutesById {
   '/_authenticated/company': typeof AuthenticatedCompanyRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
+  '/_authenticated/driver-performance': typeof AuthenticatedDriverPerformanceRoute
   '/_authenticated/expenses': typeof AuthenticatedExpensesRoute
   '/_authenticated/fleet-profitability': typeof AuthenticatedFleetProfitabilityRoute
   '/_authenticated/fuel': typeof AuthenticatedFuelRoute
@@ -322,6 +332,7 @@ export interface FileRouteTypes {
     | '/company'
     | '/dashboard'
     | '/documents'
+    | '/driver-performance'
     | '/expenses'
     | '/fleet-profitability'
     | '/fuel'
@@ -355,6 +366,7 @@ export interface FileRouteTypes {
     | '/company'
     | '/dashboard'
     | '/documents'
+    | '/driver-performance'
     | '/expenses'
     | '/fleet-profitability'
     | '/fuel'
@@ -388,6 +400,7 @@ export interface FileRouteTypes {
     | '/_authenticated/company'
     | '/_authenticated/dashboard'
     | '/_authenticated/documents'
+    | '/_authenticated/driver-performance'
     | '/_authenticated/expenses'
     | '/_authenticated/fleet-profitability'
     | '/_authenticated/fuel'
@@ -570,6 +583,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedExpensesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/driver-performance': {
+      id: '/_authenticated/driver-performance'
+      path: '/driver-performance'
+      fullPath: '/driver-performance'
+      preLoaderRoute: typeof AuthenticatedDriverPerformanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/documents': {
       id: '/_authenticated/documents'
       path: '/documents'
@@ -669,6 +689,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCompanyRoute: typeof AuthenticatedCompanyRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
+  AuthenticatedDriverPerformanceRoute: typeof AuthenticatedDriverPerformanceRoute
   AuthenticatedExpensesRoute: typeof AuthenticatedExpensesRoute
   AuthenticatedFleetProfitabilityRoute: typeof AuthenticatedFleetProfitabilityRoute
   AuthenticatedFuelRoute: typeof AuthenticatedFuelRoute
@@ -695,6 +716,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCompanyRoute: AuthenticatedCompanyRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
+  AuthenticatedDriverPerformanceRoute: AuthenticatedDriverPerformanceRoute,
   AuthenticatedExpensesRoute: AuthenticatedExpensesRoute,
   AuthenticatedFleetProfitabilityRoute: AuthenticatedFleetProfitabilityRoute,
   AuthenticatedFuelRoute: AuthenticatedFuelRoute,
