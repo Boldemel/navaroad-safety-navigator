@@ -11,6 +11,7 @@ import {
   KeyRound,
   Power,
   History,
+  Radio,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,10 +37,11 @@ import {
 } from "@/lib/company.functions";
 import {
   createCompanyUser, resetUserPassword, setUserActive, listTeamAuditLogs,
+  getEldCredentials, setEldCredentials,
 } from "@/lib/team.functions";
 import {
-  ROLES, PERMISSIONS,
-  type CompanyRole, type AppPermission, type CompanyMember,
+  ROLES, PERMISSIONS, ELD_SYSTEMS,
+  type CompanyRole, type AppPermission, type CompanyMember, type EldSystem,
 } from "@/lib/company.shared";
 
 export const Route = createFileRoute("/_authenticated/company")({
@@ -173,27 +175,56 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
     firstName: "",
     lastName: "",
     email: "",
+    username: "",
     tempPassword: genTempPassword(),
     phone: "",
     employeeId: "",
+    driverIdNumber: "",
     assignedTruck: "",
     assignedTrailer: "",
     active: true,
     roles: ["driver"] as CompanyRole[],
+    eldSystem: "" as "" | EldSystem,
+    eldUserId: "",
+    eldPassword: "",
+    eldVisibleToDriver: false,
   });
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
 
   const createMut = useMutation({
-    mutationFn: () => createFn({ data: { companyId, ...form } }),
+    mutationFn: () =>
+      createFn({
+        data: {
+          companyId,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email || undefined,
+          username: form.username || undefined,
+          tempPassword: form.tempPassword,
+          phone: form.phone,
+          employeeId: form.employeeId,
+          driverIdNumber: form.driverIdNumber,
+          assignedTruck: form.assignedTruck,
+          assignedTrailer: form.assignedTrailer,
+          active: form.active,
+          roles: form.roles,
+          eldSystem: form.eldSystem || undefined,
+          eldUserId: form.eldUserId,
+          eldPassword: form.eldPassword,
+          eldVisibleToDriver: form.eldVisibleToDriver,
+        },
+      }),
     onSuccess: () => {
-      toast.success("User created. Share the temporary password with them.");
+      toast.success("User created. Share the credentials with them.");
       onCreated();
       setOpen(false);
       setForm({
-        firstName: "", lastName: "", email: "",
+        firstName: "", lastName: "", email: "", username: "",
         tempPassword: genTempPassword(),
-        phone: "", employeeId: "", assignedTruck: "", assignedTrailer: "",
+        phone: "", employeeId: "", driverIdNumber: "",
+        assignedTruck: "", assignedTrailer: "",
         active: true, roles: ["driver"],
+        eldSystem: "", eldUserId: "", eldPassword: "", eldVisibleToDriver: false,
       });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to create user"),
