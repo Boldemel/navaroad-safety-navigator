@@ -27,6 +27,7 @@ const nav = [
   { to: "/fleet-profitability", label: "Profitability Analysis", icon: TrendingUp },
   { to: "/reports", label: "Reports", icon: FileBarChart },
   { to: "/driver-performance", label: "Driver Performance", icon: UserCheck },
+  { to: "/trucks", label: "Trucks", icon: Truck },
   { to: "/assistant", label: "Fleet AI Assistant", icon: Sparkles },
   
   { to: "/company", label: "Company & Team", icon: Building2 },
