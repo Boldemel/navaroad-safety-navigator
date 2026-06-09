@@ -39,6 +39,8 @@ function Profile() {
     notify_email: true,
     notify_push: true,
     notify_sms: false,
+    driver_pay_model: "" as "" | "per_mile" | "percentage" | "flat",
+    driver_pay_rate: "" as string,
   });
 
   async function deleteAccount() {
@@ -68,6 +70,8 @@ function Profile() {
           notify_email: data.notify_email ?? true,
           notify_push: data.notify_push ?? true,
           notify_sms: data.notify_sms ?? false,
+          driver_pay_model: (data as any).driver_pay_model ?? "",
+          driver_pay_rate: (data as any).driver_pay_rate != null ? String((data as any).driver_pay_rate) : "",
         });
       }
       setLoading(false);
@@ -79,7 +83,26 @@ function Profile() {
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) { setSaving(false); return; }
-    const { error } = await supabase.from("profiles").upsert({ id: u.user.id, ...form, updated_at: new Date().toISOString() });
+    const rateNum = form.driver_pay_rate === "" ? null : Number(form.driver_pay_rate);
+    if (form.driver_pay_model && (rateNum == null || Number.isNaN(rateNum) || rateNum < 0)) {
+      setSaving(false);
+      return toast.error("Enter a valid pay rate (0 or greater).");
+    }
+    if (form.driver_pay_model === "percentage" && rateNum != null && rateNum > 100) {
+      setSaving(false);
+      return toast.error("Percentage cannot exceed 100.");
+    }
+    const payload = {
+      id: u.user.id,
+      driver_name: form.driver_name,
+      notify_email: form.notify_email,
+      notify_push: form.notify_push,
+      notify_sms: form.notify_sms,
+      driver_pay_model: form.driver_pay_model || null,
+      driver_pay_rate: form.driver_pay_model ? rateNum : null,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from("profiles").upsert(payload as never);
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Profile saved.");
@@ -107,6 +130,55 @@ function Profile() {
         </div>
 
         <p className="text-xs text-muted-foreground">Truck, trailer, dimensions, and load status are managed in the Truck Profile below.</p>
+
+        <div className="pt-4 border-t border-border space-y-3">
+          <div className="font-medium">Driver pay setup</div>
+          <p className="text-xs text-muted-foreground">
+            When a load is marked delivered, settlement pay is calculated automatically from this setup.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Pay model</Label>
+              <select
+                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                value={form.driver_pay_model}
+                onChange={(e) => setForm({ ...form, driver_pay_model: e.target.value as typeof form.driver_pay_model })}
+              >
+                <option value="">No auto-pay (use load rate)</option>
+                <option value="per_mile">Per mile ($/mi × miles)</option>
+                <option value="percentage">Percentage of load revenue</option>
+                <option value="flat">Flat amount per load</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>
+                {form.driver_pay_model === "percentage"
+                  ? "Percent (0–100)"
+                  : form.driver_pay_model === "per_mile"
+                  ? "Rate ($ per mile)"
+                  : form.driver_pay_model === "flat"
+                  ? "Flat amount ($)"
+                  : "Rate"}
+              </Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                max={form.driver_pay_model === "percentage" ? 100 : undefined}
+                step="0.01"
+                placeholder={
+                  form.driver_pay_model === "percentage" ? "e.g. 25"
+                  : form.driver_pay_model === "per_mile" ? "e.g. 0.65"
+                  : form.driver_pay_model === "flat" ? "e.g. 500"
+                  : "Select a pay model first"
+                }
+                value={form.driver_pay_rate}
+                onChange={(e) => setForm({ ...form, driver_pay_rate: e.target.value })}
+                disabled={!form.driver_pay_model}
+              />
+            </div>
+          </div>
+        </div>
 
 
         <div className="pt-4 border-t border-border space-y-4">

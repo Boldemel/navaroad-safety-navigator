@@ -1184,6 +1184,8 @@ export type Database = {
           created_by_user_id: string | null
           driver_id_number: string | null
           driver_name: string | null
+          driver_pay_model: string | null
+          driver_pay_rate: number | null
           eld_system: string | null
           employee_id: string | null
           first_name: string | null
@@ -1230,6 +1232,8 @@ export type Database = {
           created_by_user_id?: string | null
           driver_id_number?: string | null
           driver_name?: string | null
+          driver_pay_model?: string | null
+          driver_pay_rate?: number | null
           eld_system?: string | null
           employee_id?: string | null
           first_name?: string | null
@@ -1276,6 +1280,8 @@ export type Database = {
           created_by_user_id?: string | null
           driver_id_number?: string | null
           driver_name?: string | null
+          driver_pay_model?: string | null
+          driver_pay_rate?: number | null
           eld_system?: string | null
           employee_id?: string | null
           first_name?: string | null
