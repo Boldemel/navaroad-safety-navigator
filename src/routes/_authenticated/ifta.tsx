@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { MapPinned, Plus, Trash2, Loader2, Download, Printer, FileText } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
 
 export const Route = createFileRoute("/_authenticated/ifta")({ component: IftaPage });
 
@@ -39,6 +40,7 @@ function IftaPage() {
   const { data, isLoading } = useQuery({ queryKey: ["ifta"], queryFn: () => fetchAll() });
   const entries = data?.entries ?? [];
   const [filter, setFilter] = useState(currentQuarter());
+  const [fleet, setFleet] = useState<FleetFilterValue>(emptyFleetFilters);
   const [showForm, setShowForm] = useState(false);
   const [showReport, setShowReport] = useState(false);
 
@@ -52,7 +54,14 @@ function IftaPage() {
     },
   });
 
-  const filtered = useMemo(() => entries.filter((e) => inQuarter(e.entry_date, filter.year, filter.quarter)), [entries, filter]);
+  const filtered = useMemo(() => entries.filter((e) => {
+    if (!inQuarter(e.entry_date, filter.year, filter.quarter)) return false;
+    if (fleet.truck && (e as any).vehicle_unit !== fleet.truck) return false;
+    if (fleet.driverId && (e as any).driver_id !== fleet.driverId) return false;
+    if (fleet.from && e.entry_date < fleet.from) return false;
+    if (fleet.to && e.entry_date > fleet.to) return false;
+    return true;
+  }), [entries, filter, fleet]);
   const summary = useMemo(() => {
     const map = new Map<string, { miles: number; gallons: number; cost: number }>();
     for (const e of filtered) {
@@ -113,20 +122,23 @@ function IftaPage() {
         </div>
       </div>
 
-      <div className="flex gap-2 items-end flex-wrap">
-        <div>
-          <Label className="text-xs">Year</Label>
-          <Input type="number" className="w-24" value={filter.year} onChange={(e) => setFilter({ ...filter, year: parseInt(e.target.value) || filter.year })} />
+      <div className="space-y-2">
+        <div className="flex gap-2 items-end flex-wrap">
+          <div>
+            <Label className="text-xs">Year</Label>
+            <Input type="number" className="w-24" value={filter.year} onChange={(e) => setFilter({ ...filter, year: parseInt(e.target.value) || filter.year })} />
+          </div>
+          <div>
+            <Label className="text-xs">Quarter</Label>
+            <select value={filter.quarter} onChange={(e) => setFilter({ ...filter, quarter: parseInt(e.target.value) })} className="block h-9 rounded-md border border-input bg-background px-2 text-sm">
+              <option value={1}>Q1 (Jan–Mar)</option>
+              <option value={2}>Q2 (Apr–Jun)</option>
+              <option value={3}>Q3 (Jul–Sep)</option>
+              <option value={4}>Q4 (Oct–Dec)</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <Label className="text-xs">Quarter</Label>
-          <select value={filter.quarter} onChange={(e) => setFilter({ ...filter, quarter: parseInt(e.target.value) })} className="block h-9 rounded-md border border-input bg-background px-2 text-sm">
-            <option value={1}>Q1 (Jan–Mar)</option>
-            <option value={2}>Q2 (Apr–Jun)</option>
-            <option value={3}>Q3 (Jul–Sep)</option>
-            <option value={4}>Q4 (Oct–Dec)</option>
-          </select>
-        </div>
+        <FleetFilters value={fleet} onChange={setFleet} showDates={false} />
       </div>
 
       {showForm && <IftaForm onClose={() => setShowForm(false)} onSubmit={async (p) => {

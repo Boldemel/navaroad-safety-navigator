@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Fuel, Plus, Trash2, Loader2, Download } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
 
 export const Route = createFileRoute("/_authenticated/fuel")({ component: FuelPage });
 
@@ -20,9 +21,17 @@ function FuelPage() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<FuelPurchase | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [fleet, setFleet] = useState<FleetFilterValue>(emptyFleetFilters);
 
   const { data, isLoading } = useQuery({ queryKey: ["fuel"], queryFn: () => fetchAll() });
-  const rows = data?.purchases ?? [];
+  const allRows = data?.purchases ?? [];
+  const rows = useMemo(() => allRows.filter((r) => {
+    if (fleet.truck && r.vehicle_unit !== fleet.truck) return false;
+    if (fleet.driverId && (r as any).driver_id !== fleet.driverId) return false;
+    if (fleet.from && r.purchase_date < fleet.from) return false;
+    if (fleet.to && r.purchase_date > fleet.to) return false;
+    return true;
+  }), [allRows, fleet]);
 
   const summary = useMemo(() => {
     let gallons = 0, cost = 0;
@@ -73,6 +82,8 @@ function FuelPage() {
           <Button onClick={() => { setEditing(null); setShowForm(true); }}><Plus className="size-4 mr-2" /> Add</Button>
         </div>
       </div>
+
+      <FleetFilters value={fleet} onChange={setFleet} />
 
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-lg border border-border bg-card p-3"><div className="text-xs text-muted-foreground">Gallons</div><div className="text-xl font-bold">{summary.gallons.toFixed(1)}</div></div>

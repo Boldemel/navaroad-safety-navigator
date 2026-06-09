@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Package, Plus, Trash2, MapPin, Calendar, AlertTriangle, Loader2, Star } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
 
 export const Route = createFileRoute("/_authenticated/loads/")({
   component: LoadsPage,
@@ -34,9 +35,18 @@ function LoadsPage() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Load | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [fleet, setFleet] = useState<FleetFilterValue>(emptyFleetFilters);
 
   const { data, isLoading } = useQuery({ queryKey: ["loads"], queryFn: () => fetchAll() });
-  const loads = data?.loads ?? [];
+  const allLoads = data?.loads ?? [];
+  const loads = useMemo(() => allLoads.filter((l) => {
+    if (fleet.truck && (l as any).vehicle_unit !== fleet.truck) return false;
+    if (fleet.driverId && (l as any).driver_id !== fleet.driverId) return false;
+    const refDate = (l.delivery_at || l.pickup_at || "").slice(0, 10);
+    if (fleet.from && refDate && refDate < fleet.from) return false;
+    if (fleet.to && refDate && refDate > fleet.to) return false;
+    return true;
+  }), [allLoads, fleet]);
   const current = loads.find((l) => l.is_current) ?? null;
   const others = loads.filter((l) => !l.is_current);
 
@@ -79,7 +89,9 @@ function LoadsPage() {
           <Button onClick={() => { setEditing(null); setShowForm(true); }}><Plus className="size-4 mr-2" /> New load</Button>
         </div>
 
-        {showForm && (
+          <FleetFilters value={fleet} onChange={setFleet} />
+
+          {showForm && (
           <LoadForm
             initial={editing}
             onClose={() => { setShowForm(false); setEditing(null); }}
