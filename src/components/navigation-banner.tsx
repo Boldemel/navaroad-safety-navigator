@@ -61,6 +61,7 @@ export function NavigationBanner() {
   const refetchFn = useServerFn(getTruckRoute);
   const [voice, setVoice] = useVoiceSettings();
   useVoiceGuidance();
+  const { alerts: proximityAlerts, dismiss: dismissProximity } = useProximityAlerts();
 
   const here = geo.coords ? { lat: geo.coords.lat, lon: geo.coords.lon } : null;
 
