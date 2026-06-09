@@ -660,14 +660,14 @@ function Dashboard() {
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
                 <span><MapPin className="inline size-3.5 mr-1" />{Math.round(result.distanceKm * 0.621371)} mi</span>
                 <span>~{formatDriveTime(result.durationMin)} <span className="text-xs">(base drive time)</span></span>
-                {result.weatherImpact.available && result.weatherImpact.deltaMin > 0 && (
+                {result.weatherImpact?.available && result.weatherImpact.deltaMin > 0 && (
                   <span className="text-warning">
                     ~{formatDriveTime(result.weatherImpact.adjustedDurationMin)} with weather (+{result.weatherImpact.deltaMin} min · +{result.weatherImpact.deltaPct}%)
                   </span>
                 )}
                 <span>{result.weatherAlertCount} weather alerts · {result.roadAlertCount} DOT alerts on path</span>
               </div>
-              {result.weatherImpact.available && result.weatherImpact.deltaMin > 0 && (
+              {result.weatherImpact?.available && result.weatherImpact.deltaMin > 0 && (
                 <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs space-y-1.5">
                   <div className="font-medium text-foreground text-sm">Weather slowdown timeline</div>
                   <div className="grid sm:grid-cols-3 gap-2">
