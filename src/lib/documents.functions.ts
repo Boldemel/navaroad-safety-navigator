@@ -27,6 +27,8 @@ const DocSchema = z.object({
   expiresOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
   fileUrl: z.string().url().max(2000).nullable().optional(),
+  category: z.string().max(40).nullable().optional(),
+  driverId: z.string().uuid().nullable().optional(),
 });
 
 function row(d: z.infer<typeof DocSchema>) {
@@ -39,6 +41,8 @@ function row(d: z.infer<typeof DocSchema>) {
     expires_on: d.expiresOn ?? null,
     notes: d.notes ?? null,
     file_url: d.fileUrl ?? null,
+    category: d.category ?? null,
+    driver_id: d.driverId ?? null,
   };
 }
 
