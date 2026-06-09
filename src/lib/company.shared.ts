@@ -24,6 +24,29 @@ export const PERMISSIONS = [
 ] as const;
 export type AppPermission = (typeof PERMISSIONS)[number];
 
+export const ELD_SYSTEMS = [
+  "Motive",
+  "Samsara",
+  "Geotab",
+  "KeepTruckin",
+  "Rand McNally",
+  "Omnitracs",
+  "Verizon Connect",
+  "Other",
+] as const;
+export type EldSystem = (typeof ELD_SYSTEMS)[number];
+
+/** Username-only logins get a synthesized email so Supabase Auth can store them. */
+export const USERNAME_EMAIL_DOMAIN = "drivers.navaroad.local";
+
+export function usernameToSyntheticEmail(username: string): string {
+  return `${username.trim().toLowerCase()}@${USERNAME_EMAIL_DOMAIN}`;
+}
+
+export function isSyntheticEmail(email: string | null | undefined): boolean {
+  return !!email && email.toLowerCase().endsWith(`@${USERNAME_EMAIL_DOMAIN}`);
+}
+
 export type CompanyMember = {
   memberId: string;
   userId: string;
@@ -36,8 +59,11 @@ export type CompanyMember = {
   lastName: string | null;
   phone: string | null;
   employeeId: string | null;
+  driverIdNumber: string | null;
+  username: string | null;
   assignedTruck: string | null;
   assignedTrailer: string | null;
+  eldSystem: string | null;
   active: boolean;
   mustChangePassword: boolean;
 };
