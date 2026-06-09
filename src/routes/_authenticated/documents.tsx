@@ -10,6 +10,9 @@ import { FolderLock, Plus, Trash2, Loader2, AlertTriangle, FileText, ExternalLin
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
+
+const DOC_CATEGORIES = ["", "CDL", "Medical", "Drug Testing", "Employment", "Training", "Safety"];
 
 export const Route = createFileRoute("/_authenticated/documents")({ component: DocumentsPage });
 
