@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as AuthenticatedTrucksRouteImport } from './routes/_authenticated/trucks'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedReportRouteImport } from './routes/_authenticated/report'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
@@ -36,7 +37,9 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedCompanyRouteImport } from './routes/_authenticated/company'
 import { Route as AuthenticatedAssistantRouteImport } from './routes/_authenticated/assistant'
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
+import { Route as AuthenticatedTrucksIndexRouteImport } from './routes/_authenticated/trucks.index'
 import { Route as AuthenticatedLoadsIndexRouteImport } from './routes/_authenticated/loads.index'
+import { Route as AuthenticatedTrucksVehicleUnitRouteImport } from './routes/_authenticated/trucks.$vehicleUnit'
 import { Route as AuthenticatedLoadsHistoryRouteImport } from './routes/_authenticated/loads.history'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminPlatformRouteImport } from './routes/_authenticated/admin/platform'
@@ -76,6 +79,11 @@ const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedTrucksRoute = AuthenticatedTrucksRouteImport.update({
+  id: '/trucks',
+  path: '/trucks',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
   id: '/reports',
@@ -181,11 +189,23 @@ const AuthenticatedAlertsRoute = AuthenticatedAlertsRouteImport.update({
   path: '/alerts',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTrucksIndexRoute =
+  AuthenticatedTrucksIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedTrucksRoute,
+  } as any)
 const AuthenticatedLoadsIndexRoute = AuthenticatedLoadsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedLoadsRoute,
 } as any)
+const AuthenticatedTrucksVehicleUnitRoute =
+  AuthenticatedTrucksVehicleUnitRouteImport.update({
+    id: '/$vehicleUnit',
+    path: '/$vehicleUnit',
+    getParentRoute: () => AuthenticatedTrucksRoute,
+  } as any)
 const AuthenticatedLoadsHistoryRoute =
   AuthenticatedLoadsHistoryRouteImport.update({
     id: '/history',
@@ -242,13 +262,16 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/report': typeof AuthenticatedReportRoute
   '/reports': typeof AuthenticatedReportsRoute
+  '/trucks': typeof AuthenticatedTrucksRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/admin/moderation': typeof AuthenticatedAdminModerationRoute
   '/admin/platform': typeof AuthenticatedAdminPlatformRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/loads/history': typeof AuthenticatedLoadsHistoryRoute
+  '/trucks/$vehicleUnit': typeof AuthenticatedTrucksVehicleUnitRoute
   '/loads/': typeof AuthenticatedLoadsIndexRoute
+  '/trucks/': typeof AuthenticatedTrucksIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -281,7 +304,9 @@ export interface FileRoutesByTo {
   '/admin/platform': typeof AuthenticatedAdminPlatformRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/loads/history': typeof AuthenticatedLoadsHistoryRoute
+  '/trucks/$vehicleUnit': typeof AuthenticatedTrucksVehicleUnitRoute
   '/loads': typeof AuthenticatedLoadsIndexRoute
+  '/trucks': typeof AuthenticatedTrucksIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -311,13 +336,16 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/report': typeof AuthenticatedReportRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
+  '/_authenticated/trucks': typeof AuthenticatedTrucksRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/_authenticated/admin/error-logs': typeof AuthenticatedAdminErrorLogsRoute
   '/_authenticated/admin/moderation': typeof AuthenticatedAdminModerationRoute
   '/_authenticated/admin/platform': typeof AuthenticatedAdminPlatformRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/loads/history': typeof AuthenticatedLoadsHistoryRoute
+  '/_authenticated/trucks/$vehicleUnit': typeof AuthenticatedTrucksVehicleUnitRoute
   '/_authenticated/loads/': typeof AuthenticatedLoadsIndexRoute
+  '/_authenticated/trucks/': typeof AuthenticatedTrucksIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -347,13 +375,16 @@ export interface FileRouteTypes {
     | '/profile'
     | '/report'
     | '/reports'
+    | '/trucks'
     | '/api/chat'
     | '/admin/error-logs'
     | '/admin/moderation'
     | '/admin/platform'
     | '/admin/users'
     | '/loads/history'
+    | '/trucks/$vehicleUnit'
     | '/loads/'
+    | '/trucks/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -386,7 +417,9 @@ export interface FileRouteTypes {
     | '/admin/platform'
     | '/admin/users'
     | '/loads/history'
+    | '/trucks/$vehicleUnit'
     | '/loads'
+    | '/trucks'
   id:
     | '__root__'
     | '/'
@@ -415,13 +448,16 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/report'
     | '/_authenticated/reports'
+    | '/_authenticated/trucks'
     | '/api/chat'
     | '/_authenticated/admin/error-logs'
     | '/_authenticated/admin/moderation'
     | '/_authenticated/admin/platform'
     | '/_authenticated/admin/users'
     | '/_authenticated/loads/history'
+    | '/_authenticated/trucks/$vehicleUnit'
     | '/_authenticated/loads/'
+    | '/_authenticated/trucks/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -484,6 +520,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/trucks': {
+      id: '/_authenticated/trucks'
+      path: '/trucks'
+      fullPath: '/trucks'
+      preLoaderRoute: typeof AuthenticatedTrucksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/reports': {
       id: '/_authenticated/reports'
@@ -625,12 +668,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAlertsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/trucks/': {
+      id: '/_authenticated/trucks/'
+      path: '/'
+      fullPath: '/trucks/'
+      preLoaderRoute: typeof AuthenticatedTrucksIndexRouteImport
+      parentRoute: typeof AuthenticatedTrucksRoute
+    }
     '/_authenticated/loads/': {
       id: '/_authenticated/loads/'
       path: '/'
       fullPath: '/loads/'
       preLoaderRoute: typeof AuthenticatedLoadsIndexRouteImport
       parentRoute: typeof AuthenticatedLoadsRoute
+    }
+    '/_authenticated/trucks/$vehicleUnit': {
+      id: '/_authenticated/trucks/$vehicleUnit'
+      path: '/$vehicleUnit'
+      fullPath: '/trucks/$vehicleUnit'
+      preLoaderRoute: typeof AuthenticatedTrucksVehicleUnitRouteImport
+      parentRoute: typeof AuthenticatedTrucksRoute
     }
     '/_authenticated/loads/history': {
       id: '/_authenticated/loads/history'
@@ -683,6 +740,19 @@ const AuthenticatedLoadsRouteChildren: AuthenticatedLoadsRouteChildren = {
 const AuthenticatedLoadsRouteWithChildren =
   AuthenticatedLoadsRoute._addFileChildren(AuthenticatedLoadsRouteChildren)
 
+interface AuthenticatedTrucksRouteChildren {
+  AuthenticatedTrucksVehicleUnitRoute: typeof AuthenticatedTrucksVehicleUnitRoute
+  AuthenticatedTrucksIndexRoute: typeof AuthenticatedTrucksIndexRoute
+}
+
+const AuthenticatedTrucksRouteChildren: AuthenticatedTrucksRouteChildren = {
+  AuthenticatedTrucksVehicleUnitRoute: AuthenticatedTrucksVehicleUnitRoute,
+  AuthenticatedTrucksIndexRoute: AuthenticatedTrucksIndexRoute,
+}
+
+const AuthenticatedTrucksRouteWithChildren =
+  AuthenticatedTrucksRoute._addFileChildren(AuthenticatedTrucksRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAlertsRoute: typeof AuthenticatedAlertsRoute
   AuthenticatedAssistantRoute: typeof AuthenticatedAssistantRoute
@@ -704,6 +774,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedReportRoute: typeof AuthenticatedReportRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
+  AuthenticatedTrucksRoute: typeof AuthenticatedTrucksRouteWithChildren
   AuthenticatedAdminErrorLogsRoute: typeof AuthenticatedAdminErrorLogsRoute
   AuthenticatedAdminModerationRoute: typeof AuthenticatedAdminModerationRoute
   AuthenticatedAdminPlatformRoute: typeof AuthenticatedAdminPlatformRoute
@@ -731,6 +802,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedReportRoute: AuthenticatedReportRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
+  AuthenticatedTrucksRoute: AuthenticatedTrucksRouteWithChildren,
   AuthenticatedAdminErrorLogsRoute: AuthenticatedAdminErrorLogsRoute,
   AuthenticatedAdminModerationRoute: AuthenticatedAdminModerationRoute,
   AuthenticatedAdminPlatformRoute: AuthenticatedAdminPlatformRoute,
@@ -752,13 +824,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

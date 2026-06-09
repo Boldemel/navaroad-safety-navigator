@@ -7,10 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
  */
 const ROLE_MODULES: Record<string, string[]> = {
   driver: ["/dashboard", "/hazard-map", "/parking", "/loads", "/inspections", "/documents", "/fuel", "/logbook"],
-  dispatcher: ["/loads", "/dashboard", "/hazard-map", "/fleet-profitability", "/reports", "/driver-performance"],
-  safety_manager: ["/inspections", "/documents", "/logbook", "/hazard-map", "/assistant", "/reports", "/driver-performance"],
-  maintenance_manager: ["/maintenance", "/inspections", "/reports"],
-  accountant: ["/fuel", "/expenses", "/ifta", "/assistant", "/fleet-profitability", "/reports"],
+  dispatcher: ["/loads", "/dashboard", "/hazard-map", "/fleet-profitability", "/reports", "/driver-performance", "/trucks"],
+  safety_manager: ["/inspections", "/documents", "/logbook", "/hazard-map", "/assistant", "/reports", "/driver-performance", "/trucks"],
+  maintenance_manager: ["/maintenance", "/inspections", "/reports", "/trucks"],
+  accountant: ["/fuel", "/expenses", "/ifta", "/assistant", "/fleet-profitability", "/reports", "/trucks"],
 };
 
 const FULL_ACCESS_ROLES = new Set(["fleet_owner", "company_owner", "fleet_manager"]);
