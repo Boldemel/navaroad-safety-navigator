@@ -92,7 +92,7 @@ function Profile() {
       setSaving(false);
       return toast.error("Percentage cannot exceed 100.");
     }
-    const payload: Record<string, unknown> = {
+    const payload = {
       id: u.user.id,
       driver_name: form.driver_name,
       notify_email: form.notify_email,
@@ -102,7 +102,7 @@ function Profile() {
       driver_pay_rate: form.driver_pay_model ? rateNum : null,
       updated_at: new Date().toISOString(),
     };
-    const { error } = await supabase.from("profiles").upsert(payload);
+    const { error } = await supabase.from("profiles").upsert(payload as never);
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Profile saved.");
