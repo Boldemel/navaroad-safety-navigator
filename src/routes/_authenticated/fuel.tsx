@@ -21,9 +21,17 @@ function FuelPage() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<FuelPurchase | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [fleet, setFleet] = useState<FleetFilterValue>(emptyFleetFilters);
 
   const { data, isLoading } = useQuery({ queryKey: ["fuel"], queryFn: () => fetchAll() });
-  const rows = data?.purchases ?? [];
+  const allRows = data?.purchases ?? [];
+  const rows = useMemo(() => allRows.filter((r) => {
+    if (fleet.truck && r.vehicle_unit !== fleet.truck) return false;
+    if (fleet.driverId && (r as any).driver_id !== fleet.driverId) return false;
+    if (fleet.from && r.purchase_date < fleet.from) return false;
+    if (fleet.to && r.purchase_date > fleet.to) return false;
+    return true;
+  }), [allRows, fleet]);
 
   const summary = useMemo(() => {
     let gallons = 0, cost = 0;
