@@ -25,6 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useRealtimeInvalidate } from "@/hooks/use-realtime-invalidate";
 import { analyzeRoute, type RouteAnalysis } from "@/lib/route-analysis.functions";
+import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { useActiveRoute, saveActiveRoute, clearActiveRoute } from "@/hooks/use-active-route";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { reverseGeocode } from "@/lib/geo.functions";
@@ -450,8 +451,29 @@ function Dashboard() {
     : activeRouteForQueries
       ? `${activeRouteForQueries.origin} → ${activeRouteForQueries.destination}`
       : "No active route";
-  const feed = result ? { weatherAlerts: result.weatherAlerts, roadAlerts: result.roadAlerts, providers: result.providers } : undefined;
-  const feedLoading = analysis.isPending;
+  // Live safety feed — refetches NWS weather + DOT road alerts every 5 minutes
+  // against the active route geometry, so the dashboard reflects newly-issued
+  // alerts without forcing the driver to click Analyze again. We prefer this
+  // feed's alerts over the (potentially stale) `result.weatherAlerts` baked
+  // in at analyze time.
+  const liveFeedFn = useServerFn(getSafetyFeed);
+  const liveFeedQuery = useQuery({
+    queryKey: ["dashboard-safety-feed", result?.routeId ?? "none"],
+    queryFn: () => liveFeedFn({ data: { geometry: result?.geometry ?? [] } }),
+    enabled: !!result && (result.geometry?.length ?? 0) >= 2,
+    refetchInterval: 5 * 60_000,
+    refetchOnWindowFocus: true,
+    staleTime: 60_000,
+  });
+  const live = liveFeedQuery.data;
+  const feed = result
+    ? {
+        weatherAlerts: live?.weatherAlerts ?? result.weatherAlerts,
+        roadAlerts: live?.roadAlerts ?? result.roadAlerts,
+        providers: result.providers,
+      }
+    : undefined;
+  const feedLoading = analysis.isPending || (!!result && liveFeedQuery.isLoading && !live);
   const parkingStops = result?.restAreas;
   const truckStops = result?.truckStops;
   const weighStations = result?.weighStations;
@@ -718,17 +740,22 @@ function Dashboard() {
                 <div className="text-xs font-medium text-muted-foreground inline-flex items-center gap-1.5">
                   <Cloud className="size-3.5" />
                   Active weather alerts on this route
-                  {result.weatherAlerts.length > 0 && (
-                    <span>({result.weatherAlerts.length} total, grouped by type & region)</span>
+                  {feedWeatherAlerts.length > 0 && (
+                    <span>({feedWeatherAlerts.length} total, grouped by type & region)</span>
+                  )}
+                  {liveFeedQuery.isFetching && (
+                    <span className="text-[10px] text-muted-foreground/70 inline-flex items-center gap-1">
+                      <Loader2 className="size-3 animate-spin" /> refreshing
+                    </span>
                   )}
                 </div>
-                {result.weatherAlerts.length === 0 ? (
+                {feedWeatherAlerts.length === 0 ? (
                   <div className="rounded-md border border-border bg-background p-3 text-sm text-success inline-flex items-center gap-2">
                     <ShieldAlert className="size-4" />
                     No active NWS weather alerts on this route corridor.
                   </div>
                 ) : (
-                  groupAlerts(result.weatherAlerts).map((g) => (
+                  groupAlerts(feedWeatherAlerts).map((g) => (
                     <div key={g.key} className="rounded-md border border-border bg-background p-3 text-sm">
                       <div className="flex items-start gap-2">
                         <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded border ${severityClasses(g.severity)}`}>{g.severity}</span>
@@ -746,6 +773,11 @@ function Dashboard() {
                     </div>
                   ))
                 )}
+                {live?.generatedAt && (
+                  <div className="text-[10px] text-muted-foreground/70">
+                    Updated {new Date(live.generatedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · auto-refreshes every 5 min
+                  </div>
+                )}
               </div>
               {result.risks.length > 0 ? (
                 <ul className="space-y-1.5">
@@ -757,7 +789,7 @@ function Dashboard() {
                     </li>
                   ))}
                 </ul>
-              ) : result.weatherAlerts.length > 0 ? (
+              ) : feedWeatherAlerts.length > 0 ? (
                 <p className="text-sm text-warning">Forecast is calm, but active NWS alerts affect this route — see alerts above.</p>
               ) : (
                 result.dataAvailability.weather && <p className="text-sm text-success">No major weather or road risks detected on this route.</p>

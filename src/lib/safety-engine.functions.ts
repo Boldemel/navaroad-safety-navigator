@@ -43,8 +43,11 @@ export const getSafetyFeed = createServerFn({ method: "POST" })
     }
 
     // Sample along the route — dense enough to catch alerts between endpoints
-    // but bounded to avoid hammering NWS.
-    const samples = sampleRoute(geometry, 20);
+    // but bounded to avoid hammering NWS. NWS rate-limits aggressively; if we
+    // fan out a large `Promise.all` it silently drops responses to [], which
+    // is the exact failure mode that made route alerts "disappear" in the UI.
+    // Run in small sequential batches instead.
+    const samples = sampleRoute(geometry, 10);
 
     // Route bbox for road-alert provider.
     let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
@@ -56,14 +59,23 @@ export const getSafetyFeed = createServerFn({ method: "POST" })
     }
     const bbox: [number, number, number, number] = [minLon, minLat, maxLon, maxLat];
 
-    const [perPoint, roadAlerts] = await Promise.all([
-      Promise.all(samples.map((s) => fetchAlertsForPoint(s.lat, s.lon).catch(() => [] as WeatherAlert[]))),
-      fetchRoadAlerts({ bbox }).catch(() => []),
-    ]);
-
     const dedup = new Map<string, WeatherAlert>();
-    for (const list of perPoint) for (const a of list) dedup.set(a.id, a);
+    const weatherTask = (async () => {
+      const batchSize = 3;
+      for (let i = 0; i < samples.length; i += batchSize) {
+        const batch = samples.slice(i, i + batchSize);
+        const lists = await Promise.all(
+          batch.map((s) => fetchAlertsForPoint(s.lat, s.lon).catch(() => [] as WeatherAlert[])),
+        );
+        for (const list of lists) for (const a of list) dedup.set(a.id, a);
+      }
+    })();
+    const [, roadAlerts] = await Promise.all([
+      weatherTask,
+      fetchRoadAlerts({ bbox }).catch(() => [] as RoadAlert[]),
+    ]);
     const weatherAlerts = Array.from(dedup.values());
+
 
     return {
       weatherAlerts,
