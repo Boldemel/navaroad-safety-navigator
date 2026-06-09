@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { MapPinned, Plus, Trash2, Loader2, Download, Printer, FileText } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
 
 export const Route = createFileRoute("/_authenticated/ifta")({ component: IftaPage });
 
