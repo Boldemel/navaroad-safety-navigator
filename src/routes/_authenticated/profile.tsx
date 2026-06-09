@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -12,12 +12,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { User, Trash2 } from "lucide-react";
-import { VoiceSettingsCard } from "@/components/voice-settings-card";
-import { TruckProfileCard } from "@/components/truck-profile-card";
-import { TruckRegistrationCard } from "@/components/truck-registration-card";
-import { FavoriteLocationsCard } from "@/components/favorite-locations-card";
-import { SavedRoutesCard } from "@/components/saved-routes-card";
+import { User, Trash2, KeyRound } from "lucide-react";
 import { deleteOwnAccount } from "@/lib/account.functions";
 import { useBrowserNotifications } from "@/hooks/use-browser-notifications";
 
@@ -33,14 +28,15 @@ function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [changingPw, setChangingPw] = useState(false);
   const [email, setEmail] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
   const [form, setForm] = useState({
-    driver_name: "",
+    display_name: "",
     notify_email: true,
     notify_push: true,
     notify_sms: false,
-    driver_pay_model: "" as "" | "per_mile" | "percentage" | "flat",
-    driver_pay_rate: "" as string,
   });
 
   async function deleteAccount() {
@@ -63,15 +59,13 @@ function Profile() {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) return;
       setEmail(u.user.email ?? "");
-      const { data } = await supabase.from("profiles").select("*").eq("id", u.user.id).maybeSingle();
+      const { data } = await supabase.from("profiles").select("driver_name, notify_email, notify_push, notify_sms").eq("id", u.user.id).maybeSingle();
       if (data) {
         setForm({
-          driver_name: data.driver_name ?? "",
+          display_name: data.driver_name ?? "",
           notify_email: data.notify_email ?? true,
           notify_push: data.notify_push ?? true,
           notify_sms: data.notify_sms ?? false,
-          driver_pay_model: (data as any).driver_pay_model ?? "",
-          driver_pay_rate: (data as any).driver_pay_rate != null ? String((data as any).driver_pay_rate) : "",
         });
       }
       setLoading(false);
@@ -83,23 +77,12 @@ function Profile() {
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) { setSaving(false); return; }
-    const rateNum = form.driver_pay_rate === "" ? null : Number(form.driver_pay_rate);
-    if (form.driver_pay_model && (rateNum == null || Number.isNaN(rateNum) || rateNum < 0)) {
-      setSaving(false);
-      return toast.error("Enter a valid pay rate (0 or greater).");
-    }
-    if (form.driver_pay_model === "percentage" && rateNum != null && rateNum > 100) {
-      setSaving(false);
-      return toast.error("Percentage cannot exceed 100.");
-    }
     const payload = {
       id: u.user.id,
-      driver_name: form.driver_name,
+      driver_name: form.display_name,
       notify_email: form.notify_email,
       notify_push: form.notify_push,
       notify_sms: form.notify_sms,
-      driver_pay_model: form.driver_pay_model || null,
-      driver_pay_rate: form.driver_pay_model ? rateNum : null,
       updated_at: new Date().toISOString(),
     };
     const { error } = await supabase.from("profiles").upsert(payload as never);
@@ -108,8 +91,19 @@ function Profile() {
     toast.success("Profile saved.");
   }
 
-  if (loading) return <div className="p-8 text-muted-foreground text-sm">Loading…</div>;
+  async function changePassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (newPw.length < 8) return toast.error("Password must be at least 8 characters.");
+    if (newPw !== confirmPw) return toast.error("Passwords do not match.");
+    setChangingPw(true);
+    const { error } = await supabase.auth.updateUser({ password: newPw });
+    setChangingPw(false);
+    if (error) return toast.error(error.message);
+    setNewPw(""); setConfirmPw("");
+    toast.success("Password updated.");
+  }
 
+  if (loading) return <div className="p-8 text-muted-foreground text-sm">Loading…</div>;
 
   return (
     <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-6">
@@ -118,68 +112,27 @@ function Profile() {
           <User className="size-6" />
         </div>
         <div>
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">{form.driver_name || "Driver"}</h1>
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">{form.display_name || "Your account"}</h1>
           <p className="text-muted-foreground text-sm">{email}</p>
         </div>
       </div>
 
+      <div className="rounded-xl border border-border bg-muted/30 p-4 text-sm">
+        Driver info, truck profile, pay setup, routes, and team members live on the{" "}
+        <Link to="/company" className="font-medium text-primary hover:underline">Company &amp; Team</Link> page.
+      </div>
+
       <form onSubmit={save} className="rounded-xl border border-border bg-card p-5 space-y-5">
+        <div className="font-medium">Account</div>
         <div className="space-y-1.5">
-          <Label>Driver name</Label>
-          <Input value={form.driver_name} onChange={(e) => setForm({ ...form, driver_name: e.target.value })} />
+          <Label>Your name</Label>
+          <Input value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} />
         </div>
-
-        <p className="text-xs text-muted-foreground">Truck, trailer, dimensions, and load status are managed in the Truck Profile below.</p>
-
-        <div className="pt-4 border-t border-border space-y-3">
-          <div className="font-medium">Driver pay setup</div>
-          <p className="text-xs text-muted-foreground">
-            When a load is marked delivered, settlement pay is calculated automatically from this setup.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Pay model</Label>
-              <select
-                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-                value={form.driver_pay_model}
-                onChange={(e) => setForm({ ...form, driver_pay_model: e.target.value as typeof form.driver_pay_model })}
-              >
-                <option value="">No auto-pay (use load rate)</option>
-                <option value="per_mile">Per mile ($/mi × miles)</option>
-                <option value="percentage">Percentage of load revenue</option>
-                <option value="flat">Flat amount per load</option>
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>
-                {form.driver_pay_model === "percentage"
-                  ? "Percent (0–100)"
-                  : form.driver_pay_model === "per_mile"
-                  ? "Rate ($ per mile)"
-                  : form.driver_pay_model === "flat"
-                  ? "Flat amount ($)"
-                  : "Rate"}
-              </Label>
-              <Input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                max={form.driver_pay_model === "percentage" ? 100 : undefined}
-                step="0.01"
-                placeholder={
-                  form.driver_pay_model === "percentage" ? "e.g. 25"
-                  : form.driver_pay_model === "per_mile" ? "e.g. 0.65"
-                  : form.driver_pay_model === "flat" ? "e.g. 500"
-                  : "Select a pay model first"
-                }
-                value={form.driver_pay_rate}
-                onChange={(e) => setForm({ ...form, driver_pay_rate: e.target.value })}
-                disabled={!form.driver_pay_model}
-              />
-            </div>
-          </div>
+        <div className="space-y-1.5">
+          <Label>Email</Label>
+          <Input value={email} disabled />
+          <p className="text-[11px] text-muted-foreground">Contact support to change your sign-in email.</p>
         </div>
-
 
         <div className="pt-4 border-t border-border space-y-4">
           <div className="font-medium">Notification preferences</div>
@@ -203,14 +156,25 @@ function Profile() {
           )}
         </div>
 
-        <Button type="submit" disabled={saving} className="w-full sm:w-auto">{saving ? "Saving…" : "Save profile"}</Button>
+        <Button type="submit" disabled={saving} className="w-full sm:w-auto">{saving ? "Saving…" : "Save"}</Button>
       </form>
 
-      <TruckProfileCard />
-      <TruckRegistrationCard />
-      <FavoriteLocationsCard />
-      <SavedRoutesCard />
-      <VoiceSettingsCard />
+      <form onSubmit={changePassword} className="rounded-xl border border-border bg-card p-5 space-y-4">
+        <div className="flex items-center gap-2 font-medium"><KeyRound className="size-4" /> Change password</div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label>New password</Label>
+            <Input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} autoComplete="new-password" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Confirm new password</Label>
+            <Input type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} autoComplete="new-password" />
+          </div>
+        </div>
+        <Button type="submit" disabled={changingPw || !newPw} className="w-full sm:w-auto">
+          {changingPw ? "Updating…" : "Update password"}
+        </Button>
+      </form>
 
       <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 space-y-3">
         <div>
