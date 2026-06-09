@@ -268,4 +268,3 @@ function DocForm({ initial, onClose, onSubmit }: { initial: WalletDoc | null; on
     </div>
   );
 }
-}
