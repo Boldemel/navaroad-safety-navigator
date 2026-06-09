@@ -789,7 +789,7 @@ function Dashboard() {
                     </li>
                   ))}
                 </ul>
-              ) : result.weatherAlerts.length > 0 ? (
+              ) : feedWeatherAlerts.length > 0 ? (
                 <p className="text-sm text-warning">Forecast is calm, but active NWS alerts affect this route — see alerts above.</p>
               ) : (
                 result.dataAvailability.weather && <p className="text-sm text-success">No major weather or road risks detected on this route.</p>
