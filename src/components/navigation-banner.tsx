@@ -1,10 +1,13 @@
 import { useEffect, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Navigation2, X, Clock, MapPin, ArrowUpRight, Volume2, VolumeX } from "lucide-react";
+import {
+  Navigation2, X, Clock, MapPin, Volume2, VolumeX,
+  ArrowUp, ArrowUpRight, ArrowUpLeft, ArrowRight, ArrowLeft, CornerUpRight, CornerUpLeft, RotateCw,
+} from "lucide-react";
 import { useNavigationSession, updateNavigationRoute, stopNavigation } from "@/hooks/use-navigation-session";
 import { useGeolocation, distanceMiles } from "@/hooks/use-geolocation";
-import { getTruckRoute } from "@/lib/navigation.functions";
+import { getTruckRoute, type NavInstruction } from "@/lib/navigation.functions";
 import { saveActiveRoute, clearActiveRoute } from "@/hooks/use-active-route";
 import { useVoiceGuidance } from "@/hooks/use-voice-guidance";
 import { useVoiceSettings } from "@/lib/voice/voice-settings";
@@ -30,14 +33,32 @@ function remainingMilesFromIndex(idx: number, geometry: Array<[number, number]>)
   return mi;
 }
 
+function instructionIcon(ins: NavInstruction | null) {
+  const msg = (ins?.message ?? "").toLowerCase();
+  if (msg.includes("u-turn") || msg.includes("uturn")) return RotateCw;
+  if (msg.includes("sharp right")) return CornerUpRight;
+  if (msg.includes("sharp left")) return CornerUpLeft;
+  if (msg.includes("slight right") || msg.includes("bear right")) return ArrowUpRight;
+  if (msg.includes("slight left") || msg.includes("bear left")) return ArrowUpLeft;
+  if (msg.includes("right")) return ArrowRight;
+  if (msg.includes("left")) return ArrowLeft;
+  return ArrowUp;
+}
+
+function fmtDist(mi: number | null | undefined): string {
+  if (mi == null) return "";
+  if (mi < 0.1) return "now";
+  if (mi < 0.2) return `${Math.round(mi * 5280)} ft`;
+  if (mi < 1) return `${(Math.round(mi * 10) / 10).toFixed(1)} mi`;
+  return `${Math.round(mi)} mi`;
+}
+
 export function NavigationBanner() {
   const session = useNavigationSession();
   const geo = useGeolocation({ watch: true });
   const refetchFn = useServerFn(getTruckRoute);
   const [voice, setVoice] = useVoiceSettings();
   useVoiceGuidance();
-
-
 
   const here = geo.coords ? { lat: geo.coords.lat, lon: geo.coords.lon } : null;
 
@@ -56,7 +77,6 @@ export function NavigationBanner() {
     const totalMi = session.totalKm * 0.621371;
     const fracRemaining = totalMi > 0 ? Math.max(0, Math.min(1, remainingMi / totalMi)) : 1;
     const etaMin = session.trafficDurationMin * fracRemaining;
-    // Find the next instruction whose point lies ahead of our nearest index.
     const nextInstr =
       session.instructions.find((ins) => {
         const insIdx = nearestIndex(ins.point, session.geometry);
@@ -71,8 +91,6 @@ export function NavigationBanner() {
     };
   }, [session, here]);
 
-  // Live re-route every 90s while moving — picks up traffic-adjusted ETA and
-  // any TomTom incident reroutes.
   const refetch = useMutation({
     mutationFn: async (args: { lat: number; lon: number }) => {
       if (!session) return null;
@@ -121,61 +139,110 @@ export function NavigationBanner() {
   const remaining = stats?.remainingMi ?? 0;
   const nextMsg = stats?.nextInstr?.message ?? "Continue on route";
   const nextDist = stats?.nextDistMi;
+  const Icon = instructionIcon(stats?.nextInstr ?? null);
+
+  const speedMph = geo.coords?.speedMps != null && geo.coords.speedMps >= 0
+    ? Math.round(geo.coords.speedMps * 2.23694)
+    : null;
+
+  // Minutes until arrival (for footer)
+  const minsLeft = eta ? Math.max(0, Math.round((eta.getTime() - Date.now()) / 60000)) : null;
+  const arriveIn = minsLeft != null
+    ? minsLeft < 60 ? `${minsLeft} min` : `${Math.floor(minsLeft / 60)}h ${minsLeft % 60}m`
+    : "—";
 
   return (
-    <div className="sticky top-0 z-40 border-b border-primary/30 bg-primary/10 backdrop-blur supports-[backdrop-filter]:bg-primary/15">
-      <div className="max-w-7xl mx-auto px-3 md:px-6 py-2 flex items-center gap-3 flex-wrap">
-        <div className="size-9 rounded-md bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-          <Navigation2 className="size-4" />
-        </div>
-        <div className="flex-1 min-w-[200px]">
-          <div className="text-[10px] uppercase tracking-wider text-primary/80 flex items-center gap-1">
-            <ArrowUpRight className="size-3" />
-            Next {nextDist != null ? `· ${nextDist < 0.1 ? "now" : nextDist < 1 ? `${Math.round(nextDist * 10) / 10} mi` : `${Math.round(nextDist)} mi`}` : ""}
+    <div className="sticky top-0 z-40 shadow-lg">
+      {/* GARMIN-STYLE GREEN TURN BANNER */}
+      <div className="bg-success text-success-foreground">
+        <div className="max-w-7xl mx-auto px-3 md:px-5 py-3 flex items-center gap-3">
+          {/* Big turn arrow + distance */}
+          <div className="flex flex-col items-center justify-center shrink-0 min-w-[72px]">
+            <Icon className="size-9 md:size-10" strokeWidth={2.5} />
+            <div className="text-base md:text-lg font-bold tabular-nums leading-none mt-1">
+              {fmtDist(nextDist)}
+            </div>
           </div>
-          <div className="text-sm font-semibold leading-tight truncate">{nextMsg}</div>
+
+          {/* Instruction text */}
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] uppercase tracking-widest opacity-80 leading-tight">
+              Next maneuver
+            </div>
+            <div className="text-base md:text-lg font-bold leading-tight truncate">
+              {nextMsg}
+            </div>
+            <div className="text-xs opacity-80 truncate mt-0.5 flex items-center gap-1">
+              <MapPin className="size-3 shrink-0" />
+              <span className="truncate">{session.destination.label}</span>
+            </div>
+          </div>
+
+          {/* Mute toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              const nextMuted = !voice.muted;
+              setVoice({ muted: nextMuted });
+              if (nextMuted) cancelSpeech();
+            }}
+            className="size-9 rounded-full bg-success-foreground/15 hover:bg-success-foreground/25 flex items-center justify-center transition-colors shrink-0"
+            aria-label={voice.muted ? "Unmute voice guidance" : "Mute voice guidance"}
+            aria-pressed={!voice.muted}
+            title={voice.muted ? "Voice muted" : "Voice on"}
+          >
+            {voice.muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              stopNavigation();
+              clearActiveRoute();
+              cancelSpeech();
+            }}
+            className="size-9 rounded-full bg-success-foreground/15 hover:bg-success-foreground/25 flex items-center justify-center transition-colors shrink-0"
+            aria-label="End navigation"
+          >
+            <X className="size-4" />
+          </button>
         </div>
-        <div className="hidden sm:flex items-center gap-1 text-xs text-foreground/80 border-l border-primary/20 pl-3">
-          <MapPin className="size-3.5 text-primary" />
-          <span className="font-medium">{remaining < 1 ? "<1" : Math.round(remaining)} mi</span>
-          <span className="text-muted-foreground">to destination</span>
-        </div>
-        <div className="flex items-center gap-1 text-xs text-foreground/80 border-l border-primary/20 pl-3">
-          <Clock className="size-3.5 text-primary" />
-          <span className="font-medium">{etaLabel}</span>
-          <span className="text-muted-foreground hidden sm:inline">ETA</span>
+      </div>
+
+      {/* DARK STATS FOOTER — speed · ETA · remaining */}
+      <div className="bg-zinc-900 text-zinc-100 dark:bg-zinc-950">
+        <div className="max-w-7xl mx-auto px-3 md:px-5 py-2 grid grid-cols-4 gap-3 text-center">
+          <div>
+            <div className="text-[9px] uppercase tracking-widest text-zinc-400">Speed</div>
+            <div className="text-base font-bold tabular-nums leading-tight">
+              {speedMph != null ? speedMph : "—"}
+              <span className="text-[10px] font-medium text-zinc-400 ml-0.5">mph</span>
+            </div>
+          </div>
+          <div>
+            <div className="text-[9px] uppercase tracking-widest text-zinc-400">Distance</div>
+            <div className="text-base font-bold tabular-nums leading-tight">
+              {remaining < 1 ? "<1" : Math.round(remaining)}
+              <span className="text-[10px] font-medium text-zinc-400 ml-0.5">mi</span>
+            </div>
+          </div>
+          <div>
+            <div className="text-[9px] uppercase tracking-widest text-zinc-400">Arrive in</div>
+            <div className="text-base font-bold tabular-nums leading-tight">{arriveIn}</div>
+          </div>
+          <div>
+            <div className="text-[9px] uppercase tracking-widest text-zinc-400 flex items-center justify-center gap-0.5">
+              <Clock className="size-2.5" /> ETA
+            </div>
+            <div className="text-base font-bold tabular-nums leading-tight">{etaLabel}</div>
+          </div>
         </div>
         {session.truck && (
-          <span className="hidden md:inline text-[10px] uppercase tracking-wider rounded border border-primary/30 bg-primary/10 text-primary px-2 py-0.5">
-            Truck mode
-          </span>
+          <div className="text-center pb-1">
+            <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-widest text-success">
+              <Navigation2 className="size-2.5" /> Truck routing active
+            </span>
+          </div>
         )}
-        <button
-          type="button"
-          onClick={() => {
-            const nextMuted = !voice.muted;
-            setVoice({ muted: nextMuted });
-            if (nextMuted) cancelSpeech();
-          }}
-          className="inline-flex items-center gap-1 rounded-md border border-border bg-card hover:bg-accent px-2 py-1 text-xs"
-          aria-label={voice.muted ? "Unmute voice guidance" : "Mute voice guidance"}
-          aria-pressed={!voice.muted}
-          title={voice.muted ? "Voice muted" : "Voice on"}
-        >
-          {voice.muted ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            stopNavigation();
-            clearActiveRoute();
-            cancelSpeech();
-          }}
-          className="inline-flex items-center gap-1 rounded-md border border-border bg-card hover:bg-accent px-2 py-1 text-xs"
-          aria-label="End navigation"
-        >
-          <X className="size-3.5" /> End
-        </button>
       </div>
     </div>
   );
