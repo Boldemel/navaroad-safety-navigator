@@ -89,7 +89,9 @@ function LoadsPage() {
           <Button onClick={() => { setEditing(null); setShowForm(true); }}><Plus className="size-4 mr-2" /> New load</Button>
         </div>
 
-        {showForm && (
+          <FleetFilters value={fleet} onChange={setFleet} />
+
+          {showForm && (
           <LoadForm
             initial={editing}
             onClose={() => { setShowForm(false); setEditing(null); }}
