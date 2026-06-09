@@ -32,6 +32,7 @@ const RADIUS_MI: Record<ProximityAlertKind, number> = {
   road_closure: 25,
   severe_weather: 25,
   driver_report: 10,
+  weigh_station: 1,
 };
 
 const SESSION_KEY = "navaroad.proximityFiredIds";
