@@ -12,7 +12,10 @@ import {
   Power,
   History,
   Radio,
+  Search,
+  DollarSign,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +47,11 @@ import {
   ROLES, PERMISSIONS, ELD_SYSTEMS,
   type CompanyRole, type AppPermission, type CompanyMember, type EldSystem,
 } from "@/lib/company.shared";
+import { TruckProfileCard } from "@/components/truck-profile-card";
+import { TruckRegistrationCard } from "@/components/truck-registration-card";
+import { FavoriteLocationsCard } from "@/components/favorite-locations-card";
+import { SavedRoutesCard } from "@/components/saved-routes-card";
+import { VoiceSettingsCard } from "@/components/voice-settings-card";
 
 export const Route = createFileRoute("/_authenticated/company")({
   component: CompanyPage,
