@@ -12,6 +12,7 @@ import { Receipt, Plus, Trash2, Loader2, Download, DollarSign, TrendingUp, Trend
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
 
 export const Route = createFileRoute("/_authenticated/expenses")({ component: ExpensesPage });
 
