@@ -617,51 +617,67 @@ function MemberRow({ member, canManage, companyId, isSelf }: { member: CompanyMe
         </div>
       </div>
 
-      {expanded && canManage && (
+      {expanded && (canManage || isSelf) && (
         <div className="p-3 border-t border-border space-y-4">
-          <div>
-            <div className="text-xs font-medium text-muted-foreground mb-2">Roles</div>
-            <div className="flex flex-wrap gap-3">
-              {ROLES.map((r) => (
-                <label key={r} className={`flex items-center gap-2 text-sm cursor-pointer ${member.isOwner && r === "fleet_owner" ? "opacity-60" : ""}`}>
-                  <Checkbox
-                    checked={member.roles.includes(r)}
-                    onCheckedChange={(v) => toggleRole(r, !!v)}
-                    disabled={rolesMut.isPending || (member.isOwner && r === "fleet_owner")}
-                  />
-                  {ROLE_LABELS[r]}
-                </label>
-              ))}
+          {canManage && (
+            <>
+              <div>
+                <div className="text-xs font-medium text-muted-foreground mb-2">Roles</div>
+                <div className="flex flex-wrap gap-3">
+                  {ROLES.map((r) => (
+                    <label key={r} className={`flex items-center gap-2 text-sm cursor-pointer ${member.isOwner && r === "fleet_owner" ? "opacity-60" : ""}`}>
+                      <Checkbox
+                        checked={member.roles.includes(r)}
+                        onCheckedChange={(v) => toggleRole(r, !!v)}
+                        disabled={rolesMut.isPending || (member.isOwner && r === "fleet_owner")}
+                      />
+                      {ROLE_LABELS[r]}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-muted-foreground mb-2">Permission overrides</div>
+                <p className="text-[11px] text-muted-foreground mb-2">
+                  Default = use what their roles allow. Grant = always allow. Deny = always block.
+                </p>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  {PERMISSIONS.map((p) => {
+                    const has = overrideMap.has(p);
+                    const value: "grant" | "deny" | "default" = !has ? "default" : overrideMap.get(p) ? "grant" : "deny";
+                    return (
+                      <div key={p} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="font-mono truncate">{p}</span>
+                        <Select
+                          value={value}
+                          onValueChange={(v) => overrideMut.mutate({ permission: p, value: v as any })}
+                        >
+                          <SelectTrigger className="h-7 w-28"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="default">Default</SelectItem>
+                            <SelectItem value="grant">Grant</SelectItem>
+                            <SelectItem value="deny">Deny</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          {isSelf && member.roles.includes("driver") && (
+            <div className="space-y-4 pt-2">
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Your driver setup</div>
+              <DriverPayCard />
+              <TruckProfileCard />
+              <TruckRegistrationCard />
+              <FavoriteLocationsCard />
+              <SavedRoutesCard />
+              <VoiceSettingsCard />
             </div>
-          </div>
-          <div>
-            <div className="text-xs font-medium text-muted-foreground mb-2">Permission overrides</div>
-            <p className="text-[11px] text-muted-foreground mb-2">
-              Default = use what their roles allow. Grant = always allow. Deny = always block.
-            </p>
-            <div className="grid sm:grid-cols-2 gap-2">
-              {PERMISSIONS.map((p) => {
-                const has = overrideMap.has(p);
-                const value: "grant" | "deny" | "default" = !has ? "default" : overrideMap.get(p) ? "grant" : "deny";
-                return (
-                  <div key={p} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="font-mono truncate">{p}</span>
-                    <Select
-                      value={value}
-                      onValueChange={(v) => overrideMut.mutate({ permission: p, value: v as any })}
-                    >
-                      <SelectTrigger className="h-7 w-28"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="default">Default</SelectItem>
-                        <SelectItem value="grant">Grant</SelectItem>
-                        <SelectItem value="deny">Deny</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          )}
         </div>
       )}
     </div>
