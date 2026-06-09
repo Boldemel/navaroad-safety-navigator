@@ -1,9 +1,10 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Navigation2, X, Clock, MapPin, Volume2, VolumeX,
   ArrowUp, ArrowUpRight, ArrowUpLeft, ArrowRight, ArrowLeft, CornerUpRight, CornerUpLeft, RotateCw,
+  AlertTriangle,
 } from "lucide-react";
 import { useNavigationSession, updateNavigationRoute, stopNavigation } from "@/hooks/use-navigation-session";
 import { useGeolocation, distanceMiles } from "@/hooks/use-geolocation";
@@ -12,6 +13,7 @@ import { saveActiveRoute, clearActiveRoute } from "@/hooks/use-active-route";
 import { useVoiceGuidance } from "@/hooks/use-voice-guidance";
 import { useVoiceSettings } from "@/lib/voice/voice-settings";
 import { cancelSpeech } from "@/lib/voice/voice-engine";
+import { useProximityAlerts } from "@/hooks/use-proximity-alerts";
 
 function nearestIndex(here: { lat: number; lon: number }, geometry: Array<[number, number]>): number {
   let best = 0, bestD = Infinity;
