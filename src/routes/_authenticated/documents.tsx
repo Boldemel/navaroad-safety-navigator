@@ -107,7 +107,7 @@ function DocumentsPage() {
         </div>
       )}
 
-      {(buckets.expired.length > 0 || buckets.soon.length > 0) && (
+      {view === "list" && (buckets.expired.length > 0 || buckets.soon.length > 0) && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive flex items-start gap-2">
           <AlertTriangle className="size-4 mt-0.5" />
           <div>
@@ -133,54 +133,56 @@ function DocumentsPage() {
         />
       )}
 
-      {isLoading ? (
-        <div className="flex justify-center py-12"><Loader2 className="size-6 animate-spin text-muted-foreground" /></div>
-      ) : docs.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No documents saved yet.</div>
-      ) : (
-        <div className="space-y-2">
-          {[...buckets.expired, ...buckets.soon, ...buckets.ok].map((d) => {
-            const n = daysUntil(d.expires_on);
-            const tone = n === null ? "muted" : n < 0 ? "destructive" : n <= 30 ? "amber" : "ok";
-            return (
-              <div key={d.id} className={cn(
-                "rounded-lg border bg-card p-3 flex items-start gap-3",
-                tone === "destructive" && "border-destructive/40",
-                tone === "amber" && "border-amber-500/40",
-                tone === "ok" && "border-border",
-                tone === "muted" && "border-border",
-              )}>
-                <FileText className="size-5 mt-0.5 text-muted-foreground shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm">{d.title}</span>
-                    <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{d.doc_type}</span>
+      {view === "list" && (
+        isLoading ? (
+          <div className="flex justify-center py-12"><Loader2 className="size-6 animate-spin text-muted-foreground" /></div>
+        ) : docs.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No documents saved yet.</div>
+        ) : (
+          <div className="space-y-2">
+            {[...buckets.expired, ...buckets.soon, ...buckets.ok].map((d) => {
+              const n = daysUntil(d.expires_on);
+              const tone = n === null ? "muted" : n < 0 ? "destructive" : n <= 30 ? "amber" : "ok";
+              return (
+                <div key={d.id} className={cn(
+                  "rounded-lg border bg-card p-3 flex items-start gap-3",
+                  tone === "destructive" && "border-destructive/40",
+                  tone === "amber" && "border-amber-500/40",
+                  tone === "ok" && "border-border",
+                  tone === "muted" && "border-border",
+                )}>
+                  <FileText className="size-5 mt-0.5 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-sm">{d.title}</span>
+                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{d.doc_type}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5 flex gap-2 flex-wrap">
+                      {d.issuer && <span>{d.issuer}</span>}
+                      {d.doc_number && <span>· #{d.doc_number}</span>}
+                      {d.expires_on && (
+                        <span className={cn(
+                          "font-medium",
+                          n != null && n < 0 && "text-destructive",
+                          n != null && n >= 0 && n <= 30 && "text-amber-600 dark:text-amber-400",
+                        )}>
+                          {n == null ? null : n < 0 ? `Expired ${-n}d ago` : n === 0 ? "Expires today" : `Expires in ${n}d (${d.expires_on})`}
+                        </span>
+                      )}
+                      {!d.expires_on && <span className="flex items-center gap-1"><CheckCircle2 className="size-3" /> No expiry</span>}
+                    </div>
+                    {d.file_url && <a href={d.file_url} target="_blank" rel="noreferrer" className="text-xs text-primary inline-flex items-center gap-1 mt-1"><ExternalLink className="size-3" /> Open file</a>}
+                    {d.notes && <div className="text-xs text-muted-foreground italic mt-1">"{d.notes}"</div>}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-0.5 flex gap-2 flex-wrap">
-                    {d.issuer && <span>{d.issuer}</span>}
-                    {d.doc_number && <span>· #{d.doc_number}</span>}
-                    {d.expires_on && (
-                      <span className={cn(
-                        "font-medium",
-                        n != null && n < 0 && "text-destructive",
-                        n != null && n >= 0 && n <= 30 && "text-amber-600 dark:text-amber-400",
-                      )}>
-                        {n == null ? null : n < 0 ? `Expired ${-n}d ago` : n === 0 ? "Expires today" : `Expires in ${n}d (${d.expires_on})`}
-                      </span>
-                    )}
-                    {!d.expires_on && <span className="flex items-center gap-1"><CheckCircle2 className="size-3" /> No expiry</span>}
+                  <div className="flex gap-1 shrink-0">
+                    <Button variant="ghost" size="sm" onClick={() => { setEditing(d); setShowForm(true); }}>Edit</Button>
+                    <Button variant="ghost" size="icon" onClick={() => { if (confirm("Delete?")) del.mutate(d.id); }}><Trash2 className="size-4 text-muted-foreground" /></Button>
                   </div>
-                  {d.file_url && <a href={d.file_url} target="_blank" rel="noreferrer" className="text-xs text-primary inline-flex items-center gap-1 mt-1"><ExternalLink className="size-3" /> Open file</a>}
-                  {d.notes && <div className="text-xs text-muted-foreground italic mt-1">"{d.notes}"</div>}
                 </div>
-                <div className="flex gap-1 shrink-0">
-                  <Button variant="ghost" size="sm" onClick={() => { setEditing(d); setShowForm(true); }}>Edit</Button>
-                  <Button variant="ghost" size="icon" onClick={() => { if (confirm("Delete?")) del.mutate(d.id); }}><Trash2 className="size-4 text-muted-foreground" /></Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )
       )}
     </div>
   );
