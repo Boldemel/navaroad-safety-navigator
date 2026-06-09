@@ -1085,13 +1085,22 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active: boolean
+          assigned_trailer: string | null
+          assigned_truck: string | null
           created_at: string
+          created_by_user_id: string | null
           driver_name: string | null
+          employee_id: string | null
+          first_name: string | null
           id: string
+          last_name: string | null
           load_status: string | null
+          must_change_password: boolean
           notify_email: boolean | null
           notify_push: boolean | null
           notify_sms: boolean | null
+          phone: string | null
           trailer_insurance_expiry: string | null
           trailer_make: string | null
           trailer_plate: string | null
@@ -1119,13 +1128,22 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          active?: boolean
+          assigned_trailer?: string | null
+          assigned_truck?: string | null
           created_at?: string
+          created_by_user_id?: string | null
           driver_name?: string | null
+          employee_id?: string | null
+          first_name?: string | null
           id: string
+          last_name?: string | null
           load_status?: string | null
+          must_change_password?: boolean
           notify_email?: boolean | null
           notify_push?: boolean | null
           notify_sms?: boolean | null
+          phone?: string | null
           trailer_insurance_expiry?: string | null
           trailer_make?: string | null
           trailer_plate?: string | null
@@ -1153,13 +1171,22 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          active?: boolean
+          assigned_trailer?: string | null
+          assigned_truck?: string | null
           created_at?: string
+          created_by_user_id?: string | null
           driver_name?: string | null
+          employee_id?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           load_status?: string | null
+          must_change_password?: boolean
           notify_email?: boolean | null
           notify_push?: boolean | null
           notify_sms?: boolean | null
+          phone?: string | null
           trailer_insurance_expiry?: string | null
           trailer_make?: string | null
           trailer_plate?: string | null
@@ -1399,6 +1426,44 @@ export type Database = {
             columns: ["load_id"]
             isOneToOne: false
             referencedRelation: "loads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          company_id: string
+          created_at: string
+          details: Json
+          id: string
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          company_id: string
+          created_at?: string
+          details?: Json
+          id?: string
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          company_id?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -1720,6 +1785,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_manage_user: {
+        Args: { _manager: string; _target: string }
+        Returns: boolean
+      }
       delete_current_user: { Args: never; Returns: undefined }
       get_user_company: { Args: { _user: string }; Returns: string }
       has_company_permission: {
@@ -1751,6 +1820,10 @@ export type Database = {
       }
       is_company_owner: {
         Args: { _company: string; _user: string }
+        Returns: boolean
+      }
+      shares_company_with: {
+        Args: { _target: string; _viewer: string }
         Returns: boolean
       }
     }
