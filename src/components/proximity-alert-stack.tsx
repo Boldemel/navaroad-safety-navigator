@@ -17,6 +17,17 @@ const SEV_CLS: Record<string, string> = {
   low: "border-primary/30 bg-primary/10 text-primary",
 };
 
+const TIER_LABEL: Record<string, string> = {
+  notice: "Heads up",
+  action: "Take action",
+  critical: "Critical",
+};
+const TIER_CLS: Record<string, string> = {
+  notice: "bg-primary/15 text-primary border-primary/30",
+  action: "bg-warning/15 text-warning border-warning/40",
+  critical: "bg-destructive/20 text-destructive border-destructive/50 animate-pulse",
+};
+
 export function ProximityAlertStack() {
   const { alerts, dismiss, dismissAll } = useProximityAlerts();
   if (alerts.length === 0) return null;
@@ -52,6 +63,9 @@ export function ProximityAlertStack() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider opacity-80">
                 <AlertTriangle className="size-3" /> {meta.label} · {a.severity}
+                <span className={cn("ml-auto rounded-full border px-1.5 py-0.5 text-[9px] font-semibold tracking-wide", TIER_CLS[a.tier])}>
+                  {TIER_LABEL[a.tier]}
+                </span>
               </div>
               <div className="text-sm font-medium text-foreground mt-0.5 truncate">{a.title}</div>
               <div className="text-[11px] text-muted-foreground inline-flex items-center gap-1 mt-0.5">

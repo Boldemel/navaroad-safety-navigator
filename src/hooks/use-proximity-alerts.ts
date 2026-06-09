@@ -13,10 +13,19 @@ import { useWeighStationStatuses } from "@/lib/weigh-stations";
 
 export type ProximityAlertKind = "high_wind" | "road_closure" | "severe_weather" | "driver_report" | "weigh_station";
 
+/**
+ * Tier of an active proximity alert:
+ * - `notice`   first heads-up — driver has time to plan a reroute
+ * - `action`   take action now — change lanes, slow down, decide bypass
+ * - `critical` immediate — closest range, flashes red on the nav banner
+ */
+export type ProximityTier = "notice" | "action" | "critical";
+
 export type ProximityAlert = {
   uid: string; // hazard id, stable
   kind: ProximityAlertKind;
   severity: "low" | "medium" | "high" | "critical";
+  tier: ProximityTier;
   title: string;
   source: string;
   distanceMi: number;
@@ -26,27 +35,42 @@ export type ProximityAlert = {
   enteredAt: string;
 };
 
-// Radii per the product spec.
-const RADIUS_MI: Record<ProximityAlertKind, number> = {
-  high_wind: 25,
-  road_closure: 25,
-  severe_weather: 25,
-  driver_report: 10,
-  weigh_station: 1,
+/**
+ * Tiered trigger distances (miles) by alert kind. Tuned for highway speeds so
+ * drivers get a true heads-up (`notice`), a decision window (`action`), and a
+ * last-mile critical flash. Hazards that demand a full reroute (closures,
+ * severe weather) get the longest notice radius.
+ */
+const TIERS: Record<ProximityAlertKind, { notice: number; action: number; critical: number }> = {
+  road_closure:    { notice: 15, action: 5,  critical: 2 },
+  severe_weather:  { notice: 25, action: 10, critical: 3 },
+  high_wind:       { notice: 25, action: 10, critical: 5 },
+  driver_report:   { notice: 10, action: 3,  critical: 1 },
+  weigh_station:   { notice: 3,  action: 2,  critical: 1 },
 };
 
-const SESSION_KEY = "navaroad.proximityFiredIds";
+function tierFor(kind: ProximityAlertKind, distanceMi: number): ProximityTier | null {
+  const t = TIERS[kind];
+  if (distanceMi <= t.critical) return "critical";
+  if (distanceMi <= t.action) return "action";
+  if (distanceMi <= t.notice) return "notice";
+  return null;
+}
 
-function readFired(): Set<string> {
-  if (typeof window === "undefined") return new Set();
+const TIER_RANK: Record<ProximityTier, number> = { notice: 1, action: 2, critical: 3 };
+
+const SESSION_KEY = "navaroad.proximityFiredTiers";
+
+function readFired(): Map<string, ProximityTier> {
+  if (typeof window === "undefined") return new Map();
   try {
     const raw = window.sessionStorage.getItem(SESSION_KEY);
-    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
-  } catch { return new Set(); }
+    return new Map(raw ? (JSON.parse(raw) as Array<[string, ProximityTier]>) : []);
+  } catch { return new Map(); }
 }
-function writeFired(s: Set<string>) {
+function writeFired(m: Map<string, ProximityTier>) {
   if (typeof window === "undefined") return;
-  try { window.sessionStorage.setItem(SESSION_KEY, JSON.stringify([...s])); } catch { /* ignore */ }
+  try { window.sessionStorage.setItem(SESSION_KEY, JSON.stringify([...m.entries()])); } catch { /* ignore */ }
 }
 
 function classifyApiAlert(category: string, title: string): ProximityAlertKind | null {
@@ -62,11 +86,49 @@ function classifyApiAlert(category: string, title: string): ProximityAlertKind |
   return null;
 }
 
+function weighStationAction(severity: ProximityAlert["severity"], tier: ProximityTier): string {
+  const open = severity === "high";
+  const closed = severity === "low";
+  if (tier === "critical") {
+    return open
+      ? "Weigh station OPEN within 1 mile — slow down and prepare to pull in."
+      : closed
+        ? "Weigh station within 1 mile (reported CLOSED) — proceed with caution."
+        : "Weigh station within 1 mile — confirm status and be ready to enter.";
+  }
+  if (tier === "action") {
+    return open
+      ? "Open weigh station ~2 mi ahead — move to the right lane."
+      : "Weigh station ~2 mi ahead — confirm status and lane position.";
+  }
+  return open
+    ? "Open weigh station ~3 mi ahead — plan your lane change."
+    : "Weigh station ~3 mi ahead — heads up.";
+}
+
+function tieredAction(
+  kind: ProximityAlertKind,
+  baseAction: string,
+  tier: ProximityTier,
+  distanceMi: number,
+): string {
+  if (kind === "road_closure") {
+    if (tier === "critical") return "Road closure within 2 mi — reroute is closing fast.";
+    if (tier === "action") return "Road closure ~5 mi ahead — pick an alternate route now.";
+    return "Road closure ~10+ mi ahead — start planning a detour.";
+  }
+  if (tier === "notice") {
+    const miles = distanceMi < 1 ? "less than a mile" : `${Math.round(distanceMi)} mi`;
+    return `Heads up: ${baseAction.replace(/\.$/, "")} (${miles} ahead).`;
+  }
+  return baseAction;
+}
+
 /**
  * Live proximity alert feed. Subscribes to GPS, hazard reports, and the
- * safety feed (NWS + TomTom), and pushes banner events the moment a hazard
- * crosses its configured radius for the first time this session.
- * Cheap to keep mounted globally — relies on TanStack Query for dedupe.
+ * safety feed (NWS + TomTom), and pushes banner events as a hazard crosses
+ * each tier threshold (notice → action → critical). Cheap to keep mounted
+ * globally — relies on TanStack Query for dedupe.
  */
 export function useProximityAlerts() {
   const geo = useGeolocation({ watch: true });
@@ -110,7 +172,6 @@ export function useProximityAlerts() {
   });
   const { data: weighStatus } = useWeighStationStatuses();
 
-  // Build candidate list (id, kind, severity, lat/lon, title, source, action helper).
   type Candidate = {
     uid: string; kind: ProximityAlertKind; severity: ProximityAlert["severity"];
     title: string; source: string; lat: number; lon: number;
@@ -165,62 +226,82 @@ export function useProximityAlerts() {
     return out;
   }, [feed, hazards, weighData, weighStatus]);
 
-  const firedRef = useRef<Set<string>>(readFired());
+  const firedRef = useRef<Map<string, ProximityTier>>(readFired());
   const [active, setActive] = useState<ProximityAlert[]>([]);
   const { notify } = useBrowserNotifications();
 
-  // Detect new hazards that just entered their radius.
+  // Detect hazards entering a new (deeper) tier and refresh distances of active ones.
   useEffect(() => {
     if (!here) return;
-    const additions: ProximityAlert[] = [];
+    const newOrUpgraded: ProximityAlert[] = [];
+    const liveByUid = new Map<string, ProximityAlert>();
+
     for (const c of candidates) {
       const d = distanceMiles(here, { lat: c.lat, lon: c.lon });
-      if (d > RADIUS_MI[c.kind]) continue;
-      if (firedRef.current.has(c.uid)) continue;
-      firedRef.current.add(c.uid);
-      additions.push({
-        uid: c.uid,
-        kind: c.kind,
-        severity: c.severity,
-        title: c.title,
-        source: c.source,
-        distanceMi: d,
-        recommendedAction: c.kind === "weigh_station"
-          ? (c.severity === "high"
-              ? "Weigh station reported OPEN — slow down and prepare to pull in."
-              : c.severity === "low"
-                ? "Weigh station reported CLOSED — proceed with caution; conditions can change."
-                : "Weigh station ahead within 1 mile — confirm status and be ready to enter.")
-          : recommendedActionFor(
+      const tier = tierFor(c.kind, d);
+      if (!tier) continue;
+      const prev = firedRef.current.get(c.uid);
+      const isUpgrade = !prev || TIER_RANK[tier] > TIER_RANK[prev];
+      const baseAction = c.kind === "weigh_station"
+        ? weighStationAction(c.severity, tier)
+        : tieredAction(
+            c.kind,
+            recommendedActionFor(
               { id: c.uid, title: c.title, category: c.category, severity: c.severity, lat: c.lat, lon: c.lon, source: c.source, description: c.description },
               d,
             ),
+            tier,
+            d,
+          );
+      const alert: ProximityAlert = {
+        uid: c.uid,
+        kind: c.kind,
+        severity: c.severity,
+        tier,
+        title: c.title,
+        source: c.source,
+        distanceMi: d,
+        recommendedAction: baseAction,
         lat: c.lat,
         lon: c.lon,
         enteredAt: new Date().toISOString(),
-      });
-    }
-    if (additions.length > 0) {
-      writeFired(firedRef.current);
-      for (const a of additions) {
-        if (a.severity === "critical" || a.severity === "high") {
-          notify({
-            title: `${a.title} · ${a.severity.toUpperCase()}`,
-            body: `${a.distanceMi < 1 ? "<1 mi" : Math.round(a.distanceMi) + " mi"} away — ${a.recommendedAction}`,
-            tag: a.uid,
-          });
-        }
+      };
+      liveByUid.set(c.uid, alert);
+      if (isUpgrade) {
+        firedRef.current.set(c.uid, tier);
+        newOrUpgraded.push(alert);
       }
-      // Newest critical first, cap at 5 visible.
-      setActive((cur) => {
-        const merged = [...additions, ...cur];
-        merged.sort((a, b) => {
-          const rank = { critical: 4, high: 3, medium: 2, low: 1 } as const;
-          return (rank[b.severity] ?? 0) - (rank[a.severity] ?? 0);
-        });
-        return merged.slice(0, 5);
-      });
     }
+
+    if (newOrUpgraded.length > 0) writeFired(firedRef.current);
+
+    for (const a of newOrUpgraded) {
+      if (a.tier === "critical" || (a.tier === "action" && (a.severity === "critical" || a.severity === "high"))) {
+        notify({
+          title: `${a.title} · ${a.tier.toUpperCase()}`,
+          body: `${a.distanceMi < 1 ? "<1 mi" : Math.round(a.distanceMi) + " mi"} away — ${a.recommendedAction}`,
+          tag: `${a.uid}:${a.tier}`,
+        });
+      }
+    }
+
+    // Merge: keep already-active alerts (with refreshed distance/tier) + new upgrades.
+    setActive((cur) => {
+      const merged = new Map<string, ProximityAlert>();
+      for (const a of cur) {
+        const refreshed = liveByUid.get(a.uid);
+        if (refreshed) merged.set(a.uid, { ...refreshed, enteredAt: a.enteredAt });
+      }
+      for (const a of newOrUpgraded) merged.set(a.uid, a);
+      const arr = [...merged.values()];
+      arr.sort((a, b) => {
+        const tierDiff = TIER_RANK[b.tier] - TIER_RANK[a.tier];
+        if (tierDiff !== 0) return tierDiff;
+        const rank = { critical: 4, high: 3, medium: 2, low: 1 } as const;
+        return (rank[b.severity] ?? 0) - (rank[a.severity] ?? 0);
+      });
+      return arr.slice(0, 5);
+    });
   }, [candidates, here?.lat, here?.lon, notify]);
 
   const dismiss = (uid: string) => setActive((cur) => cur.filter((a) => a.uid !== uid));

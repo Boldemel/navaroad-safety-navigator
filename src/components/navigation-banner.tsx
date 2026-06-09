@@ -154,9 +154,9 @@ export function NavigationBanner() {
     ? minsLeft < 60 ? `${minsLeft} min` : `${Math.floor(minsLeft / 60)}h ${minsLeft % 60}m`
     : "—";
 
-  // Proximity flash: highest-severity alert within 1 mile
+  // Proximity flash: only critical-tier alerts trigger the red flash banner.
   const flashAlert = useMemo(() => {
-    const nearby = proximityAlerts.filter((a) => a.distanceMi <= 1 && (a.severity === "high" || a.severity === "critical"));
+    const nearby = proximityAlerts.filter((a) => a.tier === "critical");
     if (nearby.length === 0) return null;
     nearby.sort((a, b) => {
       const rank = { critical: 4, high: 3, medium: 2, low: 1 } as const;
