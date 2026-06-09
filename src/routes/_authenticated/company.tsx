@@ -857,3 +857,104 @@ function EldCredentialsButton({
   );
 }
 
+
+function DriverPayCard() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [model, setModel] = useState<"" | "per_mile" | "percentage" | "flat">("");
+  const [rate, setRate] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("driver_pay_model, driver_pay_rate")
+        .eq("id", u.user.id)
+        .maybeSingle();
+      if (data) {
+        setModel(((data as any).driver_pay_model as typeof model) || "");
+        setRate((data as any).driver_pay_rate != null ? String((data as any).driver_pay_rate) : "");
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  async function save() {
+    setSaving(true);
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) { setSaving(false); return; }
+    const rateNum = rate === "" ? null : Number(rate);
+    if (model && (rateNum == null || Number.isNaN(rateNum) || rateNum < 0)) {
+      setSaving(false);
+      return toast.error("Enter a valid pay rate (0 or greater).");
+    }
+    if (model === "percentage" && rateNum != null && rateNum > 100) {
+      setSaving(false);
+      return toast.error("Percentage cannot exceed 100.");
+    }
+    const { error } = await supabase.from("profiles").upsert({
+      id: u.user.id,
+      driver_pay_model: model || null,
+      driver_pay_rate: model ? rateNum : null,
+      updated_at: new Date().toISOString(),
+    } as never);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Pay setup saved.");
+  }
+
+  if (loading) return <div className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">Loading pay setup…</div>;
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+      <div className="flex items-center gap-2 font-medium"><DollarSign className="size-4" /> Driver pay setup</div>
+      <p className="text-xs text-muted-foreground">
+        When a load is marked delivered, settlement pay is calculated automatically from this setup.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label>Pay model</Label>
+          <select
+            className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+            value={model}
+            onChange={(e) => setModel(e.target.value as typeof model)}
+          >
+            <option value="">No auto-pay (use load rate)</option>
+            <option value="per_mile">Per mile ($/mi × miles)</option>
+            <option value="percentage">Percentage of load revenue</option>
+            <option value="flat">Flat amount per load</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>
+            {model === "percentage" ? "Percent (0–100)"
+              : model === "per_mile" ? "Rate ($ per mile)"
+              : model === "flat" ? "Flat amount ($)"
+              : "Rate"}
+          </Label>
+          <Input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            max={model === "percentage" ? 100 : undefined}
+            step="0.01"
+            placeholder={
+              model === "percentage" ? "e.g. 25"
+              : model === "per_mile" ? "e.g. 0.65"
+              : model === "flat" ? "e.g. 500"
+              : "Select a pay model first"
+            }
+            value={rate}
+            onChange={(e) => setRate(e.target.value)}
+            disabled={!model}
+          />
+        </div>
+      </div>
+      <Button onClick={save} disabled={saving} className="w-full sm:w-auto">
+        {saving ? "Saving…" : "Save pay setup"}
+      </Button>
+    </div>
+  );
+}
