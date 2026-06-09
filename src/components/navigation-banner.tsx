@@ -141,8 +141,8 @@ export function NavigationBanner() {
   const nextDist = stats?.nextDistMi;
   const Icon = instructionIcon(stats?.nextInstr ?? null);
 
-  const speedMph = geo.coords?.speed != null && geo.coords.speed >= 0
-    ? Math.round(geo.coords.speed * 2.23694)
+  const speedMph = geo.coords?.speedMps != null && geo.coords.speedMps >= 0
+    ? Math.round(geo.coords.speedMps * 2.23694)
     : null;
 
   // Minutes until arrival (for footer)
