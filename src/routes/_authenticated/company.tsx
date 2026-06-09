@@ -174,15 +174,43 @@ function CompanyPage() {
           )}
 
           <Card className="p-5 space-y-3">
-            <div className="font-medium">Members ({members.data?.length ?? 0})</div>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="font-medium">Members ({filteredMembers.length}{filteredMembers.length !== (members.data?.length ?? 0) ? ` of ${members.data?.length ?? 0}` : ""})</div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative">
+                  <Search className="size-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search name, truck, ID…"
+                    className="h-9 pl-8 w-56"
+                  />
+                </div>
+                <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as "all" | CompanyRole)}>
+                  <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All roles</SelectItem>
+                    {ROLES.map((r) => <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             {members.isLoading ? (
               <div className="text-sm text-muted-foreground">Loading members…</div>
-            ) : (members.data ?? []).length === 0 ? (
-              <div className="text-sm text-muted-foreground">No members yet.</div>
+            ) : filteredMembers.length === 0 ? (
+              <div className="text-sm text-muted-foreground">
+                {(members.data ?? []).length === 0 ? "No members yet." : "No members match your filters."}
+              </div>
             ) : (
               <div className="space-y-2">
-                {(members.data ?? []).map((m) => (
-                  <MemberRow key={m.memberId} member={m} canManage={canManageMembers} companyId={companyId!} />
+                {filteredMembers.map((m) => (
+                  <MemberRow
+                    key={m.memberId}
+                    member={m}
+                    canManage={canManageMembers}
+                    companyId={companyId!}
+                    isSelf={currentUserId === m.userId}
+                  />
                 ))}
               </div>
             )}
