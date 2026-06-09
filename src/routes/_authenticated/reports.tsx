@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
 import { getFleetReport, type DocExpirationRow, type DriverReportRow, type TruckReportRow } from "@/lib/reports.functions";
+import { downloadFleetReportPdf, type PdfTableSection } from "@/lib/pdf-export";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/reports")({ component: ReportsPage });
