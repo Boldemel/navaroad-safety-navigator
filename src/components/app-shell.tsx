@@ -64,6 +64,17 @@ export function AppShell({ children }: { children: ReactNode }) {
     router.navigate({ to: "/auth", replace: true });
   }
 
+  const mustChangeFn = useServerFn(getMustChangePassword);
+  const mustChange = useQuery({
+    queryKey: ["must-change-password"],
+    queryFn: () => mustChangeFn(),
+    staleTime: 30_000,
+  });
+
+  if (mustChange.data?.mustChange) {
+    return <ForcePasswordChange />;
+  }
+
   return (
     <div className="min-h-screen flex w-full bg-background text-foreground">
       <aside className="hidden md:flex w-60 flex-col border-r border-sidebar-border bg-sidebar">
