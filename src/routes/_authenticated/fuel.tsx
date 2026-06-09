@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Fuel, Plus, Trash2, Loader2, Download } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { FleetFilters, emptyFleetFilters, type FleetFilterValue } from "@/components/fleet-filters";
 
 export const Route = createFileRoute("/_authenticated/fuel")({ component: FuelPage });
 
