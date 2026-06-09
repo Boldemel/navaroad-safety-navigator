@@ -185,10 +185,16 @@ export function useProximityAlerts() {
         title: c.title,
         source: c.source,
         distanceMi: d,
-        recommendedAction: recommendedActionFor(
-          { id: c.uid, title: c.title, category: c.category, severity: c.severity, lat: c.lat, lon: c.lon, source: c.source, description: c.description },
-          d,
-        ),
+        recommendedAction: c.kind === "weigh_station"
+          ? (c.severity === "high"
+              ? "Weigh station reported OPEN — slow down and prepare to pull in."
+              : c.severity === "low"
+                ? "Weigh station reported CLOSED — proceed with caution; conditions can change."
+                : "Weigh station ahead within 1 mile — confirm status and be ready to enter.")
+          : recommendedActionFor(
+              { id: c.uid, title: c.title, category: c.category, severity: c.severity, lat: c.lat, lon: c.lon, source: c.source, description: c.description },
+              d,
+            ),
         lat: c.lat,
         lon: c.lon,
         enteredAt: new Date().toISOString(),
