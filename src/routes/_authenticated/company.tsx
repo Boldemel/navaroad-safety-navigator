@@ -458,7 +458,7 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
   );
 }
 
-function MemberRow({ member, canManage, companyId }: { member: CompanyMember; canManage: boolean; companyId: string }) {
+function MemberRow({ member, canManage, companyId, isSelf }: { member: CompanyMember; canManage: boolean; companyId: string; isSelf: boolean }) {
   const qc = useQueryClient();
   const setRolesFn = useServerFn(setMemberRoles);
   const removeFn = useServerFn(removeCompanyMember);
