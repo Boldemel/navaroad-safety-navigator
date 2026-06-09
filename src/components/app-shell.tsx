@@ -1,8 +1,7 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Map, Bell, User, LogOut, Truck, Shield, Users, FileWarning, BookOpen, ClipboardCheck, Package, ParkingCircle, MapPinned, FolderLock, Wrench, Receipt, Fuel, ClipboardList, Building2, Sparkles } from "lucide-react";
 import { ReactNode } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { NavigationBanner } from "@/components/navigation-banner";
@@ -11,8 +10,6 @@ import { OfflineBanner } from "@/components/offline-banner";
 import { NotificationBell } from "@/components/notification-bell";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useAllowedModules } from "@/hooks/use-allowed-modules";
-import { ForcePasswordChange } from "@/components/force-password-change";
-import { getMustChangePassword } from "@/lib/team.functions";
 
 const nav = [
   { to: "/dashboard", label: "Route Analysis", icon: LayoutDashboard },
@@ -64,16 +61,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     router.navigate({ to: "/auth", replace: true });
   }
 
-  const mustChangeFn = useServerFn(getMustChangePassword);
-  const mustChange = useQuery({
-    queryKey: ["must-change-password"],
-    queryFn: () => mustChangeFn(),
-    staleTime: 30_000,
-  });
 
-  if (mustChange.data?.mustChange) {
-    return <ForcePasswordChange />;
-  }
+
 
   return (
     <div className="min-h-screen flex w-full bg-background text-foreground">
