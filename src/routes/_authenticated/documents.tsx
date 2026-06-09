@@ -31,9 +31,17 @@ function DocumentsPage() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<WalletDoc | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [fleet, setFleet] = useState<FleetFilterValue>(emptyFleetFilters);
+  const [category, setCategory] = useState<string>("");
 
   const { data, isLoading } = useQuery({ queryKey: ["documents"], queryFn: () => fetchAll() });
-  const docs = data?.docs ?? [];
+  const allDocs = data?.docs ?? [];
+  const docs = useMemo(() => allDocs.filter((d) => {
+    const r = d as unknown as Record<string, unknown>;
+    if (fleet.driverId && r.driver_id !== fleet.driverId) return false;
+    if (category && r.category !== category) return false;
+    return true;
+  }), [allDocs, fleet, category]);
 
   const buckets = useMemo(() => {
     const expired: WalletDoc[] = [], soon: WalletDoc[] = [], ok: WalletDoc[] = [];
