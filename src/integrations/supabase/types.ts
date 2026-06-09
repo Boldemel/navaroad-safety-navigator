@@ -76,36 +76,69 @@ export type Database = {
       }
       companies: {
         Row: {
+          billing_customer_id: string | null
+          billing_provider: string | null
+          billing_subscription_id: string | null
+          cancelled_at: string | null
           created_at: string
           id: string
           name: string
           owner_id: string
+          payment_method_brand: string | null
+          payment_method_last4: string | null
+          payment_method_on_file: boolean
           plan_end_date: string | null
           plan_start_date: string
+          reactivated_at: string | null
+          read_only_at: string | null
           subscription_plan: Database["public"]["Enums"]["subscription_plan"]
           subscription_status: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at: string | null
+          trial_started_at: string | null
           updated_at: string
         }
         Insert: {
+          billing_customer_id?: string | null
+          billing_provider?: string | null
+          billing_subscription_id?: string | null
+          cancelled_at?: string | null
           created_at?: string
           id?: string
           name: string
           owner_id: string
+          payment_method_brand?: string | null
+          payment_method_last4?: string | null
+          payment_method_on_file?: boolean
           plan_end_date?: string | null
           plan_start_date?: string
+          reactivated_at?: string | null
+          read_only_at?: string | null
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           subscription_status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
           updated_at?: string
         }
         Update: {
+          billing_customer_id?: string | null
+          billing_provider?: string | null
+          billing_subscription_id?: string | null
+          cancelled_at?: string | null
           created_at?: string
           id?: string
           name?: string
           owner_id?: string
+          payment_method_brand?: string | null
+          payment_method_last4?: string | null
+          payment_method_on_file?: boolean
           plan_end_date?: string | null
           plan_start_date?: string
+          reactivated_at?: string | null
+          read_only_at?: string | null
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           subscription_status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1561,6 +1594,63 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          annual_price_usd: number
+          created_at: string
+          description: string | null
+          display_name: string
+          features: Json
+          id: string
+          is_active: boolean
+          monthly_price_usd: number
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          sort_order: number
+          stripe_annual_price_id: string | null
+          stripe_monthly_price_id: string | null
+          stripe_product_id: string | null
+          truck_limit: number | null
+          updated_at: string
+          user_limit: number | null
+        }
+        Insert: {
+          annual_price_usd?: number
+          created_at?: string
+          description?: string | null
+          display_name: string
+          features?: Json
+          id?: string
+          is_active?: boolean
+          monthly_price_usd?: number
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          sort_order?: number
+          stripe_annual_price_id?: string | null
+          stripe_monthly_price_id?: string | null
+          stripe_product_id?: string | null
+          truck_limit?: number | null
+          updated_at?: string
+          user_limit?: number | null
+        }
+        Update: {
+          annual_price_usd?: number
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          features?: Json
+          id?: string
+          is_active?: boolean
+          monthly_price_usd?: number
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          sort_order?: number
+          stripe_annual_price_id?: string | null
+          stripe_monthly_price_id?: string | null
+          stripe_product_id?: string | null
+          truck_limit?: number | null
+          updated_at?: string
+          user_limit?: number | null
+        }
+        Relationships: []
+      }
       super_admin_impersonation_log: {
         Row: {
           admin_user_id: string
@@ -2002,6 +2092,14 @@ export type Database = {
         Args: { _manager: string; _target: string }
         Returns: boolean
       }
+      company_has_feature: {
+        Args: { _company: string; _feature: string }
+        Returns: boolean
+      }
+      current_trial_days_remaining: {
+        Args: { _company: string }
+        Returns: number
+      }
       delete_current_user: { Args: never; Returns: undefined }
       get_user_company: { Args: { _user: string }; Returns: string }
       has_company_permission: {
@@ -2035,6 +2133,7 @@ export type Database = {
         Args: { _company: string; _user: string }
         Returns: boolean
       }
+      is_company_read_only: { Args: { _company: string }; Returns: boolean }
       is_super_admin: { Args: { _user: string }; Returns: boolean }
       shares_company_with: {
         Args: { _target: string; _viewer: string }
@@ -2076,14 +2175,17 @@ export type Database = {
         | "fleet_manager"
       maintenance_task_priority: "Critical" | "High" | "Medium" | "Low"
       maintenance_task_status: "Open" | "InProgress" | "Completed" | "Cancelled"
-      subscription_plan: "free_driver" | "owner_operator" | "fleet"
+      subscription_plan:
+        | "owner_operator"
+        | "small_fleet"
+        | "growth_fleet"
+        | "enterprise"
       subscription_status:
+        | "trial"
         | "active"
-        | "trialing"
         | "past_due"
-        | "canceled"
-        | "expired"
         | "suspended"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2247,14 +2349,18 @@ export const Constants = {
       ],
       maintenance_task_priority: ["Critical", "High", "Medium", "Low"],
       maintenance_task_status: ["Open", "InProgress", "Completed", "Cancelled"],
-      subscription_plan: ["free_driver", "owner_operator", "fleet"],
+      subscription_plan: [
+        "owner_operator",
+        "small_fleet",
+        "growth_fleet",
+        "enterprise",
+      ],
       subscription_status: [
+        "trial",
         "active",
-        "trialing",
         "past_due",
-        "canceled",
-        "expired",
         "suspended",
+        "cancelled",
       ],
     },
   },
