@@ -80,6 +80,10 @@ export type Database = {
           id: string
           name: string
           owner_id: string
+          plan_end_date: string | null
+          plan_start_date: string
+          subscription_plan: Database["public"]["Enums"]["subscription_plan"]
+          subscription_status: Database["public"]["Enums"]["subscription_status"]
           updated_at: string
         }
         Insert: {
@@ -87,6 +91,10 @@ export type Database = {
           id?: string
           name: string
           owner_id: string
+          plan_end_date?: string | null
+          plan_start_date?: string
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
+          subscription_status?: Database["public"]["Enums"]["subscription_status"]
           updated_at?: string
         }
         Update: {
@@ -94,6 +102,10 @@ export type Database = {
           id?: string
           name?: string
           owner_id?: string
+          plan_end_date?: string | null
+          plan_start_date?: string
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
+          subscription_status?: Database["public"]["Enums"]["subscription_status"]
           updated_at?: string
         }
         Relationships: []
@@ -1130,6 +1142,39 @@ export type Database = {
           },
         ]
       }
+      plan_feature_access: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          feature_key: string
+          id: string
+          notes: string | null
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          updated_at: string
+          usage_limit: number | null
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          feature_key: string
+          id?: string
+          notes?: string | null
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          updated_at?: string
+          usage_limit?: number | null
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          feature_key?: string
+          id?: string
+          notes?: string | null
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          updated_at?: string
+          usage_limit?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           active: boolean
@@ -1918,6 +1963,13 @@ export type Database = {
         | "fleet_manager"
       maintenance_task_priority: "Critical" | "High" | "Medium" | "Low"
       maintenance_task_status: "Open" | "InProgress" | "Completed" | "Cancelled"
+      subscription_plan: "free_driver" | "owner_operator" | "fleet"
+      subscription_status:
+        | "active"
+        | "trialing"
+        | "past_due"
+        | "canceled"
+        | "expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2081,6 +2133,14 @@ export const Constants = {
       ],
       maintenance_task_priority: ["Critical", "High", "Medium", "Low"],
       maintenance_task_status: ["Open", "InProgress", "Completed", "Cancelled"],
+      subscription_plan: ["free_driver", "owner_operator", "fleet"],
+      subscription_status: [
+        "active",
+        "trialing",
+        "past_due",
+        "canceled",
+        "expired",
+      ],
     },
   },
 } as const
