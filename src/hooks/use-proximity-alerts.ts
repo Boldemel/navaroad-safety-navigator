@@ -191,24 +191,8 @@ export function useProximityAlerts() {
         lat: h.latitude, lon: h.longitude, category: h.hazard_type, description: h.description ?? undefined,
       });
     }
-    for (const w of weighData?.pois ?? []) {
-      const status = weighStatus?.get(w.id);
-      const isOpen = status?.status === "open";
-      const isClosed = status?.status === "closed";
-      out.push({
-        uid: "ws-" + w.id,
-        kind: "weigh_station",
-        severity: isOpen ? "high" : isClosed ? "low" : "medium",
-        title: isOpen ? `Weigh station OPEN — ${w.name}` : isClosed ? `Weigh station closed — ${w.name}` : `Weigh station ahead — ${w.name}`,
-        source: status ? "Driver report" : "TomTom",
-        lat: w.lat,
-        lon: w.lon,
-        category: "weigh_station",
-        description: [w.address, w.city, w.state].filter(Boolean).join(", "),
-      });
-    }
     return out;
-  }, [feed, hazards, weighData, weighStatus]);
+  }, [feed, hazards]);
 
   const firedRef = useRef<Map<string, ProximityTier>>(readFired());
   const [active, setActive] = useState<ProximityAlert[]>([]);
