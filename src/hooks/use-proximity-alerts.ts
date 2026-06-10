@@ -155,18 +155,6 @@ export function useProximityAlerts() {
     refetchInterval: 2 * 60_000,
   });
 
-  // Coarse coord bucket (~3 mi cells) so weigh-station refetches don't churn.
-  const cellLat = here ? Math.round(here.lat * 20) / 20 : null;
-  const cellLon = here ? Math.round(here.lon * 20) / 20 : null;
-  const findPoi = useServerFn(findNearbyTruckStops);
-  const { data: weighData } = useQuery({
-    queryKey: ["nearby-weigh-stations", cellLat, cellLon],
-    queryFn: () => findPoi({ data: { lat: here!.lat, lon: here!.lon, radiusMi: 50, kind: "weigh_station" } }),
-    enabled: !!here,
-    staleTime: 10 * 60_000,
-    refetchInterval: 10 * 60_000,
-  });
-  const { data: weighStatus } = useWeighStationStatuses();
 
   type Candidate = {
     uid: string; kind: ProximityAlertKind; severity: ProximityAlert["severity"];
