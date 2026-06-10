@@ -210,17 +210,15 @@ export function useProximityAlerts() {
       if (!tier) continue;
       const prev = firedRef.current.get(c.uid);
       const isUpgrade = !prev || TIER_RANK[tier] > TIER_RANK[prev];
-      const baseAction = c.kind === "weigh_station"
-        ? weighStationAction(c.severity, tier)
-        : tieredAction(
-            c.kind,
-            recommendedActionFor(
-              { id: c.uid, title: c.title, category: c.category, severity: c.severity, lat: c.lat, lon: c.lon, source: c.source, description: c.description },
-              d,
-            ),
-            tier,
-            d,
-          );
+      const baseAction = tieredAction(
+        c.kind,
+        recommendedActionFor(
+          { id: c.uid, title: c.title, category: c.category, severity: c.severity, lat: c.lat, lon: c.lon, source: c.source, description: c.description },
+          d,
+        ),
+        tier,
+        d,
+      );
       const alert: ProximityAlert = {
         uid: c.uid,
         kind: c.kind,
