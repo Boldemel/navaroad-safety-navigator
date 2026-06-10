@@ -82,25 +82,6 @@ function classifyApiAlert(category: string, title: string): ProximityAlertKind |
   return null;
 }
 
-function weighStationAction(severity: ProximityAlert["severity"], tier: ProximityTier): string {
-  const open = severity === "high";
-  const closed = severity === "low";
-  if (tier === "critical") {
-    return open
-      ? "Weigh station OPEN within 1 mile — slow down and prepare to pull in."
-      : closed
-        ? "Weigh station within 1 mile (reported CLOSED) — proceed with caution."
-        : "Weigh station within 1 mile — confirm status and be ready to enter.";
-  }
-  if (tier === "action") {
-    return open
-      ? "Open weigh station ~2 mi ahead — move to the right lane."
-      : "Weigh station ~2 mi ahead — confirm status and lane position.";
-  }
-  return open
-    ? "Open weigh station ~3 mi ahead — plan your lane change."
-    : "Weigh station ~3 mi ahead — heads up.";
-}
 
 function tieredAction(
   kind: ProximityAlertKind,
