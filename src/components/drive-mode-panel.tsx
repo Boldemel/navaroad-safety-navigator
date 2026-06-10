@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { LocateFixed, Navigation, Play, Square, Truck, TreePine, Scale, AlertTriangle, Gauge, Clock, Route as RouteIcon, Wind, Cloud } from "lucide-react";
+import { LocateFixed, Navigation, Play, Square, Truck, TreePine, AlertTriangle, Gauge, Clock, Route as RouteIcon, Wind, Cloud } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeProgress, aheadOnRoute, mph, formatEta, formatMin, type LatLon } from "@/lib/route-progress";
 import type { ActiveRoute } from "@/hooks/use-active-route";
