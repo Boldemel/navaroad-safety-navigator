@@ -41,7 +41,6 @@ const mobileNav = [
   { to: "/parking", label: "Stops", icon: ParkingCircle },
   { to: "/loads", label: "Loads", icon: Package },
   { to: "/logbook", label: "HOS", icon: ClipboardList },
-  { to: "/profile", label: "Me", icon: User },
 ];
 
 const adminNav = [
