@@ -37,12 +37,12 @@ export type ProximityAlert = {
  * drivers get a true heads-up (`notice`), a decision window (`action`), and a
  * last-mile critical flash. Hazards that demand a full reroute (closures,
  * severe weather) get the longest notice radius.
+ */
 const TIERS: Record<ProximityAlertKind, { notice: number; action: number; critical: number }> = {
   road_closure:    { notice: 15, action: 5,  critical: 2 },
   severe_weather:  { notice: 25, action: 10, critical: 3 },
   high_wind:       { notice: 25, action: 10, critical: 5 },
   driver_report:   { notice: 10, action: 3,  critical: 1 },
-};
 };
 
 function tierFor(kind: ProximityAlertKind, distanceMi: number): ProximityTier | null {
