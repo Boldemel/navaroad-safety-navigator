@@ -196,11 +196,10 @@ export function DriveModePanel(p: Props) {
       </div>
 
       {/* Upcoming stops list */}
-      {(nextTruckStop || nextRestArea || nextWeigh) && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+      {(nextTruckStop || nextRestArea) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           <NextStop icon={<Truck className="size-4 text-orange-500" />} label="Truck stop" item={nextTruckStop} />
           <NextStop icon={<TreePine className="size-4 text-emerald-500" />} label="Rest area" item={nextRestArea} />
-          <NextStop icon={<Scale className="size-4 text-violet-500" />} label="Weigh station" item={nextWeigh} />
         </div>
       )}
 
