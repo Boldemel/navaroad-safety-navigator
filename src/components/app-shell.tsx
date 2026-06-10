@@ -165,6 +165,77 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="md:hidden h-14 flex items-center justify-between px-4 border-b border-border bg-sidebar">
           <div className="flex items-center gap-2">
+            <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+              <SheetTrigger asChild>
+                <button className="p-2 -ml-2 text-sidebar-foreground" aria-label="Open menu">
+                  <Menu className="size-5" />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-72 p-0 bg-sidebar">
+                <SheetHeader className="px-4 py-4 border-b border-sidebar-border">
+                  <SheetTitle className="text-left">Navaroad</SheetTitle>
+                </SheetHeader>
+                <div className="overflow-y-auto h-[calc(100%-65px)] p-3 space-y-1">
+                  {visibleNav.map((n) => {
+                    const active = pathname === n.to || pathname.startsWith(n.to + "/");
+                    return (
+                      <Link
+                        key={n.to}
+                        to={n.to}
+                        onClick={() => setMoreOpen(false)}
+                        className={cn(
+                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                          active
+                            ? "bg-primary/15 text-primary"
+                            : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                        )}
+                      >
+                        <n.icon className="size-4" />
+                        {n.label}
+                      </Link>
+                    );
+                  })}
+                  {isAdmin && (
+                    <div className="pt-3 mt-3 border-t border-sidebar-border space-y-1">
+                      <div className="px-3 pb-1 text-[10px] uppercase tracking-wider text-sidebar-foreground/50">Admin</div>
+                      {adminNav.map((n) => (
+                        <Link
+                          key={n.to}
+                          to={n.to}
+                          onClick={() => setMoreOpen(false)}
+                          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                        >
+                          <n.icon className="size-4" />
+                          {n.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                  {isSuperAdmin && (
+                    <div className="pt-3 mt-3 border-t border-sidebar-border space-y-1">
+                      <div className="px-3 pb-1 text-[10px] uppercase tracking-wider text-sidebar-foreground/50">Platform</div>
+                      {superAdminNav.map((n) => (
+                        <Link
+                          key={n.to}
+                          to={n.to}
+                          onClick={() => setMoreOpen(false)}
+                          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                        >
+                          <n.icon className="size-4" />
+                          {n.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => { setMoreOpen(false); signOut(); }}
+                    className="mt-3 w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent"
+                  >
+                    <LogOut className="size-4" /> Sign out
+                  </button>
+                </div>
+              </SheetContent>
+            </Sheet>
             <div className="size-8 rounded-md bg-primary flex items-center justify-center">
               <Truck className="size-4 text-primary-foreground" />
             </div>
