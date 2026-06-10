@@ -271,6 +271,14 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Link>
             );
           })}
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            className="flex flex-col items-center gap-1 py-2 text-[10px] text-muted-foreground"
+          >
+            <Menu className="size-5" />
+            More
+          </button>
         </nav>
       </div>
     </div>
