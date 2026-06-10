@@ -62,6 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { allowed } = useAllowedModules();
   const visibleNav = allowed ? nav.filter((n) => allowed.has(n.to)) : nav;
   const visibleMobileNav = allowed ? mobileNav.filter((n) => allowed.has(n.to)) : mobileNav;
+  const [moreOpen, setMoreOpen] = useState(false);
 
   // Sign-out hygiene: cancel in-flight queries, drop cached protected data,
   // sign out, then REPLACE history so Back can't restore the protected route.
