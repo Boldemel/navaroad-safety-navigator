@@ -41,7 +41,7 @@ function Tile({ label, value, hint, icon, tone = "default" }: { label: string; v
 }
 
 export function DriveModePanel(p: Props) {
-  const { active, onToggle, onRecenter, follow, setFollow, route, here, geo, hazards, truckStops, restAreas, weighStations } = p;
+  const { active, onToggle, onRecenter, follow, setFollow, route, here, geo, hazards, truckStops, restAreas } = p;
   const speedMph = mph(geo?.speedMps ?? null);
   const progress = useMemo(
     () => (route ? computeProgress(route.geometry, here, speedMph) : null),
@@ -58,10 +58,6 @@ export function DriveModePanel(p: Props) {
   const nextRestArea = useMemo(
     () => (route ? aheadOnRoute(route.geometry, here, restAreas, 5)[0] : undefined),
     [route, here, restAreas],
-  );
-  const nextWeigh = useMemo(
-    () => (route ? aheadOnRoute(route.geometry, here, weighStations, 5)[0] : undefined),
-    [route, here, weighStations],
   );
 
   // Hazard categorization for the dashboard tiles.
