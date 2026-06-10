@@ -1,4 +1,4 @@
-import { AlertTriangle, Wind, Cloud, Construction, User, X, MapPin, Scale } from "lucide-react";
+import { AlertTriangle, Wind, Cloud, Construction, User, X, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProximityAlerts, type ProximityAlertKind } from "@/hooks/use-proximity-alerts";
 
@@ -7,7 +7,6 @@ const KIND_META: Record<ProximityAlertKind, { label: string; Icon: React.Compone
   road_closure: { label: "Road closure", Icon: Construction },
   severe_weather: { label: "Severe weather", Icon: Cloud },
   driver_report: { label: "Driver report", Icon: User },
-  weigh_station: { label: "Weigh station", Icon: Scale },
 };
 
 const SEV_CLS: Record<string, string> = {
