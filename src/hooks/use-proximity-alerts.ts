@@ -8,10 +8,7 @@ import { getSafetyFeed } from "@/lib/safety-engine.functions";
 import { hazardLabel } from "@/lib/navaroad";
 import { recommendedActionFor } from "@/lib/hazard-proximity";
 import { useBrowserNotifications } from "@/hooks/use-browser-notifications";
-import { findNearbyTruckStops } from "@/lib/nearby-poi.functions";
-import { useWeighStationStatuses } from "@/lib/weigh-stations";
-
-export type ProximityAlertKind = "high_wind" | "road_closure" | "severe_weather" | "driver_report" | "weigh_station";
+export type ProximityAlertKind = "high_wind" | "road_closure" | "severe_weather" | "driver_report";
 
 /**
  * Tier of an active proximity alert:
@@ -46,7 +43,6 @@ const TIERS: Record<ProximityAlertKind, { notice: number; action: number; critic
   severe_weather:  { notice: 25, action: 10, critical: 3 },
   high_wind:       { notice: 25, action: 10, critical: 5 },
   driver_report:   { notice: 10, action: 3,  critical: 1 },
-  weigh_station:   { notice: 3,  action: 2,  critical: 1 },
 };
 
 function tierFor(kind: ProximityAlertKind, distanceMi: number): ProximityTier | null {
@@ -86,25 +82,6 @@ function classifyApiAlert(category: string, title: string): ProximityAlertKind |
   return null;
 }
 
-function weighStationAction(severity: ProximityAlert["severity"], tier: ProximityTier): string {
-  const open = severity === "high";
-  const closed = severity === "low";
-  if (tier === "critical") {
-    return open
-      ? "Weigh station OPEN within 1 mile — slow down and prepare to pull in."
-      : closed
-        ? "Weigh station within 1 mile (reported CLOSED) — proceed with caution."
-        : "Weigh station within 1 mile — confirm status and be ready to enter.";
-  }
-  if (tier === "action") {
-    return open
-      ? "Open weigh station ~2 mi ahead — move to the right lane."
-      : "Weigh station ~2 mi ahead — confirm status and lane position.";
-  }
-  return open
-    ? "Open weigh station ~3 mi ahead — plan your lane change."
-    : "Weigh station ~3 mi ahead — heads up.";
-}
 
 function tieredAction(
   kind: ProximityAlertKind,
@@ -159,18 +136,6 @@ export function useProximityAlerts() {
     refetchInterval: 2 * 60_000,
   });
 
-  // Coarse coord bucket (~3 mi cells) so weigh-station refetches don't churn.
-  const cellLat = here ? Math.round(here.lat * 20) / 20 : null;
-  const cellLon = here ? Math.round(here.lon * 20) / 20 : null;
-  const findPoi = useServerFn(findNearbyTruckStops);
-  const { data: weighData } = useQuery({
-    queryKey: ["nearby-weigh-stations", cellLat, cellLon],
-    queryFn: () => findPoi({ data: { lat: here!.lat, lon: here!.lon, radiusMi: 50, kind: "weigh_station" } }),
-    enabled: !!here,
-    staleTime: 10 * 60_000,
-    refetchInterval: 10 * 60_000,
-  });
-  const { data: weighStatus } = useWeighStationStatuses();
 
   type Candidate = {
     uid: string; kind: ProximityAlertKind; severity: ProximityAlert["severity"];
@@ -207,24 +172,8 @@ export function useProximityAlerts() {
         lat: h.latitude, lon: h.longitude, category: h.hazard_type, description: h.description ?? undefined,
       });
     }
-    for (const w of weighData?.pois ?? []) {
-      const status = weighStatus?.get(w.id);
-      const isOpen = status?.status === "open";
-      const isClosed = status?.status === "closed";
-      out.push({
-        uid: "ws-" + w.id,
-        kind: "weigh_station",
-        severity: isOpen ? "high" : isClosed ? "low" : "medium",
-        title: isOpen ? `Weigh station OPEN — ${w.name}` : isClosed ? `Weigh station closed — ${w.name}` : `Weigh station ahead — ${w.name}`,
-        source: status ? "Driver report" : "TomTom",
-        lat: w.lat,
-        lon: w.lon,
-        category: "weigh_station",
-        description: [w.address, w.city, w.state].filter(Boolean).join(", "),
-      });
-    }
     return out;
-  }, [feed, hazards, weighData, weighStatus]);
+  }, [feed, hazards]);
 
   const firedRef = useRef<Map<string, ProximityTier>>(readFired());
   const [active, setActive] = useState<ProximityAlert[]>([]);
@@ -242,17 +191,15 @@ export function useProximityAlerts() {
       if (!tier) continue;
       const prev = firedRef.current.get(c.uid);
       const isUpgrade = !prev || TIER_RANK[tier] > TIER_RANK[prev];
-      const baseAction = c.kind === "weigh_station"
-        ? weighStationAction(c.severity, tier)
-        : tieredAction(
-            c.kind,
-            recommendedActionFor(
-              { id: c.uid, title: c.title, category: c.category, severity: c.severity, lat: c.lat, lon: c.lon, source: c.source, description: c.description },
-              d,
-            ),
-            tier,
-            d,
-          );
+      const baseAction = tieredAction(
+        c.kind,
+        recommendedActionFor(
+          { id: c.uid, title: c.title, category: c.category, severity: c.severity, lat: c.lat, lon: c.lon, source: c.source, description: c.description },
+          d,
+        ),
+        tier,
+        d,
+      );
       const alert: ProximityAlert = {
         uid: c.uid,
         kind: c.kind,

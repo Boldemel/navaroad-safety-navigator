@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { LocateFixed, Navigation, Play, Square, Truck, TreePine, Scale, AlertTriangle, Gauge, Clock, Route as RouteIcon, Wind, Cloud } from "lucide-react";
+import { LocateFixed, Navigation, Play, Square, Truck, TreePine, AlertTriangle, Gauge, Clock, Route as RouteIcon, Wind, Cloud } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeProgress, aheadOnRoute, mph, formatEta, formatMin, type LatLon } from "@/lib/route-progress";
 import type { ActiveRoute } from "@/hooks/use-active-route";
@@ -20,7 +20,7 @@ type Props = {
   hazards: HazardItem[];
   truckStops: PoiItem[];
   restAreas: PoiItem[];
-  weighStations: PoiItem[];
+  weighStations?: PoiItem[];
 };
 
 function Tile({ label, value, hint, icon, tone = "default" }: { label: string; value: string; hint?: string; icon: React.ReactNode; tone?: "default" | "warn" | "danger" | "ok" }) {
@@ -41,7 +41,7 @@ function Tile({ label, value, hint, icon, tone = "default" }: { label: string; v
 }
 
 export function DriveModePanel(p: Props) {
-  const { active, onToggle, onRecenter, follow, setFollow, route, here, geo, hazards, truckStops, restAreas, weighStations } = p;
+  const { active, onToggle, onRecenter, follow, setFollow, route, here, geo, hazards, truckStops, restAreas } = p;
   const speedMph = mph(geo?.speedMps ?? null);
   const progress = useMemo(
     () => (route ? computeProgress(route.geometry, here, speedMph) : null),
@@ -58,10 +58,6 @@ export function DriveModePanel(p: Props) {
   const nextRestArea = useMemo(
     () => (route ? aheadOnRoute(route.geometry, here, restAreas, 5)[0] : undefined),
     [route, here, restAreas],
-  );
-  const nextWeigh = useMemo(
-    () => (route ? aheadOnRoute(route.geometry, here, weighStations, 5)[0] : undefined),
-    [route, here, weighStations],
   );
 
   // Hazard categorization for the dashboard tiles.
@@ -196,11 +192,10 @@ export function DriveModePanel(p: Props) {
       </div>
 
       {/* Upcoming stops list */}
-      {(nextTruckStop || nextRestArea || nextWeigh) && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+      {(nextTruckStop || nextRestArea) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           <NextStop icon={<Truck className="size-4 text-orange-500" />} label="Truck stop" item={nextTruckStop} />
           <NextStop icon={<TreePine className="size-4 text-emerald-500" />} label="Rest area" item={nextRestArea} />
-          <NextStop icon={<Scale className="size-4 text-violet-500" />} label="Weigh station" item={nextWeigh} />
         </div>
       )}
 
