@@ -20,7 +20,7 @@ type Props = {
   hazards: HazardItem[];
   truckStops: PoiItem[];
   restAreas: PoiItem[];
-  weighStations: PoiItem[];
+  weighStations?: PoiItem[];
 };
 
 function Tile({ label, value, hint, icon, tone = "default" }: { label: string; value: string; hint?: string; icon: React.ReactNode; tone?: "default" | "warn" | "danger" | "ok" }) {
