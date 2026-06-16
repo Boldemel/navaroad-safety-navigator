@@ -156,7 +156,7 @@ function ProfitabilityAnalysisPage() {
 
           <Tabs defaultValue="overview" className="w-full">
             <TabsList className="grid grid-cols-6 w-full">
-              <TabsTrigger value="overview">Fleet Total</TabsTrigger>
+              <TabsTrigger value="overview">Fleet Overview</TabsTrigger>
               <TabsTrigger value="truck">By Truck</TabsTrigger>
               <TabsTrigger value="driver">By Driver</TabsTrigger>
               <TabsTrigger value="load">By Load</TabsTrigger>
