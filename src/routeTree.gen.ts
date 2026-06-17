@@ -35,6 +35,7 @@ import { Route as AuthenticatedDriverPerformanceRouteImport } from './routes/_au
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCompanyRouteImport } from './routes/_authenticated/company'
+import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedAssistantRouteImport } from './routes/_authenticated/assistant'
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
 import { Route as AuthenticatedTrucksIndexRouteImport } from './routes/_authenticated/trucks.index'
@@ -180,6 +181,11 @@ const AuthenticatedCompanyRoute = AuthenticatedCompanyRouteImport.update({
   path: '/company',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAssistantRoute = AuthenticatedAssistantRouteImport.update({
   id: '/assistant',
   path: '/assistant',
@@ -250,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/alerts': typeof AuthenticatedAlertsRoute
   '/assistant': typeof AuthenticatedAssistantRoute
+  '/billing': typeof AuthenticatedBillingRoute
   '/company': typeof AuthenticatedCompanyRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
@@ -288,6 +295,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/alerts': typeof AuthenticatedAlertsRoute
   '/assistant': typeof AuthenticatedAssistantRoute
+  '/billing': typeof AuthenticatedBillingRoute
   '/company': typeof AuthenticatedCompanyRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
@@ -326,6 +334,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_authenticated/alerts': typeof AuthenticatedAlertsRoute
   '/_authenticated/assistant': typeof AuthenticatedAssistantRoute
+  '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/company': typeof AuthenticatedCompanyRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
@@ -366,6 +375,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/alerts'
     | '/assistant'
+    | '/billing'
     | '/company'
     | '/dashboard'
     | '/documents'
@@ -404,6 +414,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/alerts'
     | '/assistant'
+    | '/billing'
     | '/company'
     | '/dashboard'
     | '/documents'
@@ -441,6 +452,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_authenticated/alerts'
     | '/_authenticated/assistant'
+    | '/_authenticated/billing'
     | '/_authenticated/company'
     | '/_authenticated/dashboard'
     | '/_authenticated/documents'
@@ -667,6 +679,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCompanyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/billing': {
+      id: '/_authenticated/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof AuthenticatedBillingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/assistant': {
       id: '/_authenticated/assistant'
       path: '/assistant'
@@ -776,6 +795,7 @@ const AuthenticatedTrucksRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAlertsRoute: typeof AuthenticatedAlertsRoute
   AuthenticatedAssistantRoute: typeof AuthenticatedAssistantRoute
+  AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
   AuthenticatedCompanyRoute: typeof AuthenticatedCompanyRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
@@ -804,6 +824,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAlertsRoute: AuthenticatedAlertsRoute,
   AuthenticatedAssistantRoute: AuthenticatedAssistantRoute,
+  AuthenticatedBillingRoute: AuthenticatedBillingRoute,
   AuthenticatedCompanyRoute: AuthenticatedCompanyRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,

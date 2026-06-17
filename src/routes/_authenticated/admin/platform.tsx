@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldAlert } from "lucide-react";
 import { CompaniesTab } from "@/components/platform-admin/companies-tab";
+import { BillingTab } from "@/components/platform-admin/billing-tab";
 
 export const Route = createFileRoute("/_authenticated/admin/platform")({
   component: PlatformAdminPage,
@@ -50,6 +51,8 @@ function PlatformAdminPage() {
           <TabsContent key={t.value} value={t.value} className="mt-4">
             {t.value === "companies" ? (
               <CompaniesTab />
+            ) : t.value === "billing" ? (
+              <BillingTab />
             ) : (
               <Card>
                 <CardHeader><CardTitle className="text-base">{t.label}</CardTitle></CardHeader>

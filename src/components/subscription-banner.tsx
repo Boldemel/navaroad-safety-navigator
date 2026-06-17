@@ -18,7 +18,7 @@ export function SubscriptionBanner() {
         <span className="flex-1">
           <strong>Read-only mode.</strong> Status: {statusLabel(sub.status)}. You can view and export data but cannot make changes.
         </span>
-        <Link to="/company" className="font-medium underline">Reactivate billing</Link>
+        <Link to="/billing" className="font-medium underline">Reactivate billing</Link>
       </div>
     );
   }
@@ -33,7 +33,7 @@ export function SubscriptionBanner() {
           <strong>Trial:</strong> {days} day{days === 1 ? "" : "s"} remaining (ends {endStr}).
           {!sub.paymentMethodOnFile && " Add a payment method to keep service after the trial."}
         </span>
-        <Link to="/company" className="font-medium underline">Manage billing</Link>
+        <Link to="/billing" className="font-medium underline">Manage billing</Link>
       </div>
     );
   }
@@ -43,7 +43,7 @@ export function SubscriptionBanner() {
       <div className="flex items-center gap-2 border-b bg-yellow-500/15 px-4 py-2 text-sm">
         <AlertTriangle className="size-4 shrink-0" />
         <span className="flex-1"><strong>Payment past due.</strong> Update your payment method to avoid losing write access.</span>
-        <Link to="/company" className="font-medium underline">Update billing</Link>
+        <Link to="/billing" className="font-medium underline">Update billing</Link>
       </div>
     );
   }
