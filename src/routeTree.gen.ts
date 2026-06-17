@@ -39,6 +39,7 @@ import { Route as AuthenticatedAssistantRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
 import { Route as AuthenticatedTrucksIndexRouteImport } from './routes/_authenticated/trucks.index'
 import { Route as AuthenticatedLoadsIndexRouteImport } from './routes/_authenticated/loads.index'
+import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as AuthenticatedTrucksVehicleUnitRouteImport } from './routes/_authenticated/trucks.$vehicleUnit'
 import { Route as AuthenticatedLoadsHistoryRouteImport } from './routes/_authenticated/loads.history'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
@@ -200,6 +201,11 @@ const AuthenticatedLoadsIndexRoute = AuthenticatedLoadsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedLoadsRoute,
 } as any)
+const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
+  id: '/api/public/stripe-webhook',
+  path: '/api/public/stripe-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedTrucksVehicleUnitRoute =
   AuthenticatedTrucksVehicleUnitRouteImport.update({
     id: '/$vehicleUnit',
@@ -270,6 +276,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/loads/history': typeof AuthenticatedLoadsHistoryRoute
   '/trucks/$vehicleUnit': typeof AuthenticatedTrucksVehicleUnitRoute
+  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/loads/': typeof AuthenticatedLoadsIndexRoute
   '/trucks/': typeof AuthenticatedTrucksIndexRoute
 }
@@ -305,6 +312,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/loads/history': typeof AuthenticatedLoadsHistoryRoute
   '/trucks/$vehicleUnit': typeof AuthenticatedTrucksVehicleUnitRoute
+  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/loads': typeof AuthenticatedLoadsIndexRoute
   '/trucks': typeof AuthenticatedTrucksIndexRoute
 }
@@ -344,6 +352,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/loads/history': typeof AuthenticatedLoadsHistoryRoute
   '/_authenticated/trucks/$vehicleUnit': typeof AuthenticatedTrucksVehicleUnitRoute
+  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/_authenticated/loads/': typeof AuthenticatedLoadsIndexRoute
   '/_authenticated/trucks/': typeof AuthenticatedTrucksIndexRoute
 }
@@ -383,6 +392,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/loads/history'
     | '/trucks/$vehicleUnit'
+    | '/api/public/stripe-webhook'
     | '/loads/'
     | '/trucks/'
   fileRoutesByTo: FileRoutesByTo
@@ -418,6 +428,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/loads/history'
     | '/trucks/$vehicleUnit'
+    | '/api/public/stripe-webhook'
     | '/loads'
     | '/trucks'
   id:
@@ -456,6 +467,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/users'
     | '/_authenticated/loads/history'
     | '/_authenticated/trucks/$vehicleUnit'
+    | '/api/public/stripe-webhook'
     | '/_authenticated/loads/'
     | '/_authenticated/trucks/'
   fileRoutesById: FileRoutesById
@@ -468,6 +480,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermsRoute: typeof TermsRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -682,6 +695,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLoadsIndexRouteImport
       parentRoute: typeof AuthenticatedLoadsRoute
     }
+    '/api/public/stripe-webhook': {
+      id: '/api/public/stripe-webhook'
+      path: '/api/public/stripe-webhook'
+      fullPath: '/api/public/stripe-webhook'
+      preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/trucks/$vehicleUnit': {
       id: '/_authenticated/trucks/$vehicleUnit'
       path: '/$vehicleUnit'
@@ -820,6 +840,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   TermsRoute: TermsRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -92,7 +92,7 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
           // Strip undefined to avoid overwriting existing values with null
           Object.keys(patch).forEach((k) => patch[k] === undefined && delete patch[k]);
 
-          await supabaseAdmin.from("companies").update(patch).eq("id", companyId);
+          await supabaseAdmin.from("companies").update(patch as any).eq("id", companyId);
         }
 
         try {
