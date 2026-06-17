@@ -1,5 +1,5 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Map, Bell, User, LogOut, Truck, Shield, ShieldAlert, Users, FileWarning, BookOpen, ClipboardCheck, Package, ParkingCircle, MapPinned, FolderLock, Wrench, Receipt, Fuel, ClipboardList, Building2, Sparkles, TrendingUp, FileBarChart, UserCheck, Menu } from "lucide-react";
+import { LayoutDashboard, Map, Bell, User, LogOut, Truck, Shield, ShieldAlert, Users, FileWarning, BookOpen, ClipboardCheck, Package, ParkingCircle, MapPinned, FolderLock, Wrench, Receipt, Fuel, ClipboardList, Building2, Sparkles, TrendingUp, FileBarChart, UserCheck, Menu, CreditCard } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useQueryClient } from "@tanstack/react-query";
@@ -33,6 +33,7 @@ const nav = [
   { to: "/assistant", label: "Fleet AI Assistant", icon: Sparkles },
   
   { to: "/company", label: "Company & Team", icon: Building2 },
+  { to: "/billing", label: "Billing & Plans", icon: CreditCard },
   { to: "/profile", label: "Profile", icon: User },
 ];
 
