@@ -1,4 +1,4 @@
-export const SUBSCRIPTION_PLANS = ["owner_operator", "small_fleet", "growth_fleet", "enterprise"] as const;
+export const SUBSCRIPTION_PLANS = ["owner_operator", "small_fleet", "growth_fleet", "fleet_pro", "enterprise"] as const;
 export type SubscriptionPlan = (typeof SUBSCRIPTION_PLANS)[number];
 
 export const SUBSCRIPTION_STATUSES = ["trial", "active", "past_due", "suspended", "cancelled"] as const;
