@@ -91,6 +91,7 @@ export type Database = {
           plan_start_date: string
           reactivated_at: string | null
           read_only_at: string | null
+          stripe_customer_id: string | null
           subscription_plan: Database["public"]["Enums"]["subscription_plan"]
           subscription_status: Database["public"]["Enums"]["subscription_status"]
           trial_ends_at: string | null
@@ -113,6 +114,7 @@ export type Database = {
           plan_start_date?: string
           reactivated_at?: string | null
           read_only_at?: string | null
+          stripe_customer_id?: string | null
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           subscription_status?: Database["public"]["Enums"]["subscription_status"]
           trial_ends_at?: string | null
@@ -135,6 +137,7 @@ export type Database = {
           plan_start_date?: string
           reactivated_at?: string | null
           read_only_at?: string | null
+          stripe_customer_id?: string | null
           subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           subscription_status?: Database["public"]["Enums"]["subscription_status"]
           trial_ends_at?: string | null
@@ -2515,6 +2518,7 @@ export type Database = {
         | "small_fleet"
         | "growth_fleet"
         | "enterprise"
+        | "fleet_pro"
       subscription_status:
         | "trial"
         | "active"
@@ -2689,6 +2693,7 @@ export const Constants = {
         "small_fleet",
         "growth_fleet",
         "enterprise",
+        "fleet_pro",
       ],
       subscription_status: [
         "trial",
