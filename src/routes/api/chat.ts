@@ -2,16 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import { createClient } from "@supabase/supabase-js";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
-import { buildFleetContext } from "@/lib/ai/fleet-context.server";
+import { buildFleetContext, type ContextScope } from "@/lib/ai/fleet-context.server";
 import type { Database } from "@/integrations/supabase/types";
-
-const ALLOWED_ROLES = new Set([
-  "fleet_owner",
-  "company_owner",
-  "fleet_manager",
-  "accountant",
-  "safety_manager",
-]);
 
 export const Route = createFileRoute("/api/chat")({
   server: {
@@ -39,7 +31,7 @@ export const Route = createFileRoute("/api/chat")({
         const userId = claims?.claims?.sub;
         if (!userId) return new Response("Unauthorized", { status: 401 });
 
-        // Resolve company
+        // Resolve company + roles
         const { data: member } = await supabase
           .from("company_members")
           .select("id, company_id")
@@ -49,21 +41,21 @@ export const Route = createFileRoute("/api/chat")({
           .maybeSingle();
         if (!member?.company_id) return new Response("No company", { status: 403 });
 
-        // Check role
-        const { data: roles } = await supabase
+        const { data: rolesRows } = await supabase
           .from("company_member_roles")
           .select("role")
           .eq("member_id", member.id);
-        const roleSet = new Set((roles ?? []).map((r) => r.role as string));
+        const roles = (rolesRows ?? []).map((r: any) => r.role as string);
+
         const { data: company } = await supabase
           .from("companies")
           .select("owner_id")
           .eq("id", member.company_id)
           .maybeSingle();
         const isOwner = company?.owner_id === userId;
-        const hasAccess = isOwner || Array.from(roleSet).some((r) => ALLOWED_ROLES.has(r));
-        if (!hasAccess) return new Response("Forbidden", { status: 403 });
+        const isDriver = roles.includes("driver");
 
+        // Any authenticated company member may use the copilot; data is scoped below.
         const body = (await request.json()) as { messages?: UIMessage[] };
         if (!Array.isArray(body.messages)) {
           return new Response("messages required", { status: 400 });
@@ -72,9 +64,7 @@ export const Route = createFileRoute("/api/chat")({
         // Persist last user message
         const last = body.messages[body.messages.length - 1];
         if (last?.role === "user") {
-          const text = last.parts
-            .map((p: any) => (p.type === "text" ? p.text : ""))
-            .join("");
+          const text = last.parts.map((p: any) => (p.type === "text" ? p.text : "")).join("");
           if (text.trim()) {
             await supabase.from("ai_chat_messages").insert({
               company_id: member.company_id,
@@ -85,24 +75,54 @@ export const Route = createFileRoute("/api/chat")({
           }
         }
 
-        const fleetContext = await buildFleetContext(supabase);
+        const scope: ContextScope = {
+          companyId: member.company_id,
+          userId,
+          isDriver,
+          isOwner,
+          roles,
+        };
+        const fleetContext = await buildFleetContext(supabase, scope);
 
         const gateway = createLovableAiGatewayProvider(apiKey);
         const model = gateway("google/gemini-3-flash-preview");
 
-        const system = `You are the Navaroad Fleet AI Assistant for a trucking company. You help fleet owners and managers analyze profitability, compliance, and driver performance.
+        const roleLabel = scope.isOwner ? "Fleet Owner" : (isDriver && roles.length === 1 ? "Driver" : "Fleet User");
+        const scopeRule = scope.isDriver && !scope.isOwner && !roles.some((r) => r !== "driver")
+          ? "This user is a DRIVER. Only discuss their own loads, HOS, documents, fuel, expenses, inspections, and truck. Never reveal other drivers' pay, other companies' data, or company-wide financials."
+          : "This user has fleet-level access. You may discuss company-wide profitability, drivers, trucks, loads, compliance, and subscription details.";
 
-You are given a JSON snapshot of the last 90 days of company data below. Use it to answer questions about specific trucks (by vehicle_unit), drivers (by user_id), loads, fuel, maintenance, settlements, and expenses.
+        const system = `You are the Navaroad Copilot — an intelligent trucking assistant for a US fleet. The user is a ${roleLabel}.
 
-When asked about profitability:
-- Per truck: revenue (sum of delivered load rate_usd) minus fuel_cost + maint_cost + driver pay + expenses associated to that truck.
-- Per driver: revenue (delivered loads) minus settled_pay, deductions, expenses, fuel_cost.
-- Surface deadhead, low rate-per-mile, high fuel cost-per-gallon, repair spikes, expense outliers.
-- Always cite numbers from the snapshot. If data is missing, say so plainly.
+${scopeRule}
 
-Be concise. Use bullet points and dollar figures. Round to whole dollars. Never invent numbers.
+You have a JSON snapshot below covering the last 90 days: company, subscription plan, loads (with active/delivered), fuel, expenses, settlements, maintenance, trips, HOS, IFTA, inspections, active hazards, expiring documents, per-truck and per-driver aggregates.
 
-FLEET_SNAPSHOT_JSON:
+CAPABILITIES you can answer about:
+- Route safety, active hazards, weather callouts (from hazards + trip safety scores)
+- Truck parking / truck stops (guide the user to the Parking page for live search)
+- Loads (active, delivered, revenue, next pickup/delivery)
+- Drivers (performance, revenue, pay, HOS)
+- HOS status and remaining drive time (from last 8 days duty minutes)
+- IFTA miles and gallons by state
+- Fuel log, price per gallon, MPG
+- Expenses by category, vendor trends
+- Settlements and driver pay
+- Maintenance done and cost per truck; flag trucks with high repair spend
+- Inspections and defects
+- Driver documents expiring within 60 days
+- Profitability by truck, driver, load, and company
+- Subscription plan, trial end, status
+- Company & team overview
+
+RULES:
+- Be concise. Use short bullets and dollar figures rounded to whole dollars.
+- Cite numbers from the snapshot. If the snapshot lacks data, say so plainly — do not invent.
+- Support follow-up questions; keep prior turns in mind.
+- Voice-friendly: prefer short paragraphs and clear sentences.
+- Never mention data from other companies. Never bypass the scope rule above.
+
+NAVAROAD_SNAPSHOT_JSON:
 ${fleetContext}`;
 
         const result = streamText({
