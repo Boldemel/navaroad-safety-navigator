@@ -104,6 +104,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Truck className="size-5 text-primary-foreground" />
           </div>
           <div className="font-semibold tracking-tight text-sidebar-foreground flex-1">Navaroad</div>
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            className="p-1.5 rounded-md text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            aria-label="Help"
+            title="Help"
+          >
+            <HelpCircle className="size-4" />
+          </button>
           <NotificationBell />
         </div>
         <nav className="flex-1 p-3 space-y-1">
@@ -262,10 +271,20 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="font-semibold">Navaroad</span>
           </div>
           <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setHelpOpen(true)}
+              className="p-2 text-sidebar-foreground/70"
+              aria-label="Help"
+            >
+              <HelpCircle className="size-4" />
+            </button>
             <NotificationBell />
             <button onClick={signOut} className="text-sm text-muted-foreground p-2"><LogOut className="size-4" /></button>
           </div>
         </header>
+
+        <HelpDrawer open={helpOpen} onOpenChange={setHelpOpen} />
 
         <OfflineBanner />
         <SubscriptionBanner />
