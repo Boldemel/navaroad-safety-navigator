@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getUserCompanyId } from "./get-company";
+import { assertFeature } from "@/lib/fleetos/require-feature.server";
 
 export type DutyStatus = "off" | "sleeper" | "driving" | "onduty";
 
@@ -43,6 +44,7 @@ export const listDutyLogs = createServerFn({ method: "GET" })
   .inputValidator((d: { fromIso: string; toIso: string }) =>
     z.object({ fromIso: z.string().datetime({ offset: true }), toIso: z.string().datetime({ offset: true }) }).parse(d))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "hos");
     const { data: rows, error } = await context.supabase
       .from("duty_status_logs").select("*")
       .gte("started_at", data.fromIso).lte("started_at", data.toIso)
@@ -55,6 +57,7 @@ export const createDutyLog = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: z.infer<typeof Schema>) => Schema.parse(d))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "hos", { requireWritable: true });
     const companyId = await getUserCompanyId(context.supabase, context.userId);
     const { error } = await context.supabase.from("duty_status_logs").insert({ user_id: context.userId, company_id: companyId, ...row(data) });
     if (error) throw new Error(error.message);
@@ -66,6 +69,7 @@ export const updateDutyLog = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string } & z.infer<typeof Schema>) =>
     z.object({ id: z.string().uuid() }).extend(Schema.shape).parse(d))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "hos", { requireWritable: true });
     const { id, ...rest } = data;
     const { error } = await context.supabase.from("duty_status_logs").update(row(rest)).eq("id", id);
     if (error) throw new Error(error.message);
@@ -76,6 +80,7 @@ export const deleteDutyLog = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "hos", { requireWritable: true });
     const { error } = await context.supabase.from("duty_status_logs").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
