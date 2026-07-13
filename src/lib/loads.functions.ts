@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getUserCompanyId } from "./get-company";
+import { assertFeature } from "@/lib/fleetos/require-feature.server";
 
 export type Load = {
   id: string;
@@ -70,6 +71,7 @@ export const createLoad = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: z.infer<typeof LoadSchema>) => LoadSchema.parse(data))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "loads", { requireWritable: true });
     const { supabase, userId } = context;
     const companyId = await getUserCompanyId(supabase, userId);
     if (data.isCurrent) {
@@ -90,6 +92,7 @@ export const updateLoad = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid() }).extend(LoadSchema.shape).parse(data),
   )
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "loads", { requireWritable: true });
     const { supabase, userId } = context;
     const { id, ...rest } = data;
     if (rest.isCurrent) {
@@ -108,6 +111,7 @@ export const updateLoad = createServerFn({ method: "POST" })
 export const listLoads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFeature(context, "loads");
     const { data, error } = await context.supabase
       .from("loads")
       .select("*")
@@ -122,6 +126,7 @@ export const deleteLoad = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { id: string }) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "loads", { requireWritable: true });
     const { error } = await context.supabase.from("loads").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getUserCompanyId } from "./get-company";
+import { assertFeature } from "@/lib/fleetos/require-feature.server";
 
 export type IftaEntry = {
   id: string;
@@ -28,6 +29,7 @@ const EntrySchema = z.object({
 export const listIfta = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFeature(context, "ifta");
     const { data, error } = await context.supabase
       .from("ifta_entries")
       .select("*")
@@ -41,6 +43,7 @@ export const createIfta = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: z.infer<typeof EntrySchema>) => EntrySchema.parse(data))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "ifta", { requireWritable: true });
     const companyId = await getUserCompanyId(context.supabase, context.userId);
     const { error } = await context.supabase.from("ifta_entries").insert({
       user_id: context.userId,
@@ -60,6 +63,7 @@ export const deleteIfta = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "ifta", { requireWritable: true });
     const { error } = await context.supabase.from("ifta_entries").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };

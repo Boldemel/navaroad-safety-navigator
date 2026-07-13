@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getUserCompanyId } from "./get-company";
+import { assertFeature } from "@/lib/fleetos/require-feature.server";
 
 export type MaintRecord = {
   id: string;
@@ -48,6 +49,7 @@ function row(d: z.infer<typeof MaintSchema>) {
 export const listMaintenance = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFeature(context, "maintenance");
     const { data, error } = await context.supabase
       .from("maintenance_records")
       .select("*")
@@ -61,6 +63,7 @@ export const createMaintenance = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: z.infer<typeof MaintSchema>) => MaintSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "maintenance", { requireWritable: true });
     const companyId = await getUserCompanyId(context.supabase, context.userId);
     const { error } = await context.supabase.from("maintenance_records").insert({ user_id: context.userId, company_id: companyId, ...row(data) });
     if (error) throw new Error(error.message);
@@ -73,6 +76,7 @@ export const updateMaintenance = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid() }).extend(MaintSchema.shape).parse(d),
   )
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "maintenance", { requireWritable: true });
     const { id, ...rest } = data;
     const { error } = await context.supabase.from("maintenance_records").update(row(rest)).eq("id", id);
     if (error) throw new Error(error.message);
@@ -83,6 +87,7 @@ export const deleteMaintenance = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "maintenance", { requireWritable: true });
     const { error } = await context.supabase.from("maintenance_records").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };

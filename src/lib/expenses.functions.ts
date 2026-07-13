@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getUserCompanyId } from "./get-company";
+import { assertFeature } from "@/lib/fleetos/require-feature.server";
 
 export type Expense = {
   id: string;
@@ -44,6 +45,7 @@ function row(d: z.infer<typeof Schema>) {
 export const listExpenses = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFeature(context, "expenses");
     const { data, error } = await context.supabase
       .from("expenses").select("*").order("expense_date", { ascending: false }).limit(500);
     if (error) throw new Error(error.message);
@@ -54,6 +56,7 @@ export const createExpense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: z.infer<typeof Schema>) => Schema.parse(d))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "expenses", { requireWritable: true });
     const companyId = await getUserCompanyId(context.supabase, context.userId);
     const { error } = await context.supabase.from("expenses").insert({ user_id: context.userId, company_id: companyId, ...row(data) });
     if (error) throw new Error(error.message);
@@ -65,6 +68,7 @@ export const updateExpense = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string } & z.infer<typeof Schema>) =>
     z.object({ id: z.string().uuid() }).extend(Schema.shape).parse(d))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "expenses", { requireWritable: true });
     const { id, ...rest } = data;
     const { error } = await context.supabase.from("expenses").update(row(rest)).eq("id", id);
     if (error) throw new Error(error.message);
@@ -75,6 +79,7 @@ export const deleteExpense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "expenses", { requireWritable: true });
     const { error } = await context.supabase.from("expenses").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };

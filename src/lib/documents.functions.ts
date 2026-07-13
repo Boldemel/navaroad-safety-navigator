@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getUserCompanyId } from "./get-company";
+import { assertFeature } from "@/lib/fleetos/require-feature.server";
 
 export type WalletDoc = {
   id: string;
@@ -49,6 +50,7 @@ function row(d: z.infer<typeof DocSchema>) {
 export const listDocuments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFeature(context, "documents");
     const { data, error } = await context.supabase
       .from("documents")
       .select("*")
@@ -62,6 +64,7 @@ export const createDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: z.infer<typeof DocSchema>) => DocSchema.parse(d))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "documents", { requireWritable: true });
     const companyId = await getUserCompanyId(context.supabase, context.userId);
     const { error } = await context.supabase.from("documents").insert({ user_id: context.userId, company_id: companyId, ...row(data) });
     if (error) throw new Error(error.message);
@@ -74,6 +77,7 @@ export const updateDocument = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid() }).extend(DocSchema.shape).parse(d),
   )
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "documents", { requireWritable: true });
     const { id, ...rest } = data;
     const { error } = await context.supabase.from("documents").update(row(rest)).eq("id", id);
     if (error) throw new Error(error.message);
@@ -84,6 +88,7 @@ export const deleteDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "documents", { requireWritable: true });
     const { error } = await context.supabase.from("documents").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };

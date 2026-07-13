@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getUserCompanyId } from "./get-company";
+import { assertFeature } from "@/lib/fleetos/require-feature.server";
 
 export type StateMileage = { state: string; miles: number; gallons?: number };
 
@@ -64,6 +65,7 @@ export const logTrip = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: z.infer<typeof InsertSchema>) => InsertSchema.parse(data))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "route_analysis", { requireWritable: true });
     const { supabase, userId } = context;
     const companyId = await getUserCompanyId(supabase, userId);
 
@@ -118,6 +120,7 @@ export const logTrip = createServerFn({ method: "POST" })
 export const listTrips = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFeature(context, "route_analysis");
     const { supabase } = context;
     const { data, error } = await supabase
       .from("trip_logs")
@@ -132,6 +135,7 @@ export const deleteTrip = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { id: string }) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "route_analysis", { requireWritable: true });
     const { supabase } = context;
     const { error } = await supabase.from("trip_logs").delete().eq("id", data.id);
     if (error) throw new Error(error.message);

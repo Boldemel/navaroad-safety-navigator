@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getUserCompanyId } from "./get-company";
+import { assertFeature } from "@/lib/fleetos/require-feature.server";
 
 export type InspectionDefect = {
   id: string;
@@ -48,6 +49,7 @@ export const createInspection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: z.infer<typeof InsertSchema>) => InsertSchema.parse(data))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "inspections", { requireWritable: true });
     const { supabase, userId } = context;
     const companyId = await getUserCompanyId(supabase, userId);
     const { data: row, error } = await supabase
@@ -73,6 +75,7 @@ export const createInspection = createServerFn({ method: "POST" })
 export const listInspections = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFeature(context, "inspections");
     const { data, error } = await context.supabase
       .from("inspections")
       .select("*")
@@ -86,6 +89,7 @@ export const deleteInspection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { id: string }) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
+    await assertFeature(context, "inspections", { requireWritable: true });
     const { error } = await context.supabase.from("inspections").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };

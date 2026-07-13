@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getUserCompanyId } from "./get-company";
+import { assertFeature } from "@/lib/fleetos/require-feature.server";
 
 export type StoredChatMessage = {
   id: string;
@@ -12,6 +13,7 @@ export type StoredChatMessage = {
 export const listAssistantHistory = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFeature(context, "assistant");
     const companyId = await getUserCompanyId(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("ai_chat_messages")
@@ -26,6 +28,7 @@ export const listAssistantHistory = createServerFn({ method: "GET" })
 export const clearAssistantHistory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await assertFeature(context, "assistant", { requireWritable: true });
     const companyId = await getUserCompanyId(context.supabase, context.userId);
     const { error } = await context.supabase
       .from("ai_chat_messages")
