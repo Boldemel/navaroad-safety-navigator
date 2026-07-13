@@ -1,5 +1,5 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Map, Bell, User, LogOut, Truck, Shield, ShieldAlert, Users, FileWarning, BookOpen, ClipboardCheck, Package, ParkingCircle, MapPinned, FolderLock, Wrench, Receipt, Fuel, ClipboardList, Building2, Sparkles, TrendingUp, FileBarChart, UserCheck, Menu, CreditCard } from "lucide-react";
+import { LayoutDashboard, Map, Bell, User, LogOut, Truck, Shield, ShieldAlert, Users, FileWarning, BookOpen, ClipboardCheck, Package, ParkingCircle, MapPinned, FolderLock, Wrench, Receipt, Fuel, ClipboardList, Building2, Sparkles, TrendingUp, FileBarChart, UserCheck, Menu, CreditCard, HelpCircle } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { getModuleForRoute } from "@/lib/fleetos/module-registry";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -14,6 +14,7 @@ import { SubscriptionBanner } from "@/components/subscription-banner";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useIsSuperAdmin } from "@/hooks/use-is-super-admin";
 import { useAllowedModules } from "@/hooks/use-allowed-modules";
+import { HelpDrawer } from "@/components/help/help-drawer";
 
 const nav = [
   { to: "/dashboard", label: "Route Analysis", icon: LayoutDashboard },
@@ -33,6 +34,7 @@ const nav = [
   { to: "/trucks", label: "Trucks", icon: Truck },
   { to: "/assistant", label: "Fleet AI Assistant", icon: Sparkles },
   
+  { to: "/help", label: "Help", icon: HelpCircle },
   { to: "/company", label: "Company & Team", icon: Building2 },
   { to: "/billing", label: "Billing & Plans", icon: CreditCard },
   { to: "/profile", label: "Profile", icon: User },
@@ -65,6 +67,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const visibleNav = allowed ? nav.filter((n) => allowed.has(n.to)) : nav;
   const visibleMobileNav = allowed ? mobileNav.filter((n) => allowed.has(n.to)) : mobileNav;
   const [moreOpen, setMoreOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Registry-driven route guard: if the current URL maps to a registered
   // module the user isn't entitled to, bounce to /dashboard. Admin routes
