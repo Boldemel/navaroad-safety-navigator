@@ -159,9 +159,7 @@ function HelpPage() {
 
                 <div className="mt-6 pt-4 border-t flex flex-wrap gap-2">
                   <Button asChild size="sm">
-                    <Link
-                      to={`/assistant?q=${encodeURIComponent(`How do I use ${active.title}? Give me a 30-second tour.`)}`}
-                    >
+                    <Link to="/assistant">
                       <Sparkles className="size-4" /> Ask Copilot about {active.title}
                     </Link>
                   </Button>

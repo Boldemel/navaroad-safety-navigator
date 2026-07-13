@@ -29,9 +29,6 @@ export function HelpDrawer({
   const mod = getModuleForRoute(pathname);
   const article = mod ? getHelpArticle(mod.id) : undefined;
 
-  const askUrl = article
-    ? `/assistant?q=${encodeURIComponent(`How do I use ${article.title}? Give me a 30-second tour.`)}`
-    : "/assistant";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -80,8 +77,9 @@ export function HelpDrawer({
 
         <div className="border-t p-3 flex flex-col gap-2">
           <Button asChild onClick={() => onOpenChange(false)}>
-            <Link to={askUrl}>
-              <Sparkles className="size-4" /> Ask Copilot about this page
+            <Link to="/assistant">
+              <Sparkles className="size-4" />
+              {article ? `Ask Copilot about ${article.title}` : "Ask Copilot"}
             </Link>
           </Button>
           <Button variant="outline" asChild onClick={() => onOpenChange(false)}>

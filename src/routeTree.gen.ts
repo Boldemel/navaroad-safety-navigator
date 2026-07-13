@@ -27,6 +27,7 @@ import { Route as AuthenticatedLoadsRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedInspectionsRouteImport } from './routes/_authenticated/inspections'
 import { Route as AuthenticatedIftaRouteImport } from './routes/_authenticated/ifta'
 import { Route as AuthenticatedHosRouteImport } from './routes/_authenticated/hos'
+import { Route as AuthenticatedHelpRouteImport } from './routes/_authenticated/help'
 import { Route as AuthenticatedHazardMapRouteImport } from './routes/_authenticated/hazard-map'
 import { Route as AuthenticatedFuelRouteImport } from './routes/_authenticated/fuel'
 import { Route as AuthenticatedFleetProfitabilityRouteImport } from './routes/_authenticated/fleet-profitability'
@@ -138,6 +139,11 @@ const AuthenticatedIftaRoute = AuthenticatedIftaRouteImport.update({
 const AuthenticatedHosRoute = AuthenticatedHosRouteImport.update({
   id: '/hos',
   path: '/hos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHelpRoute = AuthenticatedHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedHazardMapRoute = AuthenticatedHazardMapRouteImport.update({
@@ -272,6 +278,7 @@ export interface FileRoutesByFullPath {
   '/fleet-profitability': typeof AuthenticatedFleetProfitabilityRoute
   '/fuel': typeof AuthenticatedFuelRoute
   '/hazard-map': typeof AuthenticatedHazardMapRoute
+  '/help': typeof AuthenticatedHelpRoute
   '/hos': typeof AuthenticatedHosRoute
   '/ifta': typeof AuthenticatedIftaRoute
   '/inspections': typeof AuthenticatedInspectionsRoute
@@ -312,6 +319,7 @@ export interface FileRoutesByTo {
   '/fleet-profitability': typeof AuthenticatedFleetProfitabilityRoute
   '/fuel': typeof AuthenticatedFuelRoute
   '/hazard-map': typeof AuthenticatedHazardMapRoute
+  '/help': typeof AuthenticatedHelpRoute
   '/hos': typeof AuthenticatedHosRoute
   '/ifta': typeof AuthenticatedIftaRoute
   '/inspections': typeof AuthenticatedInspectionsRoute
@@ -352,6 +360,7 @@ export interface FileRoutesById {
   '/_authenticated/fleet-profitability': typeof AuthenticatedFleetProfitabilityRoute
   '/_authenticated/fuel': typeof AuthenticatedFuelRoute
   '/_authenticated/hazard-map': typeof AuthenticatedHazardMapRoute
+  '/_authenticated/help': typeof AuthenticatedHelpRoute
   '/_authenticated/hos': typeof AuthenticatedHosRoute
   '/_authenticated/ifta': typeof AuthenticatedIftaRoute
   '/_authenticated/inspections': typeof AuthenticatedInspectionsRoute
@@ -394,6 +403,7 @@ export interface FileRouteTypes {
     | '/fleet-profitability'
     | '/fuel'
     | '/hazard-map'
+    | '/help'
     | '/hos'
     | '/ifta'
     | '/inspections'
@@ -434,6 +444,7 @@ export interface FileRouteTypes {
     | '/fleet-profitability'
     | '/fuel'
     | '/hazard-map'
+    | '/help'
     | '/hos'
     | '/ifta'
     | '/inspections'
@@ -473,6 +484,7 @@ export interface FileRouteTypes {
     | '/_authenticated/fleet-profitability'
     | '/_authenticated/fuel'
     | '/_authenticated/hazard-map'
+    | '/_authenticated/help'
     | '/_authenticated/hos'
     | '/_authenticated/ifta'
     | '/_authenticated/inspections'
@@ -633,6 +645,13 @@ declare module '@tanstack/react-router' {
       path: '/hos'
       fullPath: '/hos'
       preLoaderRoute: typeof AuthenticatedHosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/help': {
+      id: '/_authenticated/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof AuthenticatedHelpRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/hazard-map': {
@@ -824,6 +843,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFleetProfitabilityRoute: typeof AuthenticatedFleetProfitabilityRoute
   AuthenticatedFuelRoute: typeof AuthenticatedFuelRoute
   AuthenticatedHazardMapRoute: typeof AuthenticatedHazardMapRoute
+  AuthenticatedHelpRoute: typeof AuthenticatedHelpRoute
   AuthenticatedHosRoute: typeof AuthenticatedHosRoute
   AuthenticatedIftaRoute: typeof AuthenticatedIftaRoute
   AuthenticatedInspectionsRoute: typeof AuthenticatedInspectionsRoute
@@ -854,6 +874,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFleetProfitabilityRoute: AuthenticatedFleetProfitabilityRoute,
   AuthenticatedFuelRoute: AuthenticatedFuelRoute,
   AuthenticatedHazardMapRoute: AuthenticatedHazardMapRoute,
+  AuthenticatedHelpRoute: AuthenticatedHelpRoute,
   AuthenticatedHosRoute: AuthenticatedHosRoute,
   AuthenticatedIftaRoute: AuthenticatedIftaRoute,
   AuthenticatedInspectionsRoute: AuthenticatedInspectionsRoute,
@@ -887,13 +908,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
