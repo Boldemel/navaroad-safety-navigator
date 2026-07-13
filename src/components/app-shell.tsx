@@ -1,6 +1,7 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Map, Bell, User, LogOut, Truck, Shield, ShieldAlert, Users, FileWarning, BookOpen, ClipboardCheck, Package, ParkingCircle, MapPinned, FolderLock, Wrench, Receipt, Fuel, ClipboardList, Building2, Sparkles, TrendingUp, FileBarChart, UserCheck, Menu, CreditCard } from "lucide-react";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { getModuleForRoute } from "@/lib/fleetos/module-registry";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
