@@ -342,6 +342,18 @@ export const FLEETOS_MODULES: readonly FleetOSModule[] = [
     alwaysAvailable: true,
   },
   {
+    id: "help",
+    label: "Help",
+    description: "In-app how-to guides for every FleetOS module.",
+    category: "admin",
+    featureKey: "help",
+    roles: [],
+    routes: ["/help"],
+    automation: [],
+    icon: "HelpCircle",
+    alwaysAvailable: true,
+  },
+  {
     id: "platform_admin",
     label: "Platform Admin",
     description: "Super-admin console across all companies.",
