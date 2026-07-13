@@ -1,6 +1,7 @@
 import { QueryCache, QueryClient, MutationCache } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { handleEntitlementError } from "@/lib/fleetos/entitlement-toast";
 import { routeTree } from "./routeTree.gen";
 
 function friendlyMessage(error: unknown): string {
