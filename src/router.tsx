@@ -1,6 +1,7 @@
 import { QueryCache, QueryClient, MutationCache } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { handleEntitlementError } from "@/lib/fleetos/entitlement-toast";
 import { routeTree } from "./routeTree.gen";
 
 function friendlyMessage(error: unknown): string {
@@ -36,6 +37,11 @@ export const getRouter = () => {
     },
     queryCache: new QueryCache({
       onError: (error, query) => {
+        // Entitlement failures always surface with the specialized toast
+        // (message + module + Upgrade / Reactivate action), even when the
+        // query already had cached data — the user just tried to touch a
+        // gated module and needs to know why it failed.
+        if (handleEntitlementError(error)) return;
         // Only surface user-visible failures; silent background refetches stay quiet
         // unless they have an explicit meta flag.
         if (query.meta?.suppressErrorToast) return;
@@ -45,6 +51,7 @@ export const getRouter = () => {
     }),
     mutationCache: new MutationCache({
       onError: (error, _vars, _ctx, mutation) => {
+        if (handleEntitlementError(error)) return;
         if (mutation.meta?.suppressErrorToast) return;
         if (mutation.options.onError) return; // caller handles it
         toast.error(friendlyMessage(error));
