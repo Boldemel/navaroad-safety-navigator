@@ -437,7 +437,7 @@ export const assignLoad = createServerFn({ method: "POST" })
     }
     const { data: row, error } = await context.supabase
       .from("loads")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.loadId)
       .select("id,dispatch_status,driver_id,vehicle_unit,assigned_at")
       .single();
@@ -489,7 +489,7 @@ export const updateDispatchStatus = createServerFn({ method: "POST" })
     }
     const { data: row, error } = await context.supabase
       .from("loads")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.loadId)
       .select("id,dispatch_status")
       .single();
