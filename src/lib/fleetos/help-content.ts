@@ -12,6 +12,8 @@
  * task-oriented — this is not marketing copy.
  */
 
+import { FLEETOS_MODULES, type ModuleCategory } from "@/lib/fleetos/module-registry";
+
 export type HelpArticle = {
   /** Matches FleetOSModule.id */
   moduleId: string;
@@ -21,7 +23,61 @@ export type HelpArticle = {
   steps: { title: string; body: string }[];
   /** Optional related module ids for cross-linking. */
   related?: string[];
+  /** Topic tags for filtering (e.g. "getting-started", "billing"). */
+  tags?: HelpTopic[];
+  /** Inherited from the module registry — module category. */
+  category?: ModuleCategory;
 };
+
+/** Curated topic tags shown in the topic filter dropdown. */
+export const HELP_TOPICS = [
+  "getting-started",
+  "assign-a-load",
+  "trip-timeline",
+  "ai-copilot",
+  "hos-compliance",
+  "documents-expiry",
+  "ifta-taxes",
+  "fuel-mpg",
+  "maintenance-pm",
+  "profitability",
+  "reports-exports",
+  "billing-plans",
+  "team-roles",
+  "voice-alerts",
+] as const;
+export type HelpTopic = (typeof HELP_TOPICS)[number];
+
+/**
+ * Curated topic tags per module. Keeps the article definitions below
+ * uncluttered; edit here to re-tag an article without touching content.
+ */
+const TAGS_BY_MODULE: Record<string, HelpTopic[]> = {
+  dashboard: ["getting-started"],
+  dispatch: ["assign-a-load", "trip-timeline", "ai-copilot"],
+  loads: ["assign-a-load", "trip-timeline"],
+  route_analysis: ["getting-started"],
+  parking: ["getting-started"],
+  alerts: ["voice-alerts"],
+  hos: ["hos-compliance"],
+  inspections: ["hos-compliance", "maintenance-pm"],
+  documents: ["documents-expiry"],
+  hazard_reports: ["getting-started"],
+  fuel: ["fuel-mpg", "ifta-taxes"],
+  expenses: ["profitability"],
+  ifta: ["ifta-taxes", "reports-exports"],
+  fleet_profitability: ["profitability", "reports-exports"],
+  trucks: ["maintenance-pm"],
+  maintenance: ["maintenance-pm"],
+  driver_performance: ["profitability"],
+  reports: ["reports-exports"],
+  assistant: ["ai-copilot", "voice-alerts"],
+  billing: ["billing-plans"],
+  company: ["team-roles"],
+  profile: ["voice-alerts"],
+};
+
+
 
 export const HELP_ARTICLES: HelpArticle[] = [
   {
@@ -221,20 +277,91 @@ export const HELP_ARTICLES: HelpArticle[] = [
   },
 ];
 
+// Enrich each article with its module category and curated topic tags so
+// callers can filter without a second lookup.
+const MODULE_CATEGORY_BY_ID = new Map(FLEETOS_MODULES.map((m) => [m.id, m.category]));
+for (const a of HELP_ARTICLES) {
+  a.category = MODULE_CATEGORY_BY_ID.get(a.moduleId);
+  a.tags = TAGS_BY_MODULE[a.moduleId] ?? [];
+}
+
 const BY_MODULE = new Map(HELP_ARTICLES.map((a) => [a.moduleId, a]));
 
 export function getHelpArticle(moduleId: string): HelpArticle | undefined {
   return BY_MODULE.get(moduleId);
 }
 
-export function searchHelp(query: string): HelpArticle[] {
+export type HelpSearchOptions = {
+  query?: string;
+  category?: ModuleCategory | "all";
+  topic?: HelpTopic | "all";
+};
+
+export type HelpSearchResult = {
+  article: HelpArticle;
+  score: number;
+  /** Which step indexes matched the query, for inline highlighting. */
+  matchedStepIndexes: number[];
+};
+
+/**
+ * Scored, filterable help search.
+ *
+ * Score weights:
+ *   title match         100 (exact word) / 60 (substring)
+ *   summary match       25
+ *   step title match    15 per matching step
+ *   step body match      6 per matching step
+ *   tag match           10
+ *
+ * With no query, results are sorted alphabetically by title.
+ */
+export function searchHelp(options: HelpSearchOptions = {}): HelpSearchResult[] {
+  const { query = "", category = "all", topic = "all" } = options;
   const q = query.trim().toLowerCase();
-  if (!q) return HELP_ARTICLES;
-  return HELP_ARTICLES.filter((a) => {
-    if (a.title.toLowerCase().includes(q)) return true;
-    if (a.summary.toLowerCase().includes(q)) return true;
-    return a.steps.some(
-      (s) => s.title.toLowerCase().includes(q) || s.body.toLowerCase().includes(q),
-    );
+
+  const pool = HELP_ARTICLES.filter((a) => {
+    if (category !== "all" && a.category !== category) return false;
+    if (topic !== "all" && !(a.tags ?? []).includes(topic)) return false;
+    return true;
   });
+
+  if (!q) {
+    return pool
+      .slice()
+      .sort((a, b) => a.title.localeCompare(b.title))
+      .map((article) => ({ article, score: 0, matchedStepIndexes: [] }));
+  }
+
+  const wordRe = new RegExp(`\\b${escapeRegExp(q)}\\b`, "i");
+
+  const results: HelpSearchResult[] = [];
+  for (const article of pool) {
+    let score = 0;
+    const matchedStepIndexes: number[] = [];
+
+    if (wordRe.test(article.title)) score += 100;
+    else if (article.title.toLowerCase().includes(q)) score += 60;
+
+    if (article.summary.toLowerCase().includes(q)) score += 25;
+
+    article.steps.forEach((s, i) => {
+      const inTitle = s.title.toLowerCase().includes(q);
+      const inBody = s.body.toLowerCase().includes(q);
+      if (inTitle) score += 15;
+      if (inBody) score += 6;
+      if (inTitle || inBody) matchedStepIndexes.push(i);
+    });
+
+    if ((article.tags ?? []).some((t) => t.includes(q))) score += 10;
+
+    if (score > 0) results.push({ article, score, matchedStepIndexes });
+  }
+
+  return results.sort((a, b) => b.score - a.score || a.article.title.localeCompare(b.article.title));
 }
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
