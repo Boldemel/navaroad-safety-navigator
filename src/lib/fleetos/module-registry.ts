@@ -94,6 +94,18 @@ export const FLEETOS_MODULES: readonly FleetOSModule[] = [
     icon: "Package",
   },
   {
+    id: "dispatch",
+    label: "Dispatch",
+    description:
+      "Airline-ops-style dispatcher workspace: assign drivers, trucks, and loads with AI recommendations and a live trip timeline.",
+    category: "operations",
+    featureKey: "dispatch",
+    roles: [...FULL_ACCESS_ROLES, "dispatcher"],
+    routes: ["/dispatch"],
+    automation: ["L1_recommend", "L2_approve", "L3_auto"],
+    icon: "Radio",
+  },
+  {
     id: "route_analysis",
     label: "Route Analysis",
     description: "AI route safety, hazards, weather, and truck stops.",

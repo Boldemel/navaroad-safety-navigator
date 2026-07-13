@@ -1053,19 +1053,27 @@ export type Database = {
       }
       loads: {
         Row: {
+          accepted_at: string | null
+          assigned_at: string | null
           bol_number: string | null
           commodity: string | null
           company_id: string
+          completed_at: string | null
           consignee_address: string | null
           consignee_name: string | null
           created_at: string
+          delivered_at: string | null
           delivery_at: string | null
+          dispatch_status: string
           driver_id: string | null
           empty_miles: number | null
           id: string
+          in_transit_at: string | null
           is_current: boolean
+          loaded_at: string | null
           loaded_miles: number | null
           notes: string | null
+          pickup_arrived_at: string | null
           pickup_at: string | null
           rate_usd: number | null
           shipper_address: string | null
@@ -1078,19 +1086,27 @@ export type Database = {
           weight_lbs: number | null
         }
         Insert: {
+          accepted_at?: string | null
+          assigned_at?: string | null
           bol_number?: string | null
           commodity?: string | null
           company_id: string
+          completed_at?: string | null
           consignee_address?: string | null
           consignee_name?: string | null
           created_at?: string
+          delivered_at?: string | null
           delivery_at?: string | null
+          dispatch_status?: string
           driver_id?: string | null
           empty_miles?: number | null
           id?: string
+          in_transit_at?: string | null
           is_current?: boolean
+          loaded_at?: string | null
           loaded_miles?: number | null
           notes?: string | null
+          pickup_arrived_at?: string | null
           pickup_at?: string | null
           rate_usd?: number | null
           shipper_address?: string | null
@@ -1103,19 +1119,27 @@ export type Database = {
           weight_lbs?: number | null
         }
         Update: {
+          accepted_at?: string | null
+          assigned_at?: string | null
           bol_number?: string | null
           commodity?: string | null
           company_id?: string
+          completed_at?: string | null
           consignee_address?: string | null
           consignee_name?: string | null
           created_at?: string
+          delivered_at?: string | null
           delivery_at?: string | null
+          dispatch_status?: string
           driver_id?: string | null
           empty_miles?: number | null
           id?: string
+          in_transit_at?: string | null
           is_current?: boolean
+          loaded_at?: string | null
           loaded_miles?: number | null
           notes?: string | null
+          pickup_arrived_at?: string | null
           pickup_at?: string | null
           rate_usd?: number | null
           shipper_address?: string | null
