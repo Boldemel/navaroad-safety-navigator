@@ -61,10 +61,25 @@ export function AppShell({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const isAdmin = useIsAdmin();
   const { isSuperAdmin } = useIsSuperAdmin();
-  const { allowed } = useAllowedModules();
+  const { loading: modulesLoading, allowed } = useAllowedModules();
   const visibleNav = allowed ? nav.filter((n) => allowed.has(n.to)) : nav;
   const visibleMobileNav = allowed ? mobileNav.filter((n) => allowed.has(n.to)) : mobileNav;
   const [moreOpen, setMoreOpen] = useState(false);
+
+  // Registry-driven route guard: if the current URL maps to a registered
+  // module the user isn't entitled to, bounce to /dashboard. Admin routes
+  // are checked separately via useIsAdmin / useIsSuperAdmin.
+  useEffect(() => {
+    if (modulesLoading || allowed === null) return;
+    if (pathname.startsWith("/admin/")) return;
+    const mod = getModuleForRoute(pathname);
+    if (!mod) return; // unregistered route → let the router handle it
+    if (mod.alwaysAvailable) return;
+    const permitted = mod.routes.some((r) => allowed.has(r));
+    if (!permitted) {
+      router.navigate({ to: "/dashboard", replace: true });
+    }
+  }, [pathname, modulesLoading, allowed, router]);
 
   // Sign-out hygiene: cancel in-flight queries, drop cached protected data,
   // sign out, then REPLACE history so Back can't restore the protected route.
