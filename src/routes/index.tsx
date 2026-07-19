@@ -75,8 +75,11 @@ function Landing() {
             <Button variant="ghost" asChild className="hidden sm:inline-flex">
               <a href="#features">Features</a>
             </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/auth" search={{ mode: "signin" }}>Sign in</Link>
+            </Button>
             <Button asChild>
-              <a href={APP_URL}>Access FleetOS</a>
+              <Link to="/auth" search={{ mode: "signup" }}>Access FleetOS</Link>
             </Button>
           </div>
         </div>
