@@ -119,8 +119,9 @@ function Landing() {
               to="/auth"
               className="rounded-xl border border-white/10 bg-white/5 px-6 py-4 text-center text-base font-medium text-white transition hover:bg-white/10"
             >
-              Sign In
+              Sign in
             </Link>
+
           </div>
           <p className="mt-4 text-xs text-zinc-500">Full access to your selected plan. Cancel anytime before day 7.</p>
         </div>
