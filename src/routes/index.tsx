@@ -350,13 +350,13 @@ function Landing() {
               to="/auth"
               className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-8 py-4 text-base font-bold text-black shadow-2xl shadow-orange-500/40 transition active:scale-95"
             >
-              Access FleetOS <ArrowRight className="h-4 w-4" />
+              Start free trial <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               to="/auth"
               className="rounded-xl border border-white/10 px-8 py-4 text-base font-medium text-white hover:bg-white/5"
             >
-              Sign In
+              Sign in
             </Link>
           </div>
         </div>
@@ -366,17 +366,20 @@ function Landing() {
       <footer className="border-t border-white/5 px-5 py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-xs text-zinc-600 sm:flex-row">
           <div className="flex items-center gap-2">
-            <div className="grid h-5 w-5 place-items-center rounded bg-orange-500 text-[10px] font-black text-black">N</div>
-            <span className="font-bold tracking-tight text-zinc-400">NAVAROAD FLEETOS</span>
+            <NavaroadMark size={20} />
+            <span className="font-bold tracking-tight text-zinc-400">NAVAROAD</span>
+            <span className="text-zinc-700">·</span>
+            <span className="text-zinc-500">FleetOS</span>
           </div>
           <div className="flex gap-6">
             <Link to="/privacy" className="hover:text-white">Privacy</Link>
             <Link to="/terms" className="hover:text-white">Terms</Link>
-            <Link to="/auth" className="hover:text-white">Sign In</Link>
+            <Link to="/auth" className="hover:text-white">Sign in</Link>
           </div>
-          <div>© {new Date().getFullYear()} Navaroad</div>
+          <div>© {new Date().getFullYear()} Navaroad Technologies</div>
         </div>
       </footer>
+
     </div>
   );
 }
