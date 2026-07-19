@@ -185,17 +185,16 @@ export function NavaroadAppTile({
       {/* Inline the refined mark, scaled/inset so it fills the tile nicely */}
       <g transform="translate(6 6) scale(0.8125)">
         <g fill="#ffffff">
-          <path d="M8 14 L14 8 L22 8 L22 56 L8 56 Z" />
-          <path d="M22 8 L32 8 L52 56 L42 56 Z" />
-          <path d="M42 8 L56 8 L56 50 L50 56 L42 56 Z" />
+          <path d="M8 8 L20 8 L20 56 L14 56 L8 50 Z" />
+          <path d="M20 8 L32 8 L44 56 L32 56 Z" />
+          <path d="M44 8 L50 8 L56 14 L56 56 L44 56 Z" />
         </g>
-        <g stroke="#0b0b0f" fill="none" strokeLinecap="round">
-          <line x1="34" y1="54" x2="47" y2="16" strokeWidth="1.1" opacity="0.7" />
-          <line x1="40" y1="54" x2="53" y2="16" strokeWidth="1.1" opacity="0.7" />
-          <line x1="37" y1="54" x2="50" y2="16" strokeWidth="1.6" strokeDasharray="3 3" />
-        </g>
-        <circle cx="50.5" cy="10.5" r="4.75" fill={ACCENT} />
-
+        <path d="M28 54 L34 54 L52 12 L46 12 Z" fill="#0b0b0f" />
+        <line
+          x1="31" y1="54" x2="49" y2="12"
+          stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="3.2 3.2"
+        />
+        <circle cx="50" cy="10" r="4.75" fill={ACCENT} />
       </g>
     </svg>
   );
