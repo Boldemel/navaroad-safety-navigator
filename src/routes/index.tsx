@@ -101,10 +101,10 @@ function Landing() {
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="lg" asChild>
-              <a href={APP_URL}>Access FleetOS</a>
+              <Link to="/auth" search={{ mode: "signup" }}>Start 7-Day Free Trial</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <a href="#features">View Features</a>
+              <Link to="/auth" search={{ mode: "signin" }}>Sign in</Link>
             </Button>
           </div>
         </div>
