@@ -203,7 +203,7 @@ function Landing() {
           </h2>
           <div className="mt-8">
             <Button size="lg" asChild>
-              <a href={APP_URL}>Access Navaroad FleetOS</a>
+              <Link to="/auth" search={{ mode: "signup" }}>Start 7-Day Free Trial</Link>
             </Button>
           </div>
         </div>
