@@ -10,13 +10,13 @@ import { NavaroadFleetOSLogo, NavaroadMark } from "@/components/brand/logo";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Navaroad FleetOS | AI Operating System for Trucking" },
+      { title: "Navaroad FleetOS | Operating System for Trucking" },
       {
         name: "description",
         content:
           "Navaroad FleetOS is the AI operating system for trucking. GPS, dispatch, loads, HOS, IFTA, fuel, maintenance, inspections, settlements, and profitability in one platform.",
       },
-      { property: "og:title", content: "Navaroad FleetOS | AI Operating System for Trucking" },
+      { property: "og:title", content: "Navaroad FleetOS | Operating System for Trucking" },
       {
         property: "og:description",
         content:
@@ -100,7 +100,7 @@ function Landing() {
         <div className="pointer-events-none absolute top-40 -left-20 h-64 w-64 rounded-full bg-orange-600/10 blur-[100px]" />
         <div className="relative mx-auto max-w-4xl text-center">
           <span className="mb-6 inline-block rounded-full border border-orange-500/30 bg-orange-500/5 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-orange-400">
-            The AI Operating System for Trucking
+            The Operating System for Trucking
           </span>
           <h1 className="text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl">
             One platform to run <span className="text-orange-500">every mile</span> of your fleet.
@@ -312,29 +312,6 @@ function Landing() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="px-5 py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-12 text-center">
-            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-orange-500">Operators</span>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Built with drivers, dispatchers, and owners.</h2>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {[
-              { quote: "Cut our dispatch overhead almost in half. The AI catches things a human would miss at 2am.", who: "Terminal Manager", where: "Midwest Reefer Fleet" },
-              { quote: "Finally know what each truck actually earns. IFTA takes minutes now, not a weekend.", who: "Owner Operator", where: "48-state OTR" },
-              { quote: "One platform replaced four subscriptions. Our drivers actually use it.", who: "Director of Operations", where: "Regional Flatbed" },
-            ].map((t, i) => (
-              <div key={i} className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6">
-                <ShieldCheck className="mb-4 h-5 w-5 text-orange-400" />
-                <p className="mb-4 text-sm leading-relaxed text-zinc-200">"{t.quote}"</p>
-                <div className="text-xs font-semibold text-white">{t.who}</div>
-                <div className="text-xs text-zinc-500">{t.where}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Final CTA */}
       <section className="border-t border-white/5 px-5 py-24">
