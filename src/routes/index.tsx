@@ -29,7 +29,7 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-const APP_URL = "https://app.navaroad.com";
+
 
 const FLEET_FEATURES = [
   { icon: Map, title: "GPS and Route Analysis", body: "Commercial routing with live hazard, weather, and safety scoring for every trip." },
