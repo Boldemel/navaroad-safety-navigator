@@ -15,6 +15,8 @@ import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useIsSuperAdmin } from "@/hooks/use-is-super-admin";
 import { useAllowedModules } from "@/hooks/use-allowed-modules";
 import { HelpDrawer } from "@/components/help/help-drawer";
+import { NavaroadMark } from "@/components/brand/logo";
+
 
 const nav = [
   { to: "/dashboard", label: "Route Analysis", icon: LayoutDashboard },
