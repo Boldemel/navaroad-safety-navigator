@@ -104,7 +104,15 @@
 @layer base {
   html, body { background-color: var(--color-background); color: var(--color-foreground); }
   * { border-color: var(--color-border); }
-  body { font-family: var(--font-display); }
+  body {
+    font-family: var(--font-display);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4 { letter-spacing: -0.02em; }
+  :focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; border-radius: var(--radius-sm); }
+  :disabled, [aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
 }
 
 @utility road-grid {
@@ -112,4 +120,24 @@
     linear-gradient(to right, color-mix(in oklab, var(--border) 60%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in oklab, var(--border) 60%, transparent) 1px, transparent 1px);
   background-size: 32px 32px;
+}
+
+/* Navaroad signature primary button — use on the highest-emphasis CTA per view. */
+@utility btn-navaroad {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  box-shadow: 0 10px 30px -12px color-mix(in oklab, var(--color-primary) 55%, transparent);
+  transition: background-color 150ms ease, transform 120ms ease, box-shadow 200ms ease;
+
+  &:hover { background: color-mix(in oklab, var(--color-primary) 88%, white); }
+  &:active { transform: scale(0.98); }
+  &:disabled { background: color-mix(in oklab, var(--color-primary) 45%, var(--color-muted)); box-shadow: none; }
 }
