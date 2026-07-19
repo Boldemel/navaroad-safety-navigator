@@ -267,10 +267,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </div>
               </SheetContent>
             </Sheet>
-            <div className="size-8 flex items-center justify-center">
-              <NavaroadMark size={28} />
-            </div>
-            <span className="font-semibold">Navaroad</span>
+            <NavaroadMark size={32} />
+            <span className="font-semibold tracking-tight leading-none">Navaroad</span>
+
+
 
           </div>
           <div className="flex items-center gap-1">
