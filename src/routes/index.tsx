@@ -29,7 +29,7 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-const APP_URL = "https://app.navaroad.com";
+
 
 const FLEET_FEATURES = [
   { icon: Map, title: "GPS and Route Analysis", body: "Commercial routing with live hazard, weather, and safety scoring for every trip." },
@@ -75,8 +75,11 @@ function Landing() {
             <Button variant="ghost" asChild className="hidden sm:inline-flex">
               <a href="#features">Features</a>
             </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/auth" search={{ mode: "signin" }}>Sign in</Link>
+            </Button>
             <Button asChild>
-              <a href={APP_URL}>Access FleetOS</a>
+              <Link to="/auth" search={{ mode: "signup" }}>Access FleetOS</Link>
             </Button>
           </div>
         </div>
@@ -98,10 +101,10 @@ function Landing() {
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="lg" asChild>
-              <a href={APP_URL}>Access FleetOS</a>
+              <Link to="/auth" search={{ mode: "signup" }}>Start 7-Day Free Trial</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <a href="#features">View Features</a>
+              <Link to="/auth" search={{ mode: "signin" }}>Sign in</Link>
             </Button>
           </div>
         </div>
@@ -200,7 +203,7 @@ function Landing() {
           </h2>
           <div className="mt-8">
             <Button size="lg" asChild>
-              <a href={APP_URL}>Access Navaroad FleetOS</a>
+              <Link to="/auth" search={{ mode: "signup" }}>Start 7-Day Free Trial</Link>
             </Button>
           </div>
         </div>
