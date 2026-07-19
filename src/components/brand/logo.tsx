@@ -90,17 +90,19 @@ export function NavaroadLogo({
   const wordColor =
     tone === "light" ? "text-black" : tone === "dark" ? "text-white" : "text-foreground";
   return (
-    <div className={cn("inline-flex items-center gap-2.5", wordColor, className)}>
-      <NavaroadMark size={size} />
+    <div className={cn("inline-flex items-baseline", wordColor, className)}>
+      <NavaroadMark size={size} className="self-center -mr-[0.05em]" />
       <span
         className="font-bold leading-none"
         style={{ fontSize: size * 0.7, letterSpacing: "0.04em" }}
+        aria-label="Navaroad"
       >
-        NAVAROAD
+        AVAROAD
       </span>
     </div>
   );
 }
+
 
 /** FleetOS lockup: NAVAROAD + subtle divider + FleetOS in accent weight. */
 export function NavaroadFleetOSLogo({
