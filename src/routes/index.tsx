@@ -106,12 +106,12 @@ function Landing() {
             One platform to run <span className="text-orange-500">every mile</span> of your fleet.
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg">
-            Navigation, dispatch, loads, compliance, fuel, maintenance, settlements, and profitability — unified and powered by AI. Built for owner operators through enterprise fleets.
+            Navigation, dispatch, loads, compliance, fuel, maintenance, settlements, and profitability — unified in one workspace. Built for owner operators through enterprise fleets.
           </p>
           <div className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
               to="/auth"
-              className="rounded-xl bg-orange-500 px-6 py-4 text-center text-base font-bold text-black shadow-xl shadow-orange-500/30 transition active:scale-95"
+              className="rounded-xl bg-orange-500 px-6 py-4 text-center text-base font-bold text-black shadow-xl shadow-orange-500/30 transition hover:bg-orange-400 active:scale-95"
             >
               Start 7-Day Free Trial
             </Link>
@@ -121,7 +121,6 @@ function Landing() {
             >
               Sign in
             </Link>
-
           </div>
           <p className="mt-4 text-xs text-zinc-500">Full access to your selected plan. Cancel anytime before day 7.</p>
         </div>
