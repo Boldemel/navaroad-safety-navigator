@@ -45,31 +45,34 @@ export function NavaroadMark({
     >
       <title>{title}</title>
 
-      {/* Left + right stems of the N — bold, confident, evenly weighted */}
+      {/* Single connected N letterform:
+          1) Left stem with chamfered bottom-left corner
+          2) Solid inner diagonal descending to the valley
+          3) Tapered ROAD rising from the valley to the top-right waypoint */}
       <g fill={c}>
-        <rect x="8" y="8" width="12" height="48" rx="2.5" />
-        <rect x="44" y="8" width="12" height="48" rx="2.5" />
-
-        {/* Diagonal ROAD — a tapered ribbon connecting top-left stem to
-            bottom-right stem. Slightly narrower than the stems so it reads
-            as a road surface passing between them, not a filled slab. */}
-        <path d="M20 8 L30 8 L44 56 L34 56 Z" />
+        {/* Left stem */}
+        <path d="M8 8 L19 8 L19 56 L14 56 L8 50 Z" />
+        {/* Inner descending diagonal (solid) */}
+        <path d="M19 8 L28 8 L38 56 L30 56 Z" />
+        {/* Ascending road — narrower at the top for perspective */}
+        <path d="M30 56 L38 56 L53 8 L46 8 Z" />
       </g>
 
-      {/* Dashed center lane running down the road — the trucking cue.
-          Positioned along the centerline of the diagonal path above. */}
-      <g
+      {/* Dashed center lane down the road — the trucking cue */}
+      <line
+        x1="34"
+        y1="52"
+        x2="49.5"
+        y2="12"
         stroke={lane}
-        strokeWidth="2.25"
+        strokeWidth="1.6"
         strokeLinecap="round"
-        strokeDasharray="3.5 4"
+        strokeDasharray="2.8 3"
         fill="none"
-      >
-        <line x1="25" y1="12" x2="39" y2="52" />
-      </g>
+      />
 
       {/* Waypoint / destination marker — orange node at the road's end */}
-      <circle cx="50" cy="12" r="4.5" fill={dot} />
+      <circle cx="49.5" cy="10.5" r="4.75" fill={dot} />
     </svg>
   );
 }
@@ -177,22 +180,23 @@ export function NavaroadAppTile({
 
       {/* Inline the refined mark, scaled/inset so it fills the tile nicely */}
       <g transform="translate(6 6) scale(0.8125)">
-        <g fill={ACCENT}>
-          <rect x="8" y="8" width="12" height="48" rx="2.5" />
-          <rect x="44" y="8" width="12" height="48" rx="2.5" />
-          <path d="M20 8 L30 8 L44 56 L34 56 Z" />
+        <g fill="#ffffff">
+          <path d="M8 8 L19 8 L19 56 L14 56 L8 50 Z" />
+          <path d="M19 8 L28 8 L38 56 L30 56 Z" />
+          <path d="M30 56 L38 56 L53 8 L46 8 Z" />
         </g>
-        <g
-          stroke="#ffffff"
-          strokeWidth="2.25"
+        <line
+          x1="34"
+          y1="52"
+          x2="49.5"
+          y2="12"
+          stroke="#0b0b0f"
+          strokeWidth="1.6"
           strokeLinecap="round"
-          strokeDasharray="3.5 4"
+          strokeDasharray="2.8 3"
           fill="none"
-          opacity="0.9"
-        >
-          <line x1="25" y1="12" x2="39" y2="52" />
-        </g>
-        <circle cx="50" cy="12" r="4.5" fill="#ffffff" />
+        />
+        <circle cx="49.5" cy="10.5" r="4.75" fill={ACCENT} />
       </g>
     </svg>
   );
