@@ -10,17 +10,17 @@ import { NavaroadFleetOSLogo, NavaroadMark } from "@/components/brand/logo";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Navaroad FleetOS | Operating System for Trucking" },
+      { title: "Navaroad FleetOS | The Operating System for Trucking" },
       {
         name: "description",
         content:
-          "Navaroad FleetOS is the AI operating system for trucking. GPS, dispatch, loads, HOS, IFTA, fuel, maintenance, inspections, settlements, and profitability in one platform.",
+          "One platform to run every aspect of a trucking business — navigation, dispatch, loads, compliance, fuel, maintenance, settlements, and profitability.",
       },
-      { property: "og:title", content: "Navaroad FleetOS | Operating System for Trucking" },
+      { property: "og:title", content: "Navaroad FleetOS | The Operating System for Trucking" },
       {
         property: "og:description",
         content:
-          "One platform for fleet, drivers, loads, compliance, and profitability. Built for owner operators through enterprise fleets.",
+          "One platform to run every aspect of a trucking business. Built for owner operators through enterprise fleets.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://navaroad.com/" },
@@ -106,12 +106,12 @@ function Landing() {
             One platform to run <span className="text-orange-500">every mile</span> of your fleet.
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg">
-            Navigation, dispatch, loads, compliance, fuel, maintenance, settlements, and profitability — unified and powered by AI. Built for owner operators through enterprise fleets.
+            Navigation, dispatch, loads, compliance, fuel, maintenance, settlements, and profitability — unified in one workspace. Built for owner operators through enterprise fleets.
           </p>
           <div className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
               to="/auth"
-              className="rounded-xl bg-orange-500 px-6 py-4 text-center text-base font-bold text-black shadow-xl shadow-orange-500/30 transition active:scale-95"
+              className="rounded-xl bg-orange-500 px-6 py-4 text-center text-base font-bold text-black shadow-xl shadow-orange-500/30 transition hover:bg-orange-400 active:scale-95"
             >
               Start 7-Day Free Trial
             </Link>
@@ -121,7 +121,6 @@ function Landing() {
             >
               Sign in
             </Link>
-
           </div>
           <p className="mt-4 text-xs text-zinc-500">Full access to your selected plan. Cancel anytime before day 7.</p>
         </div>
@@ -164,9 +163,9 @@ function Landing() {
             <div className="relative grid gap-10 md:grid-cols-2 md:items-center">
               <div>
                 <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-orange-400">Intelligence Layer</span>
-                <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">AI built into every workflow.</h2>
+                <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Intelligence in every workflow.</h2>
                 <p className="mt-4 text-sm leading-relaxed text-zinc-300 sm:text-base">
-                  Navaroad Copilot recommends dispatch assignments, flags compliance risk, forecasts fuel spend, and drafts settlements. Three automation levels — recommend, approve, or auto-rule.
+                  Navaroad Copilot recommends dispatch assignments, flags compliance risk, forecasts fuel spend, and drafts settlements — with three automation levels: recommend, approve, or auto-rule.
                 </p>
                 <ul className="mt-6 space-y-2 text-sm text-zinc-400">
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" /> Role-aware context across every module</li>
@@ -269,7 +268,7 @@ function Landing() {
           <div className="mb-12 text-center">
             <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-orange-500">Pricing</span>
             <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Transparent plans. 7-day free trial.</h2>
-            <p className="mx-auto mt-3 max-w-lg text-sm text-zinc-500">Every plan includes the AI Copilot and all 18 modules. Enterprise available on request.</p>
+            <p className="mx-auto mt-3 max-w-lg text-sm text-zinc-500">Every plan includes all 18 modules and the Copilot. Enterprise available on request.</p>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             {TIERS.map(t => (
@@ -320,7 +319,7 @@ function Landing() {
             Ready to run your fleet on <span className="text-orange-500">FleetOS</span>?
           </h2>
           <p className="mx-auto mt-5 max-w-lg text-base text-zinc-400">
-            Start a 7-day free trial. Full access to every module and the AI Copilot. No commitment.
+            Start a 7-day free trial. Full access to every module. No commitment.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
