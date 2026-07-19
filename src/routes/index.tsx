@@ -1,221 +1,381 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  Truck, Map, CloudSun, PackageCheck, Radio, Users, Clock, Fuel,
-  Wrench, ClipboardCheck, FileText, DollarSign, Receipt, TrendingUp,
-  Sparkles, ShieldCheck, Building2, UserCog, HeadphonesIcon, Calculator,
+  Map, CloudSun, PackageCheck, Radio, Users, Clock, Fuel, Wrench,
+  ClipboardCheck, FileText, DollarSign, Receipt, TrendingUp, Sparkles,
+  Truck, ShieldCheck, Navigation, AlertTriangle, FolderCheck, Building2,
+  ArrowRight, Check,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Navaroad FleetOS | AI-Powered Trucking and Fleet Management Software" },
+      { title: "Navaroad FleetOS | AI Operating System for Trucking" },
       {
         name: "description",
         content:
-          "Navaroad FleetOS combines fleet management, truck navigation, dispatch, loads, HOS, IFTA, maintenance, inspections, fuel, expenses, profitability, and built-in AI in one trucking platform.",
+          "Navaroad FleetOS is the AI operating system for trucking. GPS, dispatch, loads, HOS, IFTA, fuel, maintenance, inspections, settlements, and profitability in one platform.",
       },
-      { property: "og:title", content: "Navaroad FleetOS | AI-Powered Trucking and Fleet Management Software" },
+      { property: "og:title", content: "Navaroad FleetOS | AI Operating System for Trucking" },
       {
         property: "og:description",
         content:
-          "The AI-powered operating system for modern trucking. Manage fleet, drivers, loads, routes, compliance, maintenance, fuel, and profitability from one connected platform.",
+          "One platform for fleet, drivers, loads, compliance, and profitability. Built for owner operators through enterprise fleets.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://navaroad.com/" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [{ rel: "canonical", href: "https://navaroad.com/" }],
   }),
   component: Landing,
 });
 
-
-
-const FLEET_FEATURES = [
-  { icon: Map, title: "GPS and Route Analysis", body: "Commercial routing with live hazard, weather, and safety scoring for every trip." },
-  { icon: CloudSun, title: "Weather and Hazard Intelligence", body: "Wind, storms, closures, and driver-reported hazards along your lanes." },
-  { icon: PackageCheck, title: "Load Management", body: "Create, assign, and track loads from pickup to delivery with full revenue history." },
-  { icon: Radio, title: "Dispatch Management", body: "Airline-style dispatcher workspace with live status, timelines, and AI recommendations." },
-  { icon: Users, title: "Driver and Team Management", body: "Organize your team, roles, permissions, pay, and per-driver performance." },
-  { icon: Clock, title: "Hours-of-Service Tracking", body: "Duty status, cycle usage, and remaining drive time in one clear view." },
-  { icon: FileText, title: "IFTA Mileage Reporting", body: "Automatic per-state mileage and gallons ready for quarterly filing." },
-  { icon: Fuel, title: "Fuel Management", body: "Log fills, monitor price per gallon and MPG, and spot fuel trends by truck." },
-  { icon: Wrench, title: "Maintenance Tracking", body: "PM schedules, repair history, and cost per truck to keep the fleet moving." },
-  { icon: ClipboardCheck, title: "Inspections and Defects", body: "DVIRs, defect tracking, and inspection history for every unit." },
-  { icon: FileText, title: "Driver Documents", body: "CDL, medical card, and compliance documents with expiration alerts." },
-  { icon: DollarSign, title: "Expenses and Revenue", body: "Track every dollar in and out by category, vendor, driver, and truck." },
-  { icon: Receipt, title: "Settlements", body: "Driver pay, deductions, and settlement statements without the spreadsheets." },
-  { icon: TrendingUp, title: "Profitability Analysis", body: "See true profit by fleet, truck, driver, and load." },
-  { icon: Sparkles, title: "Built-In AI Assistant", body: "Ask the Navaroad Copilot about routes, loads, compliance, and profitability." },
+const MODULES = [
+  { icon: Navigation, name: "GPS Navigation" },
+  { icon: Map, name: "Route Analysis" },
+  { icon: CloudSun, name: "Weather Intelligence" },
+  { icon: AlertTriangle, name: "Hazard Alerts" },
+  { icon: PackageCheck, name: "Load Management" },
+  { icon: Radio, name: "Dispatch Management" },
+  { icon: Users, name: "Driver Management" },
+  { icon: Truck, name: "Fleet Management" },
+  { icon: Clock, name: "HOS Compliance" },
+  { icon: FileText, name: "IFTA Reporting" },
+  { icon: Fuel, name: "Fuel Management" },
+  { icon: Wrench, name: "Maintenance" },
+  { icon: ClipboardCheck, name: "Inspections" },
+  { icon: FolderCheck, name: "Driver Documents" },
+  { icon: DollarSign, name: "Expense Tracking" },
+  { icon: Receipt, name: "Settlements" },
+  { icon: TrendingUp, name: "Profitability Analysis" },
+  { icon: Sparkles, name: "AI Copilot" },
 ];
 
-const WHO_ITS_FOR = [
-  { icon: Truck, label: "Owner-Operators" },
-  { icon: Building2, label: "Small Fleets" },
-  { icon: TrendingUp, label: "Growing Fleets" },
-  { icon: UserCog, label: "Fleet Managers" },
-  { icon: Radio, label: "Dispatchers" },
-  { icon: ShieldCheck, label: "Safety Managers" },
-  { icon: Wrench, label: "Maintenance Teams" },
-  { icon: Calculator, label: "Accountants & Operations" },
+const TIERS = [
+  {
+    name: "Owner Operator",
+    price: "$29",
+    tagline: "One truck, total control.",
+    features: ["All 18 modules", "IFTA & HOS automation", "AI Copilot", "Mobile + web"],
+  },
+  {
+    name: "Small Fleet",
+    price: "$79",
+    tagline: "Up to 10 power units.",
+    features: ["Dispatch workspace", "Driver payroll & settlements", "Profitability by truck", "Priority support"],
+    highlight: true,
+  },
+  {
+    name: "Growth Fleet",
+    price: "$199",
+    tagline: "Scale from 10 to 50 units.",
+    features: ["Multi-dispatcher", "Advanced analytics", "Custom roles", "API access"],
+  },
 ];
 
 function Landing() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="h-16 border-b border-border">
-        <div className="h-full max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-2 font-semibold">
-            <div className="size-9 rounded-md bg-primary flex items-center justify-center">
-              <Truck className="size-5 text-primary-foreground" />
-            </div>
-            <span>NAVAROAD</span>
-          </div>
+    <div className="min-h-screen bg-black text-white antialiased selection:bg-orange-500/30">
+      {/* Nav */}
+      <nav className="sticky top-0 z-50 border-b border-white/5 bg-black/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" asChild className="hidden sm:inline-flex">
-              <a href="#features">Features</a>
-            </Button>
-            <Button variant="ghost" asChild>
-              <Link to="/auth" search={{ mode: "signin" }}>Sign in</Link>
-            </Button>
-            <Button asChild>
-              <Link to="/auth" search={{ mode: "signup" }}>Access FleetOS</Link>
-            </Button>
+            <div className="grid h-7 w-7 place-items-center rounded-md bg-orange-500 text-sm font-black text-black">N</div>
+            <span className="text-lg font-extrabold tracking-tight">NAVAROAD</span>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Link to="/auth" className="hidden text-sm font-medium text-zinc-400 hover:text-white sm:inline">Sign In</Link>
+            <Link
+              to="/auth"
+              className="rounded-full bg-orange-500 px-4 py-2 text-xs font-semibold text-black shadow-lg shadow-orange-500/20 transition hover:bg-orange-400 sm:text-sm"
+            >
+              Access FleetOS
+            </Link>
           </div>
         </div>
-      </header>
+      </nav>
 
-      {/* HERO */}
-      <section className="relative road-grid">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-20 lg:py-32 text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            <Sparkles className="size-3" /> Navaroad FleetOS
+      {/* Hero */}
+      <section className="relative overflow-hidden px-5 pt-16 pb-20 sm:pt-24 sm:pb-28">
+        <div className="pointer-events-none absolute top-0 right-0 h-72 w-72 rounded-full bg-orange-500/20 blur-[120px]" />
+        <div className="pointer-events-none absolute top-40 -left-20 h-64 w-64 rounded-full bg-orange-600/10 blur-[100px]" />
+        <div className="relative mx-auto max-w-4xl text-center">
+          <span className="mb-6 inline-block rounded-full border border-orange-500/30 bg-orange-500/5 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-orange-400">
+            The AI Operating System for Trucking
           </span>
-          <div className="mt-6 text-sm font-semibold tracking-[0.3em] text-muted-foreground">NAVAROAD</div>
-          <h1 className="mt-3 text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight max-w-4xl mx-auto">
-            The AI-Powered Operating System <span className="text-primary">for Modern Trucking</span>
+          <h1 className="text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl">
+            One platform to run <span className="text-orange-500">every mile</span> of your fleet.
           </h1>
-          <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-            Manage your fleet, drivers, loads, routes, compliance, maintenance, fuel, expenses,
-            profitability, and daily operations from one connected platform.
+          <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg">
+            Navigation, dispatch, loads, compliance, fuel, maintenance, settlements, and profitability — unified and powered by AI. Built for owner operators through enterprise fleets.
           </p>
-          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-            <Button size="lg" asChild>
-              <Link to="/auth" search={{ mode: "signup" }}>Start 7-Day Free Trial</Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link to="/auth" search={{ mode: "signin" }}>Sign in</Link>
-            </Button>
+          <div className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
+            <Link
+              to="/auth"
+              className="rounded-xl bg-orange-500 px-6 py-4 text-center text-base font-bold text-black shadow-xl shadow-orange-500/30 transition active:scale-95"
+            >
+              Start 7-Day Free Trial
+            </Link>
+            <Link
+              to="/auth"
+              className="rounded-xl border border-white/10 bg-white/5 px-6 py-4 text-center text-base font-medium text-white transition hover:bg-white/10"
+            >
+              Sign In
+            </Link>
           </div>
+          <p className="mt-4 text-xs text-zinc-500">Full access to your selected plan. Cancel anytime before day 7.</p>
         </div>
       </section>
 
-      {/* COMPLETE FLEET OPERATIONS */}
-      <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
-        <div className="text-center max-w-2xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">
-            One Platform. Every Fleet Operation.
-          </h2>
-          <p className="mt-4 text-muted-foreground">
-            Every tool your fleet needs, connected through one shared data model and one AI engine.
-          </p>
-        </div>
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {FLEET_FEATURES.map((f) => (
-            <div key={f.title} className="rounded-xl border border-border bg-card p-6 hover:border-primary/40 transition-colors">
-              <div className="size-10 rounded-md bg-primary/15 text-primary flex items-center justify-center">
-                <f.icon className="size-5" />
+      {/* Everything Your Fleet Needs */}
+      <section className="border-t border-white/5 bg-zinc-950/60 px-5 py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 text-center">
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-orange-500">The Platform</span>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Everything your fleet needs.</h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm text-zinc-500 sm:text-base">
+              18 enterprise modules. One interface. Zero context-switching.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {MODULES.map((m, i) => (
+              <div
+                key={m.name}
+                className="group rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 transition hover:border-orange-500/40 hover:bg-zinc-900"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-orange-500/10 text-orange-400 transition group-hover:bg-orange-500/20">
+                    <m.icon className="h-4 w-4" />
+                  </div>
+                  <span className="font-mono text-[10px] text-zinc-600">{String(i + 1).padStart(2, "0")}</span>
+                </div>
+                <div className="text-xs font-semibold leading-tight sm:text-sm">{m.name}</div>
               </div>
-              <h3 className="mt-4 font-semibold">{f.title}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{f.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* TRANSPORTATION INFORMATION */}
-      <section className="border-y border-border bg-card/30">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20 text-center">
-          <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">
-            Know What's Ahead <span className="text-primary">Before It Stops You</span>
-          </h2>
-          <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-3xl mx-auto">
-            Navaroad gives professional drivers and fleets access to commercial route analysis,
-            road and weather hazards, closures, incident information, truck parking, truck stops,
-            fuel locations, weigh stations, and route optimization.
-          </p>
-        </div>
-      </section>
-
-      {/* PROFITABILITY */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 py-20 text-center">
-        <div className="inline-flex size-12 rounded-md bg-primary/15 text-primary items-center justify-center mx-auto">
-          <TrendingUp className="size-6" />
-        </div>
-        <h2 className="mt-6 text-3xl sm:text-4xl font-semibold tracking-tight">
-          Know What Every Truck Is <span className="text-primary">Really Earning</span>
-        </h2>
-        <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-3xl mx-auto">
-          Measure revenue, expenses, fuel, maintenance, settlements, and profitability across your
-          fleet or by truck, driver, and load.
-        </p>
-      </section>
-
-      {/* BUILT-IN AI */}
-      <section className="border-y border-border bg-card/30">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20 text-center">
-          <div className="inline-flex size-12 rounded-md bg-primary/15 text-primary items-center justify-center mx-auto">
-            <Sparkles className="size-6" />
+            ))}
           </div>
-          <h2 className="mt-6 text-3xl sm:text-4xl font-semibold tracking-tight">
-            AI Built Into FleetOS
-          </h2>
-          <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-3xl mx-auto">
-            Use the built-in Navaroad assistant to ask questions about routes, loads, drivers,
-            compliance, maintenance, expenses, and profitability.
-          </p>
         </div>
       </section>
 
-      {/* WHO IT IS FOR */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
-        <div className="text-center max-w-2xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">Built For Every Role in Trucking</h2>
-          <p className="mt-4 text-muted-foreground">From solo owner-operators to full operations teams.</p>
-        </div>
-        <div className="mt-12 grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-          {WHO_ITS_FOR.map((r) => (
-            <div key={r.label} className="rounded-xl border border-border bg-card p-6 text-center">
-              <div className="mx-auto size-10 rounded-md bg-primary/15 text-primary flex items-center justify-center">
-                <r.icon className="size-5" />
+      {/* AI Built Into Every Workflow */}
+      <section className="px-5 py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="relative overflow-hidden rounded-3xl border border-orange-500/20 bg-gradient-to-br from-orange-600/20 via-orange-900/10 to-transparent p-8 sm:p-12">
+            <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-orange-500/20 blur-3xl" />
+            <div className="relative grid gap-10 md:grid-cols-2 md:items-center">
+              <div>
+                <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-orange-400">Intelligence Layer</span>
+                <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">AI built into every workflow.</h2>
+                <p className="mt-4 text-sm leading-relaxed text-zinc-300 sm:text-base">
+                  Navaroad Copilot recommends dispatch assignments, flags compliance risk, forecasts fuel spend, and drafts settlements. Three automation levels — recommend, approve, or auto-rule.
+                </p>
+                <ul className="mt-6 space-y-2 text-sm text-zinc-400">
+                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" /> Role-aware context across every module</li>
+                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" /> Voice input and read-aloud replies</li>
+                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" /> Persistent memory across sessions</li>
+                </ul>
               </div>
-              <div className="mt-4 font-medium text-sm">{r.label}</div>
+              <div className="rounded-2xl border border-white/10 bg-black/60 p-5 backdrop-blur">
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">Copilot · Live</span>
+                </div>
+                <div className="space-y-3 text-sm">
+                  <div className="rounded-lg bg-white/5 p-3 text-zinc-300">Which trucks are under 60% profitability this week?</div>
+                  <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-3 text-orange-100">
+                    3 trucks flagged: <span className="font-semibold">#412, #418, #521</span>. Main driver: fuel cost variance. Want me to draft a settlement review?
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="rounded-md bg-orange-500 px-3 py-1.5 text-xs font-semibold text-black">Draft review</button>
+                    <button className="rounded-md border border-white/10 px-3 py-1.5 text-xs font-medium text-zinc-400">Show trucks</button>
+                  </div>
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* FINAL CTA */}
-      <section className="border-t border-border">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-20 text-center">
-          <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">
-            Run Your Fleet From <span className="text-primary">One Connected System</span>
-          </h2>
-          <div className="mt-8">
-            <Button size="lg" asChild>
-              <Link to="/auth" search={{ mode: "signup" }}>Start 7-Day Free Trial</Link>
-            </Button>
           </div>
         </div>
       </section>
 
-      <footer className="border-t border-border py-8 text-center text-xs text-muted-foreground space-y-2">
-        <div className="flex items-center justify-center gap-4">
-          <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
-          <span aria-hidden>·</span>
-          <Link to="/terms" className="hover:text-foreground">Terms</Link>
+      {/* Profitability Dashboard */}
+      <section className="border-t border-white/5 bg-zinc-950/60 px-5 py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10 text-center">
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-orange-500">Real-Time Analytics</span>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Know exactly what each mile earns.</h2>
+          </div>
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 sm:p-8">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">Net Profit · Last 7 Days</div>
+                <div className="mt-1 text-3xl font-extrabold sm:text-4xl">$142,850</div>
+                <div className="text-xs font-semibold text-green-400">+12.4% vs prior week</div>
+              </div>
+              <div className="flex gap-4 text-right">
+                <div>
+                  <div className="font-mono text-[10px] uppercase text-zinc-500">RPM</div>
+                  <div className="text-lg font-bold">$2.45</div>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] uppercase text-zinc-500">Fuel %</div>
+                  <div className="text-lg font-bold text-orange-400">22.4%</div>
+                </div>
+              </div>
+            </div>
+            <div className="flex h-40 items-end gap-2 sm:gap-3">
+              {[42, 65, 55, 78, 90, 72, 95].map((h, i) => (
+                <div key={i} className="group relative flex-1">
+                  <div
+                    className={`rounded-t-md ${i === 6 ? "bg-orange-500" : "bg-zinc-800 group-hover:bg-zinc-700"} transition-all`}
+                    style={{ height: `${h}%` }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 grid grid-cols-7 gap-2 text-center font-mono text-[10px] text-zinc-600 sm:gap-3">
+              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => <div key={d}>{d}</div>)}
+            </div>
+          </div>
         </div>
-        <div>© Navaroad FleetOS — The AI-Powered Operating System for Modern Trucking</div>
+      </section>
+
+      {/* Built For Every Fleet Size */}
+      <section className="px-5 py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 text-center">
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-orange-500">Built For Scale</span>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Owner operators through enterprise fleets.</h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-4">
+            {[
+              { icon: Truck, name: "Owner Operator", body: "One truck. Full-power tools without enterprise pricing." },
+              { icon: Users, name: "Small Fleet", body: "2–10 units. Dispatch, driver pay, and compliance covered." },
+              { icon: TrendingUp, name: "Growth Fleet", body: "10–50 units. Multi-dispatcher, deep analytics, API access." },
+              { icon: Building2, name: "Enterprise", body: "50+ units. Custom roles, integrations, dedicated success." },
+            ].map(t => (
+              <div key={t.name} className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 transition hover:border-orange-500/40">
+                <div className="mb-4 grid h-10 w-10 place-items-center rounded-lg bg-orange-500/10 text-orange-400">
+                  <t.icon className="h-5 w-5" />
+                </div>
+                <div className="mb-2 font-bold">{t.name}</div>
+                <p className="text-sm text-zinc-400">{t.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="border-t border-white/5 bg-zinc-950/60 px-5 py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 text-center">
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-orange-500">Pricing</span>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Transparent plans. 7-day free trial.</h2>
+            <p className="mx-auto mt-3 max-w-lg text-sm text-zinc-500">Every plan includes the AI Copilot and all 18 modules. Enterprise available on request.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {TIERS.map(t => (
+              <div
+                key={t.name}
+                className={`relative rounded-3xl border p-8 ${
+                  t.highlight
+                    ? "border-orange-500/50 bg-gradient-to-b from-orange-500/10 to-transparent shadow-2xl shadow-orange-500/10"
+                    : "border-zinc-800 bg-zinc-900/60"
+                }`}
+              >
+                {t.highlight && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-orange-500 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+                    Most Popular
+                  </div>
+                )}
+                <div className="mb-1 text-sm font-semibold text-orange-400">{t.name}</div>
+                <div className="mb-1 text-4xl font-extrabold">{t.price}<span className="text-base font-medium text-zinc-500">/mo</span></div>
+                <p className="mb-6 text-sm text-zinc-500">{t.tagline}</p>
+                <ul className="mb-8 space-y-2 text-sm text-zinc-300">
+                  {t.features.map(f => (
+                    <li key={f} className="flex items-start gap-2">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" /> {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  to="/auth"
+                  className={`block rounded-xl py-3 text-center text-sm font-bold transition ${
+                    t.highlight
+                      ? "bg-orange-500 text-black hover:bg-orange-400"
+                      : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  }`}
+                >
+                  Start Free Trial
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="px-5 py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 text-center">
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-orange-500">Operators</span>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Built with drivers, dispatchers, and owners.</h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              { quote: "Cut our dispatch overhead almost in half. The AI catches things a human would miss at 2am.", who: "Terminal Manager", where: "Midwest Reefer Fleet" },
+              { quote: "Finally know what each truck actually earns. IFTA takes minutes now, not a weekend.", who: "Owner Operator", where: "48-state OTR" },
+              { quote: "One platform replaced four subscriptions. Our drivers actually use it.", who: "Director of Operations", where: "Regional Flatbed" },
+            ].map((t, i) => (
+              <div key={i} className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6">
+                <ShieldCheck className="mb-4 h-5 w-5 text-orange-400" />
+                <p className="mb-4 text-sm leading-relaxed text-zinc-200">"{t.quote}"</p>
+                <div className="text-xs font-semibold text-white">{t.who}</div>
+                <div className="text-xs text-zinc-500">{t.where}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="border-t border-white/5 px-5 py-24">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
+            Ready to run your fleet on <span className="text-orange-500">FleetOS</span>?
+          </h2>
+          <p className="mx-auto mt-5 max-w-lg text-base text-zinc-400">
+            Start a 7-day free trial. Full access to every module and the AI Copilot. No commitment.
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              to="/auth"
+              className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-8 py-4 text-base font-bold text-black shadow-2xl shadow-orange-500/40 transition active:scale-95"
+            >
+              Access FleetOS <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              to="/auth"
+              className="rounded-xl border border-white/10 px-8 py-4 text-base font-medium text-white hover:bg-white/5"
+            >
+              Sign In
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-white/5 px-5 py-10">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-xs text-zinc-600 sm:flex-row">
+          <div className="flex items-center gap-2">
+            <div className="grid h-5 w-5 place-items-center rounded bg-orange-500 text-[10px] font-black text-black">N</div>
+            <span className="font-bold tracking-tight text-zinc-400">NAVAROAD FLEETOS</span>
+          </div>
+          <div className="flex gap-6">
+            <Link to="/privacy" className="hover:text-white">Privacy</Link>
+            <Link to="/terms" className="hover:text-white">Terms</Link>
+            <Link to="/auth" className="hover:text-white">Sign In</Link>
+          </div>
+          <div>© {new Date().getFullYear()} Navaroad</div>
+        </div>
       </footer>
     </div>
   );
