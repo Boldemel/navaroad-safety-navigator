@@ -79,19 +79,20 @@ function Landing() {
     <div className="min-h-screen bg-black text-white antialiased selection:bg-orange-500/30">
       {/* Nav */}
       <nav className="sticky top-0 z-50 border-b border-white/5 bg-black/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-          <NavaroadFleetOSLogo size={26} tone="dark" />
-          <div className="flex items-center gap-2 sm:gap-4">
-            <Link to="/auth" className="hidden text-sm font-medium text-zinc-400 hover:text-white sm:inline">Sign In</Link>
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
+          <NavaroadFleetOSLogo size={30} tone="dark" />
+          <div className="flex items-center gap-3 sm:gap-5">
+            <Link to="/auth" className="hidden text-sm font-medium text-zinc-400 transition hover:text-white sm:inline">Sign in</Link>
             <Link
               to="/auth"
               className="rounded-full bg-orange-500 px-4 py-2 text-xs font-semibold text-black shadow-lg shadow-orange-500/20 transition hover:bg-orange-400 sm:text-sm"
             >
-              Access FleetOS
+              Start free trial
             </Link>
           </div>
         </div>
       </nav>
+
 
       {/* Hero */}
       <section className="relative overflow-hidden px-5 pt-16 pb-20 sm:pt-24 sm:pb-28">
