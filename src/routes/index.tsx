@@ -79,8 +79,11 @@ function Landing() {
     <div className="min-h-screen bg-black text-white antialiased selection:bg-orange-500/30">
       {/* Nav */}
       <nav className="sticky top-0 z-50 border-b border-white/5 bg-black/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-center px-5 py-2.5">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
           <NavaroadFleetOSLogo size={30} tone="dark" />
+          <div className="flex items-center gap-3 sm:gap-5">
+            <Link to="/auth" className="hidden text-sm font-medium text-zinc-400 transition hover:text-white sm:inline">Sign in</Link>
+          </div>
         </div>
       </nav>
 
