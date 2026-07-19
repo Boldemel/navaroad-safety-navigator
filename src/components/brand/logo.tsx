@@ -1,33 +1,42 @@
 /**
  * Navaroad brand system — SVG logos.
  *
- * Rork-portable: pure JSX, no browser-only APIs. When ported to React Native,
- * swap `svg` primitives via react-native-svg (Svg, Rect, Circle, Path, G) —
- * the component structure and props map 1:1.
+ * Concept #2 (Road Monogram N), refined:
+ *  - Two bold vertical stems read as the "N".
+ *  - The diagonal is drawn as a ROAD (dual outer edges + dashed center lane),
+ *    not a solid parallelogram — preserving the road/trucking meaning.
+ *  - Orange waypoint node pinned to the upper-right terminal (destination marker).
+ *
+ * Rork-portable: pure SVG primitives. For React Native, swap for react-native-svg
+ * (Svg, Rect, Path, Circle, G, Line) — structure/props map 1:1.
  */
 import { cn } from "@/lib/utils";
 
-/** Core geometric "N with waypoint" mark. Scales cleanly from 16px to 1024px. */
+const ACCENT = "hsl(24 95% 55%)";
+
+/** Core "N as Road" mark. 64×64 grid. Scales cleanly from 16px to 1024px. */
 export function NavaroadMark({
   className,
   size = 32,
   monoColor,
-  accentColor = "hsl(24 95% 55%)",
+  accentColor = ACCENT,
   title = "Navaroad",
 }: {
   className?: string;
   size?: number;
-  /** If set, renders monochrome (dot uses same color). Else uses currentColor + accent dot. */
+  /** If set, renders monochrome (waypoint uses same color). */
   monoColor?: string;
   accentColor?: string;
   title?: string;
 }) {
-  const bar = monoColor ?? "currentColor";
+  const c = monoColor ?? "currentColor";
+  const lane = monoColor ?? accentColor;
   const dot = monoColor ?? accentColor;
+
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 32 32"
+      viewBox="0 0 64 64"
       width={size}
       height={size}
       role="img"
@@ -35,18 +44,32 @@ export function NavaroadMark({
       className={cn("shrink-0", className)}
     >
       <title>{title}</title>
-      {/* Rounded square backdrop is optional — we draw only the mark for maximum reuse.
-          The "N" is built from two vertical bars + a diagonal stroke. */}
-      <g fill={bar}>
-        {/* Left bar */}
-        <rect x="4" y="4" width="6" height="24" rx="1.5" />
-        {/* Right bar */}
-        <rect x="22" y="4" width="6" height="24" rx="1.5" />
-        {/* Diagonal (parallelogram from top of left bar to bottom of right bar) */}
-        <path d="M10 4 L16 4 L22 28 L16 28 Z" />
+
+      {/* Left + right stems of the N — bold, confident, evenly weighted */}
+      <g fill={c}>
+        <rect x="8" y="8" width="12" height="48" rx="2.5" />
+        <rect x="44" y="8" width="12" height="48" rx="2.5" />
+
+        {/* Diagonal ROAD — a tapered ribbon connecting top-left stem to
+            bottom-right stem. Slightly narrower than the stems so it reads
+            as a road surface passing between them, not a filled slab. */}
+        <path d="M20 8 L30 8 L44 56 L34 56 Z" />
       </g>
-      {/* Waypoint node — orange accent, top-right terminal */}
-      <circle cx="27.5" cy="5" r="3.25" fill={dot} stroke="hsl(0 0% 0%)" strokeWidth="0.75" />
+
+      {/* Dashed center lane running down the road — the trucking cue.
+          Positioned along the centerline of the diagonal path above. */}
+      <g
+        stroke={lane}
+        strokeWidth="2.25"
+        strokeLinecap="round"
+        strokeDasharray="3.5 4"
+        fill="none"
+      >
+        <line x1="25" y1="12" x2="39" y2="52" />
+      </g>
+
+      {/* Waypoint / destination marker — orange node at the road's end */}
+      <circle cx="50" cy="12" r="4.5" fill={dot} />
     </svg>
   );
 }
@@ -59,7 +82,6 @@ export function NavaroadLogo({
 }: {
   className?: string;
   size?: number;
-  /** 'auto' inherits currentColor. 'light' = black wordmark. 'dark' = white wordmark. */
   tone?: "auto" | "light" | "dark";
 }) {
   const wordColor =
@@ -68,8 +90,8 @@ export function NavaroadLogo({
     <div className={cn("inline-flex items-center gap-2.5", wordColor, className)}>
       <NavaroadMark size={size} />
       <span
-        className="font-bold tracking-[-0.01em] leading-none"
-        style={{ fontSize: size * 0.72, letterSpacing: "0.02em" }}
+        className="font-bold leading-none"
+        style={{ fontSize: size * 0.7, letterSpacing: "0.04em" }}
       >
         NAVAROAD
       </span>
@@ -93,19 +115,19 @@ export function NavaroadFleetOSLogo({
     <div className={cn("inline-flex items-center gap-2.5", wordColor, className)}>
       <NavaroadMark size={size} />
       <span
-        className="font-bold tracking-[-0.01em] leading-none"
-        style={{ fontSize: size * 0.72, letterSpacing: "0.02em" }}
+        className="font-bold leading-none"
+        style={{ fontSize: size * 0.7, letterSpacing: "0.04em" }}
       >
         NAVAROAD
       </span>
       <span
         aria-hidden
-        className="inline-block bg-current/30"
-        style={{ width: 1, height: size * 0.55, opacity: 0.35 }}
+        className="inline-block"
+        style={{ width: 1, height: size * 0.55, background: "currentColor", opacity: 0.3 }}
       />
       <span
         className="font-medium tracking-tight leading-none text-primary"
-        style={{ fontSize: size * 0.62 }}
+        style={{ fontSize: size * 0.6 }}
       >
         FleetOS
       </span>
@@ -113,7 +135,7 @@ export function NavaroadFleetOSLogo({
   );
 }
 
-/** App-tile version of the mark: rounded-square with dark background, orange N inside. */
+/** App-tile: rounded-square dark background, orange N-road inside, white waypoint. */
 export function NavaroadAppTile({
   className,
   size = 64,
@@ -141,7 +163,6 @@ export function NavaroadAppTile({
         </linearGradient>
       </defs>
       <rect x="0" y="0" width="64" height="64" rx={r} ry={r} fill="url(#navaroad-tile-bg)" />
-      {/* subtle inner highlight */}
       <rect
         x="0.5"
         y="0.5"
@@ -153,13 +174,26 @@ export function NavaroadAppTile({
         stroke="rgba(255,255,255,0.06)"
         strokeWidth="1"
       />
-      {/* Mark scaled 2x inside the tile */}
-      <g transform="translate(8 8) scale(1.5)" fill="hsl(24 95% 55%)">
-        <rect x="4" y="4" width="6" height="24" rx="1.5" />
-        <rect x="22" y="4" width="6" height="24" rx="1.5" />
-        <path d="M10 4 L16 4 L22 28 L16 28 Z" />
+
+      {/* Inline the refined mark, scaled/inset so it fills the tile nicely */}
+      <g transform="translate(6 6) scale(0.8125)">
+        <g fill={ACCENT}>
+          <rect x="8" y="8" width="12" height="48" rx="2.5" />
+          <rect x="44" y="8" width="12" height="48" rx="2.5" />
+          <path d="M20 8 L30 8 L44 56 L34 56 Z" />
+        </g>
+        <g
+          stroke="#ffffff"
+          strokeWidth="2.25"
+          strokeLinecap="round"
+          strokeDasharray="3.5 4"
+          fill="none"
+          opacity="0.9"
+        >
+          <line x1="25" y1="12" x2="39" y2="52" />
+        </g>
+        <circle cx="50" cy="12" r="4.5" fill="#ffffff" />
       </g>
-      <circle cx="49" cy="15" r="4.5" fill="#ffffff" />
     </svg>
   );
 }
