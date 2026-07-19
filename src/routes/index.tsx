@@ -268,7 +268,7 @@ function Landing() {
           <div className="mb-12 text-center">
             <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-orange-500">Pricing</span>
             <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Transparent plans. 7-day free trial.</h2>
-            <p className="mx-auto mt-3 max-w-lg text-sm text-zinc-500">Every plan includes the AI Copilot and all 18 modules. Enterprise available on request.</p>
+            <p className="mx-auto mt-3 max-w-lg text-sm text-zinc-500">Every plan includes all 18 modules and the Copilot. Enterprise available on request.</p>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             {TIERS.map(t => (
