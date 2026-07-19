@@ -45,37 +45,35 @@ export function NavaroadMark({
     >
       <title>{title}</title>
 
-      {/* Single connected N letterform:
-          1) Left stem with chamfered bottom-left corner
-          2) Solid inner diagonal descending to the valley
-          3) Tapered ROAD rising from the valley to the top-right waypoint */}
+      {/* Full N letterform: left stem + descending diagonal + right stem */}
       <g fill={c}>
-        {/* Left stem */}
+        {/* Left stem with chamfered bottom-left */}
         <path d="M8 8 L19 8 L19 56 L14 56 L8 50 Z" />
-        {/* Inner descending diagonal (solid) */}
-        <path d="M19 8 L28 8 L38 56 L30 56 Z" />
-        {/* Ascending road — narrower at the top for perspective */}
-        <path d="M30 56 L38 56 L53 8 L46 8 Z" />
+        {/* Descending diagonal from top-left to bottom-right */}
+        <path d="M19 8 L28 8 L52 56 L44 56 Z" />
+        {/* Right stem with chamfered top-right */}
+        <path d="M45 8 L56 8 L56 56 L45 56 Z" />
       </g>
 
-      {/* Dashed center lane down the road — the trucking cue */}
+      {/* Road: dashed lane markings running up the ascending inner diagonal */}
       <line
-        x1="34"
+        x1="30"
         y1="52"
-        x2="49.5"
-        y2="12"
+        x2="46"
+        y2="14"
         stroke={lane}
-        strokeWidth="1.6"
+        strokeWidth="1.8"
         strokeLinecap="round"
-        strokeDasharray="2.8 3"
+        strokeDasharray="3 3.2"
         fill="none"
       />
 
-      {/* Waypoint / destination marker — orange node at the road's end */}
-      <circle cx="49.5" cy="10.5" r="4.75" fill={dot} />
+      {/* Orange waypoint dot at the top of the right stem */}
+      <circle cx="50.5" cy="10.5" r="4.75" fill={dot} />
     </svg>
   );
 }
+
 
 /** Horizontal wordmark: mark + NAVAROAD in bold tracking. */
 export function NavaroadLogo({
@@ -90,18 +88,18 @@ export function NavaroadLogo({
   const wordColor =
     tone === "light" ? "text-black" : tone === "dark" ? "text-white" : "text-foreground";
   return (
-    <div className={cn("inline-flex items-baseline", wordColor, className)}>
-      <NavaroadMark size={size} className="self-center -mr-[0.05em]" />
+    <div className={cn("inline-flex items-center gap-2.5", wordColor, className)}>
+      <NavaroadMark size={size} />
       <span
         className="font-bold leading-none"
         style={{ fontSize: size * 0.7, letterSpacing: "0.04em" }}
-        aria-label="Navaroad"
       >
-        AVAROAD
+        NAVAROAD
       </span>
     </div>
   );
 }
+
 
 
 /** FleetOS lockup: NAVAROAD + subtle divider + FleetOS in accent weight. */
@@ -118,16 +116,13 @@ export function NavaroadFleetOSLogo({
     tone === "light" ? "text-black" : tone === "dark" ? "text-white" : "text-foreground";
   return (
     <div className={cn("inline-flex items-center gap-2.5", wordColor, className)}>
-      <div className="inline-flex items-baseline">
-        <NavaroadMark size={size} className="self-center -mr-[0.05em]" />
-        <span
-          className="font-bold leading-none"
-          style={{ fontSize: size * 0.7, letterSpacing: "0.04em" }}
-          aria-label="Navaroad"
-        >
-          AVAROAD
-        </span>
-      </div>
+      <NavaroadMark size={size} />
+      <span
+        className="font-bold leading-none"
+        style={{ fontSize: size * 0.7, letterSpacing: "0.04em" }}
+      >
+        NAVAROAD
+      </span>
       <span
         aria-hidden
         className="inline-block"
@@ -142,6 +137,7 @@ export function NavaroadFleetOSLogo({
     </div>
   );
 }
+
 
 
 /** App-tile: rounded-square dark background, orange N-road inside, white waypoint. */
@@ -188,21 +184,22 @@ export function NavaroadAppTile({
       <g transform="translate(6 6) scale(0.8125)">
         <g fill="#ffffff">
           <path d="M8 8 L19 8 L19 56 L14 56 L8 50 Z" />
-          <path d="M19 8 L28 8 L38 56 L30 56 Z" />
-          <path d="M30 56 L38 56 L53 8 L46 8 Z" />
+          <path d="M19 8 L28 8 L52 56 L44 56 Z" />
+          <path d="M45 8 L56 8 L56 56 L45 56 Z" />
         </g>
         <line
-          x1="34"
+          x1="30"
           y1="52"
-          x2="49.5"
-          y2="12"
+          x2="46"
+          y2="14"
           stroke="#0b0b0f"
-          strokeWidth="1.6"
+          strokeWidth="1.8"
           strokeLinecap="round"
-          strokeDasharray="2.8 3"
+          strokeDasharray="3 3.2"
           fill="none"
         />
-        <circle cx="49.5" cy="10.5" r="4.75" fill={ACCENT} />
+        <circle cx="50.5" cy="10.5" r="4.75" fill={ACCENT} />
+
       </g>
     </svg>
   );
