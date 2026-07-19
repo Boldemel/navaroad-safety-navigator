@@ -5,6 +5,7 @@ import {
   Truck, ShieldCheck, Navigation, AlertTriangle, FolderCheck, Building2,
   ArrowRight, Check,
 } from "lucide-react";
+import { NavaroadFleetOSLogo, NavaroadMark } from "@/components/brand/logo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -79,10 +80,7 @@ function Landing() {
       {/* Nav */}
       <nav className="sticky top-0 z-50 border-b border-white/5 bg-black/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-          <div className="flex items-center gap-2">
-            <div className="grid h-7 w-7 place-items-center rounded-md bg-orange-500 text-sm font-black text-black">N</div>
-            <span className="text-lg font-extrabold tracking-tight">NAVAROAD</span>
-          </div>
+          <NavaroadFleetOSLogo size={26} tone="dark" />
           <div className="flex items-center gap-2 sm:gap-4">
             <Link to="/auth" className="hidden text-sm font-medium text-zinc-400 hover:text-white sm:inline">Sign In</Link>
             <Link
