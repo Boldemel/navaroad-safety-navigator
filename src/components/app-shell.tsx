@@ -102,9 +102,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen flex w-full bg-background text-foreground">
       <aside className="hidden md:flex w-60 flex-col border-r border-sidebar-border bg-sidebar">
         <div className="h-16 flex items-center gap-2 px-5 border-b border-sidebar-border">
-          <div className="size-9 rounded-md bg-primary flex items-center justify-center">
-            <Truck className="size-5 text-primary-foreground" />
+          <div className="size-9 flex items-center justify-center">
+            <NavaroadMark size={32} />
           </div>
+
           <div className="font-semibold tracking-tight text-sidebar-foreground flex-1">Navaroad</div>
           <button
             type="button"
