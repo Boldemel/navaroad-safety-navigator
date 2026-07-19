@@ -163,9 +163,9 @@ function Landing() {
             <div className="relative grid gap-10 md:grid-cols-2 md:items-center">
               <div>
                 <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-orange-400">Intelligence Layer</span>
-                <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">AI built into every workflow.</h2>
+                <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Intelligence in every workflow.</h2>
                 <p className="mt-4 text-sm leading-relaxed text-zinc-300 sm:text-base">
-                  Navaroad Copilot recommends dispatch assignments, flags compliance risk, forecasts fuel spend, and drafts settlements. Three automation levels — recommend, approve, or auto-rule.
+                  Navaroad Copilot recommends dispatch assignments, flags compliance risk, forecasts fuel spend, and drafts settlements — with three automation levels: recommend, approve, or auto-rule.
                 </p>
                 <ul className="mt-6 space-y-2 text-sm text-zinc-400">
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" /> Role-aware context across every module</li>
