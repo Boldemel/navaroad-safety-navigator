@@ -319,7 +319,7 @@ function Landing() {
             Ready to run your fleet on <span className="text-orange-500">FleetOS</span>?
           </h2>
           <p className="mx-auto mt-5 max-w-lg text-base text-zinc-400">
-            Start a 7-day free trial. Full access to every module and the AI Copilot. No commitment.
+            Start a 7-day free trial. Full access to every module. No commitment.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
