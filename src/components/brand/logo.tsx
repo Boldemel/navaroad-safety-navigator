@@ -118,13 +118,16 @@ export function NavaroadFleetOSLogo({
     tone === "light" ? "text-black" : tone === "dark" ? "text-white" : "text-foreground";
   return (
     <div className={cn("inline-flex items-center gap-2.5", wordColor, className)}>
-      <NavaroadMark size={size} />
-      <span
-        className="font-bold leading-none"
-        style={{ fontSize: size * 0.7, letterSpacing: "0.04em" }}
-      >
-        NAVAROAD
-      </span>
+      <div className="inline-flex items-baseline">
+        <NavaroadMark size={size} className="self-center -mr-[0.05em]" />
+        <span
+          className="font-bold leading-none"
+          style={{ fontSize: size * 0.7, letterSpacing: "0.04em" }}
+          aria-label="Navaroad"
+        >
+          AVAROAD
+        </span>
+      </div>
       <span
         aria-hidden
         className="inline-block"
@@ -139,6 +142,7 @@ export function NavaroadFleetOSLogo({
     </div>
   );
 }
+
 
 /** App-tile: rounded-square dark background, orange N-road inside, white waypoint. */
 export function NavaroadAppTile({
