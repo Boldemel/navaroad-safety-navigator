@@ -45,28 +45,32 @@ export function NavaroadMark({
     >
       <title>{title}</title>
 
-      {/* Full N letterform: left stem + descending diagonal + right stem */}
+      {/* Full N letterform with chamfered outer corners (top-left & bottom-right) */}
       <g fill={c}>
-        {/* Left stem with chamfered bottom-left */}
-        <path d="M8 8 L19 8 L19 56 L14 56 L8 50 Z" />
-        {/* Descending diagonal from top-left to bottom-right */}
-        <path d="M19 8 L28 8 L52 56 L44 56 Z" />
-        {/* Right stem with chamfered top-right */}
-        <path d="M45 8 L56 8 L56 56 L45 56 Z" />
+        {/* Left stem: chamfered top-left */}
+        <path d="M8 14 L14 8 L22 8 L22 56 L8 56 Z" />
+        {/* Descending diagonal from top of left stem to bottom of right stem */}
+        <path d="M22 8 L32 8 L52 56 L42 56 Z" />
+        {/* Right stem: chamfered bottom-right */}
+        <path d="M42 8 L56 8 L56 50 L50 56 L42 56 Z" />
       </g>
 
-      {/* Road: dashed lane markings running up the ascending inner diagonal */}
-      <line
-        x1="30"
-        y1="52"
-        x2="46"
-        y2="14"
-        stroke={lane}
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeDasharray="3 3.2"
-        fill="none"
-      />
+      {/* Road cut into the upper-right cavity: two parallel edges + dashed centerline,
+          climbing from the base up to the orange waypoint. */}
+      <g stroke={lane} fill="none" strokeLinecap="round">
+        {/* Road outer edges (subtle) */}
+        <line x1="34" y1="54" x2="47" y2="16" strokeWidth="1.1" opacity="0.55" />
+        <line x1="40" y1="54" x2="53" y2="16" strokeWidth="1.1" opacity="0.55" />
+        {/* Dashed center lane */}
+        <line
+          x1="37"
+          y1="54"
+          x2="50"
+          y2="16"
+          strokeWidth="1.6"
+          strokeDasharray="3 3"
+        />
+      </g>
 
       {/* Orange waypoint dot at the top of the right stem */}
       <circle cx="50.5" cy="10.5" r="4.75" fill={dot} />
