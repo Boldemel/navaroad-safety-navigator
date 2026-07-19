@@ -10,17 +10,17 @@ import { NavaroadFleetOSLogo, NavaroadMark } from "@/components/brand/logo";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Navaroad FleetOS | Operating System for Trucking" },
+      { title: "Navaroad FleetOS | The Operating System for Trucking" },
       {
         name: "description",
         content:
-          "Navaroad FleetOS is the AI operating system for trucking. GPS, dispatch, loads, HOS, IFTA, fuel, maintenance, inspections, settlements, and profitability in one platform.",
+          "One platform to run every aspect of a trucking business — navigation, dispatch, loads, compliance, fuel, maintenance, settlements, and profitability.",
       },
-      { property: "og:title", content: "Navaroad FleetOS | Operating System for Trucking" },
+      { property: "og:title", content: "Navaroad FleetOS | The Operating System for Trucking" },
       {
         property: "og:description",
         content:
-          "One platform for fleet, drivers, loads, compliance, and profitability. Built for owner operators through enterprise fleets.",
+          "One platform to run every aspect of a trucking business. Built for owner operators through enterprise fleets.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://navaroad.com/" },
