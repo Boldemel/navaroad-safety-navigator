@@ -243,14 +243,14 @@ function Landing() {
           </div>
           <div className="grid gap-4 md:grid-cols-4">
             {[
-              { icon: Truck, name: "Owner Operator", body: "One truck. Full-power tools without enterprise pricing." },
-              { icon: Users, name: "Small Fleet", body: "2–10 units. Dispatch, driver pay, and compliance covered." },
-              { icon: TrendingUp, name: "Growth Fleet", body: "10–50 units. Multi-dispatcher, deep analytics, API access." },
-              { icon: Building2, name: "Enterprise", body: "50+ units. Custom roles, integrations, dedicated success." },
+              { img: tierOwner.url, name: "Owner Operator", body: "One truck. Full-power tools without enterprise pricing." },
+              { img: tierSmall.url, name: "Small Fleet", body: "2–10 units. Dispatch, driver pay, and compliance covered." },
+              { img: tierGrowth.url, name: "Growth Fleet", body: "10–50 units. Multi-dispatcher, deep analytics, API access." },
+              { img: tierEnterprise.url, name: "Enterprise", body: "50+ units. Custom roles, integrations, dedicated success." },
             ].map(t => (
               <div key={t.name} className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 transition hover:border-orange-500/40">
-                <div className="mb-4 grid h-10 w-10 place-items-center rounded-lg bg-orange-500/10 text-orange-400">
-                  <t.icon className="h-5 w-5" />
+                <div className="mb-4 aspect-[4/3] w-full overflow-hidden rounded-xl bg-zinc-950">
+                  <img src={t.img} alt={t.name} className="h-full w-full object-cover" />
                 </div>
                 <div className="mb-2 font-bold">{t.name}</div>
                 <p className="text-sm text-zinc-400">{t.body}</p>
