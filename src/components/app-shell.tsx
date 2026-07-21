@@ -19,7 +19,8 @@ import { NavaroadMark } from "@/components/brand/logo";
 
 
 const nav = [
-  { to: "/dashboard", label: "Route Analysis", icon: LayoutDashboard },
+  { to: "/home", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/dashboard", label: "Route Analysis", icon: Map },
   { to: "/hazard-map", label: "Hazards and Alerts", icon: Map },
   { to: "/parking", label: "Parking & Stops", icon: ParkingCircle },
   { to: "/loads", label: "Loads", icon: Package },
@@ -43,8 +44,8 @@ const nav = [
 ];
 
 const mobileNav = [
-  { to: "/dashboard", label: "Route", icon: LayoutDashboard },
-  { to: "/parking", label: "Stops", icon: ParkingCircle },
+  { to: "/home", label: "Home", icon: LayoutDashboard },
+  { to: "/dashboard", label: "Route", icon: Map },
   { to: "/loads", label: "Loads", icon: Package },
   { to: "/logbook", label: "HOS", icon: ClipboardList },
 ];
