@@ -83,7 +83,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (mod.alwaysAvailable) return;
     const permitted = mod.routes.some((r) => allowed.has(r));
     if (!permitted) {
-      router.navigate({ to: "/dashboard", replace: true });
+      router.navigate({ to: "/home", replace: true });
     }
   }, [pathname, modulesLoading, allowed, router]);
 
