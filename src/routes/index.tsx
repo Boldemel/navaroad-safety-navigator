@@ -2,10 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Map, CloudSun, PackageCheck, Radio, Users, Clock, Fuel, Wrench,
   ClipboardCheck, FileText, DollarSign, Receipt, TrendingUp, Sparkles,
-  Truck, Navigation, AlertTriangle, FolderCheck, Building2,
+  Truck, Navigation, AlertTriangle, FolderCheck,
   ArrowRight, Check,
 } from "lucide-react";
 import { NavaroadFleetOSLogo, NavaroadMark } from "@/components/brand/logo";
+import tierOwner from "@/assets/tier-owner.png.asset.json";
+import tierSmall from "@/assets/tier-small.png.asset.json";
+import tierGrowth from "@/assets/tier-growth.png.asset.json";
+import tierEnterprise from "@/assets/tier-enterprise.png.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
