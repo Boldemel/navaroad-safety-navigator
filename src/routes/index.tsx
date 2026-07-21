@@ -20,7 +20,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "One platform to run every aspect of a trucking business. Built for owner operators through enterprise fleets.",
+          "One platform to run every aspect of a trucking business. Built for owner operators, small fleets, growing fleets, and enterprise carriers.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://navaroad.com/" },
@@ -100,7 +100,7 @@ function Landing() {
             One platform to run <span className="text-orange-500">every mile</span> of your fleet.
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg">
-            Navigation, dispatch, loads, compliance, fuel, maintenance, settlements, and profitability — unified in one workspace. Built for owner operators through enterprise fleets.
+            Navigation, dispatch, loads, compliance, fuel, maintenance, settlements, and profitability — unified in one workspace. Built for owner operators, small fleets, growing fleets, and enterprise carriers.
           </p>
           <div className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
