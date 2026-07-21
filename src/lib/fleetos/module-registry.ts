@@ -77,7 +77,7 @@ export const FLEETOS_MODULES: readonly FleetOSModule[] = [
     category: "operations",
     featureKey: "dashboard",
     roles: [],
-    routes: ["/dashboard"],
+    routes: ["/home", "/dashboard"],
     automation: ["L1_recommend"],
     icon: "LayoutDashboard",
     alwaysAvailable: true,

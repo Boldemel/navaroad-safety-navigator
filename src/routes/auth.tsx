@@ -34,7 +34,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/dashboard", replace: true });
+      if (data.user) navigate({ to: "/home", replace: true });
     });
   }, [navigate]);
 
@@ -53,7 +53,7 @@ function AuthPage() {
       }
       return toast.error(error.message);
     }
-    navigate({ to: "/dashboard", replace: true });
+    navigate({ to: "/home", replace: true });
   }
 
   async function signUp(e: React.FormEvent) {
@@ -76,7 +76,7 @@ function AuthPage() {
       return;
     }
     toast.success("Account created. You're signed in.");
-    navigate({ to: "/dashboard", replace: true });
+    navigate({ to: "/home", replace: true });
   }
 
   async function resendConfirmation() {
@@ -103,7 +103,7 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return; // browser is leaving for Google
-    navigate({ to: "/dashboard", replace: true });
+    navigate({ to: "/home", replace: true });
   }
 
   async function resetPassword(e: React.FormEvent) {
