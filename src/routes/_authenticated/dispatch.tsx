@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -23,6 +23,7 @@ import { TripTimeline } from "@/components/dispatch/trip-timeline";
 import { DispatchSection, EmptyRow } from "@/components/dispatch/dispatch-section";
 import { AssignmentDialog } from "@/components/dispatch/assignment-dialog";
 import { AiDispatchPanel } from "@/components/dispatch/ai-dispatch-panel";
+import { PostTruckSection } from "@/components/dispatch/post-truck-form";
 import {
   getDispatchSnapshot,
   type DispatchLoad,
@@ -86,6 +87,9 @@ function DispatchPage() {
             Live operations center · updated every 30 s
           </p>
         </div>
+        <Button asChild variant="outline" size="sm">
+          <Link to="/dispatch/history">History</Link>
+        </Button>
       </header>
 
       {/* KPI grid */}
@@ -193,6 +197,7 @@ function DispatchPage() {
               )}
             </DispatchSection>
           </div>
+          <PostTruckSection drivers={snapshot.drivers} trucks={snapshot.trucks} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <DispatchSection

@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TripTimeline } from "./trip-timeline";
+import { DispatchCommsPanel } from "./dispatch-comms-panel";
 import {
   assignLoad,
   updateDispatchStatus,
@@ -172,6 +173,8 @@ export function AssignmentDialog({
             </div>
             <TripTimeline status={status} onSelect={(s) => setStatus(s)} />
           </div>
+
+          <DispatchCommsPanel loadId={load.id} />
         </div>
 
         <DialogFooter className="gap-2">
