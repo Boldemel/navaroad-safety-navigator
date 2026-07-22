@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { NavaroadFleetOSLogo, NavaroadMark } from "@/components/brand/logo";
 import tierOwner from "@/assets/tier-owner-final.jpg.asset.json";
-import tierSmall from "@/assets/tier-small-final.jpg.asset.json";
+import tierSmall from "@/assets/tier-small-mountain.jpeg.asset.json";
 import tierGrowth from "@/assets/tier-growth-final.jpg.asset.json";
 import tierEnterprise from "@/assets/tier-enterprise-final.jpg.asset.json";
 
