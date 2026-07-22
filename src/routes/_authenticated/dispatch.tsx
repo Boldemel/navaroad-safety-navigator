@@ -87,6 +87,9 @@ function DispatchPage() {
             Live operations center · updated every 30 s
           </p>
         </div>
+        <Button asChild variant="outline" size="sm">
+          <Link to="/dispatch/history">History</Link>
+        </Button>
       </header>
 
       {/* KPI grid */}
