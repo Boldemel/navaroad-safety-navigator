@@ -308,11 +308,11 @@ function Landing() {
             <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Transparent plans. 7-day free trial.</h2>
             <p className="mx-auto mt-3 max-w-lg text-sm text-zinc-500">Every plan includes all 18 modules and the Copilot. Enterprise available on request.</p>
           </div>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {TIERS.map(t => (
               <div
                 key={t.name}
-                className={`relative rounded-3xl border p-8 ${
+                className={`relative flex flex-col rounded-3xl border p-8 ${
                   t.highlight
                     ? "border-orange-500/50 bg-gradient-to-b from-orange-500/10 to-transparent shadow-2xl shadow-orange-500/10"
                     : "border-zinc-800 bg-zinc-900/60"
@@ -324,9 +324,12 @@ function Landing() {
                   </div>
                 )}
                 <div className="mb-1 text-sm font-semibold text-orange-400">{t.name}</div>
-                <div className="mb-1 text-4xl font-extrabold">{t.price}<span className="text-base font-medium text-zinc-500">/mo</span></div>
+                <div className="mb-1 text-4xl font-extrabold">
+                  {t.price}
+                  {t.priceSuffix && <span className="text-base font-medium text-zinc-500">{t.priceSuffix}</span>}
+                </div>
                 <p className="mb-6 text-sm text-zinc-500">{t.tagline}</p>
-                <ul className="mb-8 space-y-2 text-sm text-zinc-300">
+                <ul className="mb-8 flex-1 space-y-2 text-sm text-zinc-300">
                   {t.features.map(f => (
                     <li key={f} className="flex items-start gap-2">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" /> {f}
@@ -334,15 +337,18 @@ function Landing() {
                   ))}
                 </ul>
                 <Link
-                  to="/auth"
+                  to={t.ctaHref}
                   className={`block rounded-xl py-3 text-center text-sm font-bold transition ${
                     t.highlight
                       ? "bg-orange-500 text-black hover:bg-orange-400"
                       : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
                   }`}
                 >
-                  Start Free Trial
+                  {t.ctaText}
                 </Link>
+                {t.note && (
+                  <p className="mt-3 text-center text-xs text-zinc-500">{t.note}</p>
+                )}
               </div>
             ))}
           </div>
