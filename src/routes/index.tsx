@@ -249,8 +249,13 @@ function Landing() {
               { img: tierEnterprise.url, name: "Enterprise", body: "50+ units. Custom roles, integrations, dedicated success." },
             ].map(t => (
               <div key={t.name} className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 transition hover:border-orange-500/40">
-                <div className="mb-4 grid h-10 w-10 place-items-center overflow-hidden rounded-lg bg-orange-500/10">
-                  <img src={t.img} alt={t.name} className={`h-full w-full ${t.name === "Small Fleet" ? "object-contain p-1" : "object-cover"}`} />
+                <div className="mb-4 aspect-[4/3] w-full overflow-hidden rounded-xl bg-orange-500/10">
+                  <img
+                    src={t.img}
+                    alt={t.name}
+                    loading="lazy"
+                    className={`h-full w-full ${t.name === "Small Fleet" ? "object-contain p-2" : "object-cover"}`}
+                  />
                 </div>
                 <div className="mb-2 font-bold">{t.name}</div>
                 <p className="text-sm text-zinc-400">{t.body}</p>
