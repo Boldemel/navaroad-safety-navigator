@@ -6,8 +6,8 @@ import {
   ArrowRight, Check,
 } from "lucide-react";
 import { NavaroadFleetOSLogo, NavaroadMark } from "@/components/brand/logo";
-import tierOwner from "@/assets/tier-owner.png.asset.json";
-import tierSmall from "@/assets/tier-small.png.asset.json";
+import tierOwner from "@/assets/tier-owner-v2.jpg.asset.json";
+import tierSmall from "@/assets/tier-small-v2.jpg.asset.json";
 import tierGrowth from "@/assets/tier-growth-v2.jpg.asset.json";
 import tierEnterprise from "@/assets/tier-enterprise-v2.jpg.asset.json";
 
@@ -254,7 +254,7 @@ function Landing() {
                     src={t.img}
                     alt={t.name}
                     loading="lazy"
-                    className={`h-full w-full ${t.name === "Small Fleet" ? "object-contain p-2" : "object-cover"}`}
+                    className="h-full w-full object-cover"
                   />
                 </div>
                 <div className="mb-2 font-bold">{t.name}</div>
