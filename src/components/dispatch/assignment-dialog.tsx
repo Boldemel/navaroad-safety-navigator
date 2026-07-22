@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TripTimeline } from "./trip-timeline";
+import { DispatchCommsPanel } from "./dispatch-comms-panel";
 import {
   assignLoad,
   updateDispatchStatus,
