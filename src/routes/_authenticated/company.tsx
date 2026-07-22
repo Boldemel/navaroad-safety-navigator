@@ -44,8 +44,13 @@ import {
   getEldCredentials, setEldCredentials,
 } from "@/lib/team.functions";
 import {
-  ROLES, PERMISSIONS, ELD_SYSTEMS,
+  ROLES, PERMISSIONS, ELD_SYSTEMS, ROLE_LABELS,
+  PERMISSION_FLAGS, PERMISSION_FLAG_LABELS,
+  ACCOUNT_STATUSES, ACCOUNT_STATUS_LABELS,
+  FUEL_CARD_PROVIDERS, TOLL_ACCOUNT_PROVIDERS, DASH_CAMERA_PROVIDERS,
+  EQUIPMENT_TYPES, TRAILER_TYPES, OPERATING_REGIONS,
   type CompanyRole, type AppPermission, type CompanyMember, type EldSystem,
+  type PermissionFlag, type AccountStatus,
 } from "@/lib/company.shared";
 import { TruckProfileCard } from "@/components/truck-profile-card";
 import { TruckRegistrationCard } from "@/components/truck-registration-card";
@@ -57,15 +62,6 @@ export const Route = createFileRoute("/_authenticated/company")({
   component: CompanyPage,
 });
 
-const ROLE_LABELS: Record<CompanyRole, string> = {
-  fleet_owner: "Fleet Owner",
-  fleet_manager: "Fleet Manager",
-  dispatcher: "Dispatcher",
-  safety_manager: "Safety Manager",
-  maintenance_manager: "Maintenance Manager",
-  accountant: "Accountant",
-  driver: "Driver",
-};
 
 function genTempPassword() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
