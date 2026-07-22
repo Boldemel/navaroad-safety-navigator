@@ -24,6 +24,7 @@ const nav = [
   { to: "/hazard-map", label: "Hazards and Alerts", icon: Map },
   { to: "/parking", label: "Parking & Stops", icon: ParkingCircle },
   { to: "/loads", label: "Loads", icon: Package },
+  { to: "/dispatch", label: "Dispatch", icon: Radio },
   { to: "/inspections", label: "Inspections", icon: ClipboardCheck },
   { to: "/maintenance", label: "Maintenance", icon: Wrench },
   { to: "/documents", label: "Driver Documents", icon: FolderLock },
