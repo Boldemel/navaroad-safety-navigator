@@ -133,6 +133,18 @@ export function NavigationBanner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.startedAt, here?.lat, here?.lon]);
 
+  // Proximity flash: only critical-tier alerts trigger the red flash banner.
+  // Must run before any early return to keep hook order stable (React #310).
+  const flashAlert = useMemo(() => {
+    const nearby = proximityAlerts.filter((a) => a.tier === "critical");
+    if (nearby.length === 0) return null;
+    nearby.sort((a, b) => {
+      const rank = { critical: 4, high: 3, medium: 2, low: 1 } as const;
+      return (rank[b.severity] ?? 0) - (rank[a.severity] ?? 0);
+    });
+    return nearby[0];
+  }, [proximityAlerts]);
+
   if (!session) return null;
 
   const eta = stats ? new Date(stats.etaMs) : null;
@@ -154,16 +166,6 @@ export function NavigationBanner() {
     ? minsLeft < 60 ? `${minsLeft} min` : `${Math.floor(minsLeft / 60)}h ${minsLeft % 60}m`
     : "—";
 
-  // Proximity flash: only critical-tier alerts trigger the red flash banner.
-  const flashAlert = useMemo(() => {
-    const nearby = proximityAlerts.filter((a) => a.tier === "critical");
-    if (nearby.length === 0) return null;
-    nearby.sort((a, b) => {
-      const rank = { critical: 4, high: 3, medium: 2, low: 1 } as const;
-      return (rank[b.severity] ?? 0) - (rank[a.severity] ?? 0);
-    });
-    return nearby[0];
-  }, [proximityAlerts]);
 
   return (
     <div className="sticky top-0 z-40 shadow-lg">
