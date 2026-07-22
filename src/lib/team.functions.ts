@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ROLES, ELD_SYSTEMS, usernameToSyntheticEmail } from "./company.shared";
+import { ROLES, ELD_SYSTEMS, ACCOUNT_STATUSES, usernameToSyntheticEmail } from "./company.shared";
 
 const UsernameSchema = z
   .string()
@@ -9,6 +9,8 @@ const UsernameSchema = z
   .min(3)
   .max(64)
   .regex(/^[a-zA-Z0-9._-]+$/, "Username may only contain letters, numbers, dot, underscore, dash");
+
+const JsonRecord = z.record(z.string(), z.any());
 
 const CreateUserSchema = z.object({
   companyId: z.string().uuid(),
@@ -30,7 +32,15 @@ const CreateUserSchema = z.object({
   eldUserId: z.string().trim().max(128).optional().or(z.literal("")),
   eldPassword: z.string().max(256).optional().or(z.literal("")),
   eldVisibleToDriver: z.boolean().default(false),
+  eldEditableByDriver: z.boolean().default(false),
+  // New enterprise fields (all optional)
+  accountStatus: z.enum(ACCOUNT_STATUSES).optional(),
+  integrations: JsonRecord.optional(),
+  preferences: JsonRecord.optional(),
+  permissionFlags: JsonRecord.optional(),
+  certifications: JsonRecord.optional(),
 });
+
 
 async function assertCanManage(
   supabase: any,
@@ -111,7 +121,12 @@ export const createCompanyUser = createServerFn({ method: "POST" })
       active: data.active,
       must_change_password: false,
       created_by_user_id: userId,
-    });
+      account_status: data.accountStatus ?? (data.active ? "active" : "inactive"),
+      integrations: data.integrations ?? {},
+      preferences: data.preferences ?? {},
+      permission_flags: data.permissionFlags ?? {},
+      certifications: data.certifications ?? {},
+    } as never);
 
     if (!data.active) {
       await supabaseAdmin.auth.admin.updateUserById(newUserId, {
@@ -134,6 +149,7 @@ export const createCompanyUser = createServerFn({ method: "POST" })
         { onConflict: "user_id,company_id" },
       );
     }
+
 
     await supabaseAdmin.from("team_audit_logs").insert({
       company_id: data.companyId,

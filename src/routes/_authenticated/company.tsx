@@ -44,8 +44,13 @@ import {
   getEldCredentials, setEldCredentials,
 } from "@/lib/team.functions";
 import {
-  ROLES, PERMISSIONS, ELD_SYSTEMS,
+  ROLES, PERMISSIONS, ELD_SYSTEMS, ROLE_LABELS,
+  PERMISSION_FLAGS, PERMISSION_FLAG_LABELS,
+  ACCOUNT_STATUSES, ACCOUNT_STATUS_LABELS,
+  FUEL_CARD_PROVIDERS, TOLL_ACCOUNT_PROVIDERS, DASH_CAMERA_PROVIDERS,
+  EQUIPMENT_TYPES, TRAILER_TYPES, OPERATING_REGIONS,
   type CompanyRole, type AppPermission, type CompanyMember, type EldSystem,
+  type PermissionFlag, type AccountStatus,
 } from "@/lib/company.shared";
 import { TruckProfileCard } from "@/components/truck-profile-card";
 import { TruckRegistrationCard } from "@/components/truck-registration-card";
@@ -57,15 +62,6 @@ export const Route = createFileRoute("/_authenticated/company")({
   component: CompanyPage,
 });
 
-const ROLE_LABELS: Record<CompanyRole, string> = {
-  fleet_owner: "Fleet Owner",
-  fleet_manager: "Fleet Manager",
-  dispatcher: "Dispatcher",
-  safety_manager: "Safety Manager",
-  maintenance_manager: "Maintenance Manager",
-  accountant: "Accountant",
-  driver: "Driver",
-};
 
 function genTempPassword() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
@@ -229,10 +225,45 @@ function CompanyPage() {
   );
 }
 
+function useCompanyFleetUnits(companyId: string | undefined) {
+  return useQuery({
+    queryKey: ["company-fleet-units", companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const trucks = new Set<string>();
+      const trailers = new Set<string>();
+      const push = (val: string | null | undefined, set: Set<string>) => {
+        const v = (val ?? "").trim();
+        if (v) set.add(v);
+      };
+      const [loads, fuel, inspections, profiles] = await Promise.all([
+        supabase.from("loads").select("vehicle_unit,trailer_unit").eq("company_id", companyId!).limit(2000),
+        supabase.from("fuel_purchases").select("vehicle_unit").eq("company_id", companyId!).limit(2000),
+        supabase.from("inspections").select("vehicle_unit,trailer_unit").eq("company_id", companyId!).limit(2000),
+        supabase.from("profiles").select("assigned_truck,assigned_trailer"),
+      ]);
+      (loads.data ?? []).forEach((r: any) => { push(r.vehicle_unit, trucks); push(r.trailer_unit, trailers); });
+      (fuel.data ?? []).forEach((r: any) => push(r.vehicle_unit, trucks));
+      (inspections.data ?? []).forEach((r: any) => { push(r.vehicle_unit, trucks); push(r.trailer_unit, trailers); });
+      (profiles.data ?? []).forEach((r: any) => { push(r.assigned_truck, trucks); push(r.assigned_trailer, trailers); });
+      return {
+        trucks: Array.from(trucks).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+        trailers: Array.from(trailers).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+      };
+    },
+  });
+}
+
+const FUEL_CARD_PROVIDERS_LIST = FUEL_CARD_PROVIDERS;
+const TOLL_PROVIDERS_LIST = TOLL_ACCOUNT_PROVIDERS;
+const DASH_CAM_LIST = DASH_CAMERA_PROVIDERS;
+
 function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated: () => void }) {
   const createFn = useServerFn(createCompanyUser);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
+  const fleet = useCompanyFleetUnits(open ? companyId : undefined);
+
+  const defaultForm = () => ({
     firstName: "",
     lastName: "",
     email: "",
@@ -243,14 +274,50 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
     driverIdNumber: "",
     assignedTruck: "",
     assignedTrailer: "",
+    noAssignedTruck: false,
+    noAssignedTrailer: false,
     active: true,
-    roles: ["driver"] as CompanyRole[],
+    accountStatus: "active" as AccountStatus,
+    roles: [] as CompanyRole[],
     eldSystem: "" as "" | EldSystem,
     eldUserId: "",
     eldPassword: "",
     eldVisibleToDriver: false,
+    eldEditableByDriver: false,
+    // Integrations
+    fuelCardProvider: "",
+    fuelCardNumber: "",
+    fuelCardPin: "",
+    tollProvider: "",
+    tollAccountNumber: "",
+    payrollEmployeeId: "",
+    companyEmail: "",
+    companyPhoneExtension: "",
+    dashCameraProvider: "",
+    truckCameraInstalled: false,
+    driverFacingCamera: false,
+    bluetoothHeadsetAssigned: false,
+    // Preferences
+    preferredEquipment: "",
+    preferredTrailerType: "",
+    preferredOperatingRegion: "",
+    preferredLanes: "",
+    maxDeadheadMiles: "",
+    minRatePerMile: "",
+    maxWeight: "",
+    hazmatCertified: false,
+    tankerEndorsement: false,
+    doubleTripleEndorsement: false,
+    twicCard: false,
+    passport: false,
+    fastCard: false,
+    // Permission flags
+    permissionFlags: {} as Record<PermissionFlag, boolean>,
   });
-  const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
+  const [form, setForm] = useState(defaultForm);
+  const set = (patch: Partial<ReturnType<typeof defaultForm>>) => setForm((f) => ({ ...f, ...patch }));
+  const setFlag = (key: PermissionFlag, val: boolean) =>
+    setForm((f) => ({ ...f, permissionFlags: { ...f.permissionFlags, [key]: val } }));
 
   const createMut = useMutation({
     mutationFn: () =>
@@ -265,28 +332,55 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
           phone: form.phone,
           employeeId: form.employeeId,
           driverIdNumber: form.driverIdNumber,
-          assignedTruck: form.assignedTruck,
-          assignedTrailer: form.assignedTrailer,
+          assignedTruck: form.noAssignedTruck ? "" : form.assignedTruck,
+          assignedTrailer: form.noAssignedTrailer ? "" : form.assignedTrailer,
           active: form.active,
+          accountStatus: form.accountStatus,
           roles: form.roles,
           eldSystem: form.eldSystem || undefined,
           eldUserId: form.eldUserId,
           eldPassword: form.eldPassword,
           eldVisibleToDriver: form.eldVisibleToDriver,
+          eldEditableByDriver: form.eldEditableByDriver,
+          integrations: {
+            fuelCardProvider: form.fuelCardProvider || null,
+            fuelCardNumber: form.fuelCardNumber || null,
+            fuelCardPin: form.fuelCardPin || null,
+            tollProvider: form.tollProvider || null,
+            tollAccountNumber: form.tollAccountNumber || null,
+            payrollEmployeeId: form.payrollEmployeeId || null,
+            companyEmail: form.companyEmail || null,
+            companyPhoneExtension: form.companyPhoneExtension || null,
+            dashCameraProvider: form.dashCameraProvider || null,
+            truckCameraInstalled: form.truckCameraInstalled,
+            driverFacingCamera: form.driverFacingCamera,
+            bluetoothHeadsetAssigned: form.bluetoothHeadsetAssigned,
+          },
+          preferences: {
+            preferredEquipment: form.preferredEquipment || null,
+            preferredTrailerType: form.preferredTrailerType || null,
+            preferredOperatingRegion: form.preferredOperatingRegion || null,
+            preferredLanes: form.preferredLanes || null,
+            maxDeadheadMiles: form.maxDeadheadMiles ? Number(form.maxDeadheadMiles) : null,
+            minRatePerMile: form.minRatePerMile ? Number(form.minRatePerMile) : null,
+            maxWeight: form.maxWeight ? Number(form.maxWeight) : null,
+          },
+          certifications: {
+            hazmat: form.hazmatCertified,
+            tanker: form.tankerEndorsement,
+            doubleTriple: form.doubleTripleEndorsement,
+            twic: form.twicCard,
+            passport: form.passport,
+            fast: form.fastCard,
+          },
+          permissionFlags: form.permissionFlags,
         },
       }),
     onSuccess: () => {
       toast.success("User created. Share the credentials with them.");
       onCreated();
       setOpen(false);
-      setForm({
-        firstName: "", lastName: "", email: "", username: "",
-        tempPassword: genTempPassword(),
-        phone: "", employeeId: "", driverIdNumber: "",
-        assignedTruck: "", assignedTrailer: "",
-        active: true, roles: ["driver"],
-        eldSystem: "", eldUserId: "", eldPassword: "", eldVisibleToDriver: false,
-      });
+      setForm(defaultForm());
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to create user"),
   });
@@ -299,7 +393,7 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
           <DialogTrigger asChild>
             <Button size="sm">New user</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create user</DialogTitle>
               <DialogDescription>
@@ -353,17 +447,54 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
                 <Label>Driver ID</Label>
                 <Input value={form.driverIdNumber} onChange={(e) => set({ driverIdNumber: e.target.value })} placeholder="CDL / internal driver #" />
               </div>
+
+              {/* Truck assignments — searchable dropdowns */}
               <div className="space-y-1.5">
                 <Label>Assigned truck</Label>
-                <Input value={form.assignedTruck} onChange={(e) => set({ assignedTruck: e.target.value })} />
+                <Select
+                  value={form.noAssignedTruck ? "_none" : (form.assignedTruck || "_pick")}
+                  onValueChange={(v) => set({ assignedTruck: v === "_pick" || v === "_none" ? "" : v, noAssignedTruck: v === "_none" })}
+                  disabled={form.noAssignedTruck}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select truck" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_pick">Select truck</SelectItem>
+                    {(fleet.data?.trucks ?? []).map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <Checkbox
+                    checked={form.noAssignedTruck}
+                    onCheckedChange={(v) => set({ noAssignedTruck: !!v, assignedTruck: v ? "" : form.assignedTruck })}
+                  />
+                  No assigned truck
+                </label>
               </div>
               <div className="space-y-1.5">
                 <Label>Assigned trailer</Label>
-                <Input value={form.assignedTrailer} onChange={(e) => set({ assignedTrailer: e.target.value })} />
+                <Select
+                  value={form.noAssignedTrailer ? "_none" : (form.assignedTrailer || "_pick")}
+                  onValueChange={(v) => set({ assignedTrailer: v === "_pick" || v === "_none" ? "" : v, noAssignedTrailer: v === "_none" })}
+                  disabled={form.noAssignedTrailer}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select trailer" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_pick">Select trailer</SelectItem>
+                    {(fleet.data?.trailers ?? []).map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <Checkbox
+                    checked={form.noAssignedTrailer}
+                    onCheckedChange={(v) => set({ noAssignedTrailer: !!v, assignedTrailer: v ? "" : form.assignedTrailer })}
+                  />
+                  No assigned trailer
+                </label>
               </div>
+
               <div className="space-y-1.5 sm:col-span-2">
-                <Label>Roles</Label>
-                <div className="flex flex-wrap gap-3">
+                <Label>Roles <span className="text-muted-foreground text-[11px]">(select one or more)</span></Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-md border border-border p-3">
                   {ROLES.map((r) => (
                     <label key={r} className="flex items-center gap-2 text-sm cursor-pointer">
                       <Checkbox
@@ -378,13 +509,14 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
                 </div>
               </div>
 
+              {/* ELD credentials */}
               <div className="sm:col-span-2 rounded-md border border-border p-3 space-y-3">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Radio className="size-4" /> ELD credentials (optional)
                 </div>
                 <p className="text-[11px] text-muted-foreground -mt-2">
                   Stored securely. Only company admins/managers can view or reset these.
-                  Drivers see them only if you mark them visible.
+                  Drivers see them only if you mark them visible. Passwords are encrypted at rest.
                 </p>
                 <div className="grid sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
@@ -401,7 +533,7 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label>ELD User ID</Label>
+                    <Label>ELD Username</Label>
                     <Input value={form.eldUserId} onChange={(e) => set({ eldUserId: e.target.value })} />
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
@@ -413,25 +545,202 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
                       autoComplete="new-password"
                     />
                   </div>
-                  <div className="flex items-center justify-between sm:col-span-2 rounded-md border border-border/60 p-2">
-                    <div className="text-xs">
-                      <div className="font-medium">Show to driver</div>
-                      <div className="text-muted-foreground">Let this driver view their ELD login.</div>
-                    </div>
-                    <Switch
-                      checked={form.eldVisibleToDriver}
-                      onCheckedChange={(v) => set({ eldVisibleToDriver: v })}
-                    />
-                  </div>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer sm:col-span-2">
+                    <Checkbox checked={form.eldVisibleToDriver} onCheckedChange={(v) => set({ eldVisibleToDriver: !!v })} />
+                    Driver may view credentials
+                  </label>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer sm:col-span-2">
+                    <Checkbox checked={form.eldEditableByDriver} onCheckedChange={(v) => set({ eldEditableByDriver: !!v })} />
+                    Driver may edit credentials
+                  </label>
+                  <p className="text-[11px] text-muted-foreground sm:col-span-2">Admins can always reset credentials.</p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between sm:col-span-2 rounded-md border border-border p-3">
-                <div>
-                  <div className="text-sm font-medium">Active</div>
-                  <div className="text-xs text-muted-foreground">Inactive users can't sign in.</div>
+              {/* Integrations */}
+              <div className="sm:col-span-2 rounded-md border border-border p-3 space-y-3">
+                <div className="text-sm font-medium">Integrations</div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Fuel card provider</Label>
+                    <Select value={form.fuelCardProvider || "_none"} onValueChange={(v) => set({ fuelCardProvider: v === "_none" ? "" : v })}>
+                      <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">None</SelectItem>
+                        {FUEL_CARD_PROVIDERS_LIST.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Fuel card number</Label>
+                    <Input value={form.fuelCardNumber} onChange={(e) => set({ fuelCardNumber: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Fuel card PIN</Label>
+                    <Input type="password" value={form.fuelCardPin} onChange={(e) => set({ fuelCardPin: e.target.value })} autoComplete="new-password" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Toll account provider</Label>
+                    <Select value={form.tollProvider || "_none"} onValueChange={(v) => set({ tollProvider: v === "_none" ? "" : v })}>
+                      <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">None</SelectItem>
+                        {TOLL_PROVIDERS_LIST.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Toll account number</Label>
+                    <Input value={form.tollAccountNumber} onChange={(e) => set({ tollAccountNumber: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Payroll employee ID</Label>
+                    <Input value={form.payrollEmployeeId} onChange={(e) => set({ payrollEmployeeId: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Company email</Label>
+                    <Input type="email" value={form.companyEmail} onChange={(e) => set({ companyEmail: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Company phone extension</Label>
+                    <Input value={form.companyPhoneExtension} onChange={(e) => set({ companyPhoneExtension: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label>Dash camera provider</Label>
+                    <Select value={form.dashCameraProvider || "_none"} onValueChange={(v) => set({ dashCameraProvider: v === "_none" ? "" : v })}>
+                      <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">None</SelectItem>
+                        {DASH_CAM_LIST.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <Checkbox checked={form.truckCameraInstalled} onCheckedChange={(v) => set({ truckCameraInstalled: !!v })} />
+                    Truck camera installed
+                  </label>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <Checkbox checked={form.driverFacingCamera} onCheckedChange={(v) => set({ driverFacingCamera: !!v })} />
+                    Driver facing camera
+                  </label>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer sm:col-span-2">
+                    <Checkbox checked={form.bluetoothHeadsetAssigned} onCheckedChange={(v) => set({ bluetoothHeadsetAssigned: !!v })} />
+                    Bluetooth headset assigned
+                  </label>
                 </div>
-                <Switch checked={form.active} onCheckedChange={(v) => set({ active: v })} />
+              </div>
+
+              {/* Preferences */}
+              <div className="sm:col-span-2 rounded-md border border-border p-3 space-y-3">
+                <div className="text-sm font-medium">Preferences</div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Preferred equipment</Label>
+                    <Select value={form.preferredEquipment || "_none"} onValueChange={(v) => set({ preferredEquipment: v === "_none" ? "" : v })}>
+                      <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">Any</SelectItem>
+                        {EQUIPMENT_TYPES.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Preferred trailer type</Label>
+                    <Select value={form.preferredTrailerType || "_none"} onValueChange={(v) => set({ preferredTrailerType: v === "_none" ? "" : v })}>
+                      <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">Any</SelectItem>
+                        {TRAILER_TYPES.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Preferred operating region</Label>
+                    <Select value={form.preferredOperatingRegion || "_none"} onValueChange={(v) => set({ preferredOperatingRegion: v === "_none" ? "" : v })}>
+                      <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">Any</SelectItem>
+                        {OPERATING_REGIONS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Preferred lanes</Label>
+                    <Input value={form.preferredLanes} onChange={(e) => set({ preferredLanes: e.target.value })} placeholder="e.g. TX↔CA, ATL→MIA" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Maximum deadhead (miles)</Label>
+                    <Input type="number" min="0" value={form.maxDeadheadMiles} onChange={(e) => set({ maxDeadheadMiles: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Minimum rate per mile ($)</Label>
+                    <Input type="number" min="0" step="0.01" value={form.minRatePerMile} onChange={(e) => set({ minRatePerMile: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label>Maximum weight (lbs)</Label>
+                    <Input type="number" min="0" value={form.maxWeight} onChange={(e) => set({ maxWeight: e.target.value })} />
+                  </div>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <Checkbox checked={form.hazmatCertified} onCheckedChange={(v) => set({ hazmatCertified: !!v })} />
+                    Hazmat certified
+                  </label>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <Checkbox checked={form.tankerEndorsement} onCheckedChange={(v) => set({ tankerEndorsement: !!v })} />
+                    Tanker endorsement
+                  </label>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <Checkbox checked={form.doubleTripleEndorsement} onCheckedChange={(v) => set({ doubleTripleEndorsement: !!v })} />
+                    Double/Triple endorsement
+                  </label>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <Checkbox checked={form.twicCard} onCheckedChange={(v) => set({ twicCard: !!v })} />
+                    TWIC card
+                  </label>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <Checkbox checked={form.passport} onCheckedChange={(v) => set({ passport: !!v })} />
+                    Passport
+                  </label>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <Checkbox checked={form.fastCard} onCheckedChange={(v) => set({ fastCard: !!v })} />
+                    FAST card
+                  </label>
+                </div>
+              </div>
+
+              {/* Permissions */}
+              <div className="sm:col-span-2 rounded-md border border-border p-3 space-y-3">
+                <div className="text-sm font-medium">Permissions</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {PERMISSION_FLAGS.map((p) => (
+                    <div key={p} className="flex items-center justify-between rounded-md border border-border/60 px-2 py-1.5">
+                      <span className="text-xs">{PERMISSION_FLAG_LABELS[p]}</span>
+                      <Switch checked={!!form.permissionFlags[p]} onCheckedChange={(v) => setFlag(p, v)} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Account status */}
+              <div className="sm:col-span-2 rounded-md border border-border p-3 space-y-3">
+                <div className="text-sm font-medium">Account status</div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Status</Label>
+                    <Select value={form.accountStatus} onValueChange={(v) => set({ accountStatus: v as AccountStatus, active: v === "active" })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {ACCOUNT_STATUSES.map((s) => <SelectItem key={s} value={s}>{ACCOUNT_STATUS_LABELS[s]}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center justify-between rounded-md border border-border/60 p-2">
+                    <div className="text-xs">
+                      <div className="font-medium">Can sign in</div>
+                      <div className="text-muted-foreground">Only Active users can sign in.</div>
+                    </div>
+                    <Switch checked={form.active} onCheckedChange={(v) => set({ active: v, accountStatus: v ? "active" : "inactive" })} />
+                  </div>
+                </div>
               </div>
             </div>
             <DialogFooter>
@@ -457,6 +766,8 @@ function CreateUserCard({ companyId, onCreated }: { companyId: string; onCreated
     </Card>
   );
 }
+
+
 
 function MemberRow({ member, canManage, companyId, isSelf }: { member: CompanyMember; canManage: boolean; companyId: string; isSelf: boolean }) {
   const qc = useQueryClient();
