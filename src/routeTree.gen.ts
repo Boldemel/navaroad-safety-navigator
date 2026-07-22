@@ -47,6 +47,7 @@ import { Route as AuthenticatedLoadsIndexRouteImport } from './routes/_authentic
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as AuthenticatedTrucksVehicleUnitRouteImport } from './routes/_authenticated/trucks.$vehicleUnit'
 import { Route as AuthenticatedLoadsHistoryRouteImport } from './routes/_authenticated/loads.history'
+import { Route as AuthenticatedDispatchHistoryRouteImport } from './routes/_authenticated/dispatch.history'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminPlatformRouteImport } from './routes/_authenticated/admin/platform'
 import { Route as AuthenticatedAdminModerationRouteImport } from './routes/_authenticated/admin/moderation'
@@ -248,6 +249,12 @@ const AuthenticatedLoadsHistoryRoute =
     path: '/history',
     getParentRoute: () => AuthenticatedLoadsRoute,
   } as any)
+const AuthenticatedDispatchHistoryRoute =
+  AuthenticatedDispatchHistoryRouteImport.update({
+    id: '/history',
+    path: '/history',
+    getParentRoute: () => AuthenticatedDispatchRoute,
+  } as any)
 const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   id: '/admin/users',
   path: '/admin/users',
@@ -284,7 +291,7 @@ export interface FileRoutesByFullPath {
   '/billing': typeof AuthenticatedBillingRoute
   '/company': typeof AuthenticatedCompanyRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/dispatch': typeof AuthenticatedDispatchRoute
+  '/dispatch': typeof AuthenticatedDispatchRouteWithChildren
   '/documents': typeof AuthenticatedDocumentsRoute
   '/driver-performance': typeof AuthenticatedDriverPerformanceRoute
   '/expenses': typeof AuthenticatedExpensesRoute
@@ -309,6 +316,7 @@ export interface FileRoutesByFullPath {
   '/admin/moderation': typeof AuthenticatedAdminModerationRoute
   '/admin/platform': typeof AuthenticatedAdminPlatformRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/dispatch/history': typeof AuthenticatedDispatchHistoryRoute
   '/loads/history': typeof AuthenticatedLoadsHistoryRoute
   '/trucks/$vehicleUnit': typeof AuthenticatedTrucksVehicleUnitRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
@@ -327,7 +335,7 @@ export interface FileRoutesByTo {
   '/billing': typeof AuthenticatedBillingRoute
   '/company': typeof AuthenticatedCompanyRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/dispatch': typeof AuthenticatedDispatchRoute
+  '/dispatch': typeof AuthenticatedDispatchRouteWithChildren
   '/documents': typeof AuthenticatedDocumentsRoute
   '/driver-performance': typeof AuthenticatedDriverPerformanceRoute
   '/expenses': typeof AuthenticatedExpensesRoute
@@ -350,6 +358,7 @@ export interface FileRoutesByTo {
   '/admin/moderation': typeof AuthenticatedAdminModerationRoute
   '/admin/platform': typeof AuthenticatedAdminPlatformRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/dispatch/history': typeof AuthenticatedDispatchHistoryRoute
   '/loads/history': typeof AuthenticatedLoadsHistoryRoute
   '/trucks/$vehicleUnit': typeof AuthenticatedTrucksVehicleUnitRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
@@ -370,7 +379,7 @@ export interface FileRoutesById {
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/company': typeof AuthenticatedCompanyRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/dispatch': typeof AuthenticatedDispatchRoute
+  '/_authenticated/dispatch': typeof AuthenticatedDispatchRouteWithChildren
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
   '/_authenticated/driver-performance': typeof AuthenticatedDriverPerformanceRoute
   '/_authenticated/expenses': typeof AuthenticatedExpensesRoute
@@ -395,6 +404,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/moderation': typeof AuthenticatedAdminModerationRoute
   '/_authenticated/admin/platform': typeof AuthenticatedAdminPlatformRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/_authenticated/dispatch/history': typeof AuthenticatedDispatchHistoryRoute
   '/_authenticated/loads/history': typeof AuthenticatedLoadsHistoryRoute
   '/_authenticated/trucks/$vehicleUnit': typeof AuthenticatedTrucksVehicleUnitRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
@@ -440,6 +450,7 @@ export interface FileRouteTypes {
     | '/admin/moderation'
     | '/admin/platform'
     | '/admin/users'
+    | '/dispatch/history'
     | '/loads/history'
     | '/trucks/$vehicleUnit'
     | '/api/public/stripe-webhook'
@@ -481,6 +492,7 @@ export interface FileRouteTypes {
     | '/admin/moderation'
     | '/admin/platform'
     | '/admin/users'
+    | '/dispatch/history'
     | '/loads/history'
     | '/trucks/$vehicleUnit'
     | '/api/public/stripe-webhook'
@@ -525,6 +537,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/moderation'
     | '/_authenticated/admin/platform'
     | '/_authenticated/admin/users'
+    | '/_authenticated/dispatch/history'
     | '/_authenticated/loads/history'
     | '/_authenticated/trucks/$vehicleUnit'
     | '/api/public/stripe-webhook'
@@ -812,6 +825,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLoadsHistoryRouteImport
       parentRoute: typeof AuthenticatedLoadsRoute
     }
+    '/_authenticated/dispatch/history': {
+      id: '/_authenticated/dispatch/history'
+      path: '/history'
+      fullPath: '/dispatch/history'
+      preLoaderRoute: typeof AuthenticatedDispatchHistoryRouteImport
+      parentRoute: typeof AuthenticatedDispatchRoute
+    }
     '/_authenticated/admin/users': {
       id: '/_authenticated/admin/users'
       path: '/admin/users'
@@ -842,6 +862,19 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedDispatchRouteChildren {
+  AuthenticatedDispatchHistoryRoute: typeof AuthenticatedDispatchHistoryRoute
+}
+
+const AuthenticatedDispatchRouteChildren: AuthenticatedDispatchRouteChildren = {
+  AuthenticatedDispatchHistoryRoute: AuthenticatedDispatchHistoryRoute,
+}
+
+const AuthenticatedDispatchRouteWithChildren =
+  AuthenticatedDispatchRoute._addFileChildren(
+    AuthenticatedDispatchRouteChildren,
+  )
 
 interface AuthenticatedLoadsRouteChildren {
   AuthenticatedLoadsHistoryRoute: typeof AuthenticatedLoadsHistoryRoute
@@ -875,7 +908,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
   AuthenticatedCompanyRoute: typeof AuthenticatedCompanyRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedDispatchRoute: typeof AuthenticatedDispatchRoute
+  AuthenticatedDispatchRoute: typeof AuthenticatedDispatchRouteWithChildren
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
   AuthenticatedDriverPerformanceRoute: typeof AuthenticatedDriverPerformanceRoute
   AuthenticatedExpensesRoute: typeof AuthenticatedExpensesRoute
@@ -907,7 +940,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
   AuthenticatedCompanyRoute: AuthenticatedCompanyRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedDispatchRoute: AuthenticatedDispatchRoute,
+  AuthenticatedDispatchRoute: AuthenticatedDispatchRouteWithChildren,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
   AuthenticatedDriverPerformanceRoute: AuthenticatedDriverPerformanceRoute,
   AuthenticatedExpensesRoute: AuthenticatedExpensesRoute,
