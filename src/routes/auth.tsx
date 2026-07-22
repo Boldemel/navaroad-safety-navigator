@@ -16,8 +16,23 @@ const authSearchSchema = z.object({
 });
 
 export const Route = createFileRoute("/auth")({
-  ssr: false,
   validateSearch: authSearchSchema,
+  head: () => ({
+    meta: [
+      { title: "Sign in to Navaroad FleetOS" },
+      {
+        name: "description",
+        content: "Sign in to Navaroad FleetOS to manage routing, dispatch, safety, compliance, and fleet operations.",
+      },
+      { property: "og:title", content: "Sign in to Navaroad FleetOS" },
+      {
+        property: "og:description",
+        content: "Access Navaroad FleetOS for trucking safety, dispatch, compliance, and fleet management.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: AuthPage,
 });
 
