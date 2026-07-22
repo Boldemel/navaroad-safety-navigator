@@ -197,6 +197,7 @@ function DispatchPage() {
               )}
             </DispatchSection>
           </div>
+          <PostTruckSection drivers={snapshot.drivers} trucks={snapshot.trucks} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <DispatchSection
