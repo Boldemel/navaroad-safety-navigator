@@ -254,7 +254,7 @@ function Landing() {
                     src={t.img}
                     alt={t.name}
                     loading="lazy"
-                    className={`h-full w-full ${t.name === "Small Fleet" ? "object-contain p-2" : "object-cover"}`}
+                    className="h-full w-full object-cover"
                   />
                 </div>
                 <div className="mb-2 font-bold">{t.name}</div>
