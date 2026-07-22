@@ -237,6 +237,89 @@ export type Database = {
           },
         ]
       }
+      dispatch_communications: {
+        Row: {
+          author_id: string
+          author_name: string | null
+          body: string
+          channel: string
+          company_id: string
+          created_at: string
+          id: string
+          load_id: string
+        }
+        Insert: {
+          author_id: string
+          author_name?: string | null
+          body: string
+          channel?: string
+          company_id: string
+          created_at?: string
+          id?: string
+          load_id: string
+        }
+        Update: {
+          author_id?: string
+          author_name?: string | null
+          body?: string
+          channel?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          load_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_communications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_communications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_profitability_view"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "dispatch_communications_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "load_cost_allocation"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "dispatch_communications_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "load_miles"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "dispatch_communications_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "load_profitability"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "dispatch_communications_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "load_profitability_view"
+            referencedColumns: ["load_id"]
+          },
+          {
+            foreignKeyName: "dispatch_communications_load_id_fkey"
+            columns: ["load_id"]
+            isOneToOne: false
+            referencedRelation: "loads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           category: string | null
@@ -2071,6 +2154,87 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "loads"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      truck_availability_posts: {
+        Row: {
+          available_from: string
+          available_to: string | null
+          company_id: string
+          created_at: string
+          driver_id: string | null
+          equipment_type: string | null
+          id: string
+          max_deadhead_mi: number | null
+          min_rate_per_mile: number | null
+          min_rate_usd: number | null
+          notes: string | null
+          origin_city: string | null
+          origin_state: string | null
+          preferred_lanes: string | null
+          status: string
+          trailer_type: string | null
+          updated_at: string
+          user_id: string
+          vehicle_unit: string
+        }
+        Insert: {
+          available_from?: string
+          available_to?: string | null
+          company_id: string
+          created_at?: string
+          driver_id?: string | null
+          equipment_type?: string | null
+          id?: string
+          max_deadhead_mi?: number | null
+          min_rate_per_mile?: number | null
+          min_rate_usd?: number | null
+          notes?: string | null
+          origin_city?: string | null
+          origin_state?: string | null
+          preferred_lanes?: string | null
+          status?: string
+          trailer_type?: string | null
+          updated_at?: string
+          user_id: string
+          vehicle_unit: string
+        }
+        Update: {
+          available_from?: string
+          available_to?: string | null
+          company_id?: string
+          created_at?: string
+          driver_id?: string | null
+          equipment_type?: string | null
+          id?: string
+          max_deadhead_mi?: number | null
+          min_rate_per_mile?: number | null
+          min_rate_usd?: number | null
+          notes?: string | null
+          origin_city?: string | null
+          origin_state?: string | null
+          preferred_lanes?: string | null
+          status?: string
+          trailer_type?: string | null
+          updated_at?: string
+          user_id?: string
+          vehicle_unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "truck_availability_posts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "truck_availability_posts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_profitability_view"
+            referencedColumns: ["company_id"]
           },
         ]
       }
