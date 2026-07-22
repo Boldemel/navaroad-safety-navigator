@@ -22,18 +22,25 @@ function HomeDashboard() {
     (async () => {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("first_name, last_name, driver_name, username")
+        .eq("id", u.user.id)
+        .maybeSingle();
       const meta = (u.user.user_metadata ?? {}) as Record<string, unknown>;
       const first =
+        profile?.first_name ||
+        profile?.driver_name?.split(" ")[0] ||
         (meta.first_name as string) ||
         (meta.full_name as string)?.split(" ")[0] ||
         (meta.name as string)?.split(" ")[0] ||
-        u.user.email?.split("@")[0] ||
-        "Driver";
+        "";
       setName(first);
     })();
     const t = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(t);
   }, []);
+
 
   const hour = now.getHours();
   const greeting =
