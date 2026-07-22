@@ -121,7 +121,12 @@ export const createCompanyUser = createServerFn({ method: "POST" })
       active: data.active,
       must_change_password: false,
       created_by_user_id: userId,
-    });
+      account_status: data.accountStatus ?? (data.active ? "active" : "inactive"),
+      integrations: data.integrations ?? {},
+      preferences: data.preferences ?? {},
+      permission_flags: data.permissionFlags ?? {},
+      certifications: data.certifications ?? {},
+    } as never);
 
     if (!data.active) {
       await supabaseAdmin.auth.admin.updateUserById(newUserId, {
@@ -144,6 +149,7 @@ export const createCompanyUser = createServerFn({ method: "POST" })
         { onConflict: "user_id,company_id" },
       );
     }
+
 
     await supabaseAdmin.from("team_audit_logs").insert({
       company_id: data.companyId,
