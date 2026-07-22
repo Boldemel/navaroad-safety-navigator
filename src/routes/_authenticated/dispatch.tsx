@@ -23,6 +23,7 @@ import { TripTimeline } from "@/components/dispatch/trip-timeline";
 import { DispatchSection, EmptyRow } from "@/components/dispatch/dispatch-section";
 import { AssignmentDialog } from "@/components/dispatch/assignment-dialog";
 import { AiDispatchPanel } from "@/components/dispatch/ai-dispatch-panel";
+import { PostTruckSection } from "@/components/dispatch/post-truck-form";
 import {
   getDispatchSnapshot,
   type DispatchLoad,
