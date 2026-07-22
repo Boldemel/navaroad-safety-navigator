@@ -1,5 +1,5 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Map, Bell, User, LogOut, Truck, Shield, ShieldAlert, Users, FileWarning, BookOpen, ClipboardCheck, Package, ParkingCircle, MapPinned, FolderLock, Wrench, Receipt, Fuel, ClipboardList, Building2, Sparkles, TrendingUp, FileBarChart, UserCheck, Menu, CreditCard, HelpCircle } from "lucide-react";
+import { LayoutDashboard, Map, Bell, User, LogOut, Truck, Shield, ShieldAlert, Users, FileWarning, BookOpen, ClipboardCheck, Package, ParkingCircle, MapPinned, FolderLock, Wrench, Receipt, Fuel, ClipboardList, Building2, Sparkles, TrendingUp, FileBarChart, UserCheck, Menu, CreditCard, HelpCircle, Radio } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { getModuleForRoute } from "@/lib/fleetos/module-registry";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -24,6 +24,7 @@ const nav = [
   { to: "/hazard-map", label: "Hazards and Alerts", icon: Map },
   { to: "/parking", label: "Parking & Stops", icon: ParkingCircle },
   { to: "/loads", label: "Loads", icon: Package },
+  { to: "/dispatch", label: "Dispatch", icon: Radio },
   { to: "/inspections", label: "Inspections", icon: ClipboardCheck },
   { to: "/maintenance", label: "Maintenance", icon: Wrench },
   { to: "/documents", label: "Driver Documents", icon: FolderLock },
