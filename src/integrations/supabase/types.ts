@@ -1456,9 +1456,11 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: string
           active: boolean
           assigned_trailer: string | null
           assigned_truck: string | null
+          certifications: Json
           created_at: string
           created_by_user_id: string | null
           driver_id_number: string | null
@@ -1469,13 +1471,17 @@ export type Database = {
           employee_id: string | null
           first_name: string | null
           id: string
+          integrations: Json
+          last_login_at: string | null
           last_name: string | null
           load_status: string | null
           must_change_password: boolean
           notify_email: boolean | null
           notify_push: boolean | null
           notify_sms: boolean | null
+          permission_flags: Json
           phone: string | null
+          preferences: Json
           trailer_insurance_expiry: string | null
           trailer_make: string | null
           trailer_plate: string | null
@@ -1504,9 +1510,11 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          account_status?: string
           active?: boolean
           assigned_trailer?: string | null
           assigned_truck?: string | null
+          certifications?: Json
           created_at?: string
           created_by_user_id?: string | null
           driver_id_number?: string | null
@@ -1517,13 +1525,17 @@ export type Database = {
           employee_id?: string | null
           first_name?: string | null
           id: string
+          integrations?: Json
+          last_login_at?: string | null
           last_name?: string | null
           load_status?: string | null
           must_change_password?: boolean
           notify_email?: boolean | null
           notify_push?: boolean | null
           notify_sms?: boolean | null
+          permission_flags?: Json
           phone?: string | null
+          preferences?: Json
           trailer_insurance_expiry?: string | null
           trailer_make?: string | null
           trailer_plate?: string | null
@@ -1552,9 +1564,11 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          account_status?: string
           active?: boolean
           assigned_trailer?: string | null
           assigned_truck?: string | null
+          certifications?: Json
           created_at?: string
           created_by_user_id?: string | null
           driver_id_number?: string | null
@@ -1565,13 +1579,17 @@ export type Database = {
           employee_id?: string | null
           first_name?: string | null
           id?: string
+          integrations?: Json
+          last_login_at?: string | null
           last_name?: string | null
           load_status?: string | null
           must_change_password?: boolean
           notify_email?: boolean | null
           notify_push?: boolean | null
           notify_sms?: boolean | null
+          permission_flags?: Json
           phone?: string | null
+          preferences?: Json
           trailer_insurance_expiry?: string | null
           trailer_make?: string | null
           trailer_plate?: string | null
@@ -2699,6 +2717,16 @@ export type Database = {
         | "accountant"
         | "company_owner"
         | "fleet_manager"
+        | "fleet_administrator"
+        | "operations_manager"
+        | "recruiter"
+        | "human_resources"
+        | "compliance_manager"
+        | "billing_administrator"
+        | "customer_service"
+        | "driver_trainer"
+        | "shop_technician"
+        | "readonly_user"
       maintenance_task_priority: "Critical" | "High" | "Medium" | "Low"
       maintenance_task_status: "Open" | "InProgress" | "Completed" | "Cancelled"
       subscription_plan:
@@ -2873,6 +2901,16 @@ export const Constants = {
         "accountant",
         "company_owner",
         "fleet_manager",
+        "fleet_administrator",
+        "operations_manager",
+        "recruiter",
+        "human_resources",
+        "compliance_manager",
+        "billing_administrator",
+        "customer_service",
+        "driver_trainer",
+        "shop_technician",
+        "readonly_user",
       ],
       maintenance_task_priority: ["Critical", "High", "Medium", "Low"],
       maintenance_task_status: ["Open", "InProgress", "Completed", "Cancelled"],
