@@ -13,7 +13,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { BookOpen, ChevronRight, HelpCircle, Search, Sparkles } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -92,7 +92,7 @@ function HelpPage() {
     results.find((r) => r.article.moduleId === activeId) ?? results[0];
 
   return (
-    <AppShell>
+    <>
       <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
         <div className="flex items-start gap-3">
           <div className="size-10 rounded-md bg-primary/15 text-primary flex items-center justify-center">
@@ -312,7 +312,7 @@ function HelpPage() {
           </article>
         </div>
       </div>
-    </AppShell>
+    </>
   );
 }
 
