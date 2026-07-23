@@ -29,7 +29,7 @@ function Privacy() {
 
         <section className="mt-8 space-y-3 text-sm leading-relaxed">
           <h2 className="text-xl font-semibold">1. Who we are</h2>
-          <p>Navaroad ("we", "us") provides trucking safety intelligence — route analysis, hazard reporting, and weather/wind alerts — to professional drivers and small fleets.</p>
+          <p>Navaroad Technologies LLC ("Navaroad", "we", "us") provides the Navaroad FleetOS platform — route analysis, hazard reporting, dispatch, compliance, fuel, maintenance, settlements, and profitability tools — to owner operators, small fleets, growing fleets, and enterprise carriers.</p>
 
           <h2 className="text-xl font-semibold pt-4">2. What we collect</h2>
           <ul className="list-disc pl-6 space-y-1">
@@ -42,7 +42,7 @@ function Privacy() {
 
           <h2 className="text-xl font-semibold pt-4">3. How we use it</h2>
           <ul className="list-disc pl-6 space-y-1">
-            <li>To provide and improve the navigation, weather, and hazard features.</li>
+            <li>To provide and improve the navigation, weather, hazard, dispatch, and fleet management features.</li>
             <li>To send notifications you enable (email, push, SMS for critical alerts).</li>
             <li>To moderate community hazard reports.</li>
             <li>To enforce our Terms and prevent abuse.</li>
@@ -61,7 +61,8 @@ function Privacy() {
           <p>Navaroad is intended for commercial drivers and is not directed to anyone under 18.</p>
 
           <h2 className="text-xl font-semibold pt-4">8. Contact</h2>
-          <p>Questions or requests: <a className="text-primary hover:underline" href="mailto:support@navaroad.com">support@navaroad.com</a>.</p>
+          <p>Questions or requests about this Privacy Policy: <a className="text-primary hover:underline" href="mailto:info@navaroad.com">info@navaroad.com</a>.</p>
+          <p className="text-xs text-muted-foreground pt-2">Navaroad Technologies LLC · PO Box 620676 · Oviedo, FL 32762</p>
         </section>
 
         <p className="mt-10 text-xs text-muted-foreground">

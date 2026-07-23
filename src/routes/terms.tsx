@@ -29,7 +29,7 @@ function Terms() {
 
         <section className="mt-8 space-y-3 text-sm leading-relaxed">
           <h2 className="text-xl font-semibold">1. Acceptance</h2>
-          <p>By creating an account or using Navaroad you agree to these Terms and our <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>. If you do not agree, do not use the service.</p>
+          <p>By creating an account or using Navaroad FleetOS you agree to these Terms of Service and our <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>. If you do not agree, do not use the service.</p>
 
           <h2 className="text-xl font-semibold pt-4">2. Safety disclaimer — read this</h2>
           <p><strong>Navaroad is a decision-support tool, not a substitute for your own judgment.</strong> Routes, hazards, weather, weigh-station status, and other data are provided "as is" from third-party sources and other drivers and may be incomplete, delayed, or wrong. Always obey traffic laws, DOT regulations, posted signage, and your dispatcher's instructions. Do not interact with the app while driving.</p>
@@ -51,13 +51,14 @@ function Terms() {
           <p>You can delete your account at any time from Profile → Delete account. We may suspend or terminate access for violations of these Terms.</p>
 
           <h2 className="text-xl font-semibold pt-4">7. Limitation of liability</h2>
-          <p>To the maximum extent permitted by law, Navaroad is not liable for any indirect, incidental, or consequential damages, lost revenue, or losses arising from reliance on the information the service provides. Your sole remedy is to stop using the service.</p>
+          <p>To the maximum extent permitted by law, Navaroad Technologies LLC is not liable for any indirect, incidental, or consequential damages, lost revenue, or losses arising from reliance on the information the service provides. Your sole remedy is to stop using the service.</p>
 
           <h2 className="text-xl font-semibold pt-4">8. Changes</h2>
           <p>We may update these Terms. Material changes will be communicated in-app or by email. Continued use after the effective date constitutes acceptance.</p>
 
           <h2 className="text-xl font-semibold pt-4">9. Contact</h2>
-          <p><a className="text-primary hover:underline" href="mailto:support@navaroad.com">support@navaroad.com</a></p>
+          <p>Questions about these Terms of Service: <a className="text-primary hover:underline" href="mailto:legal@navaroad.com">legal@navaroad.com</a>.</p>
+          <p className="text-xs text-muted-foreground pt-2">Navaroad Technologies LLC · PO Box 620676 · Oviedo, FL 32762</p>
         </section>
 
         <p className="mt-10 text-xs text-muted-foreground">

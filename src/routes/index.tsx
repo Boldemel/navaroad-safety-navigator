@@ -384,19 +384,44 @@ function Landing() {
 
       {/* Footer */}
       <footer className="border-t border-white/5 px-5 py-10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-xs text-zinc-600 sm:flex-row">
-          <div className="flex items-center gap-2">
-            <NavaroadMark size={20} />
-            <span className="font-bold tracking-tight text-zinc-400">NAVAROAD</span>
-            <span className="text-zinc-700">·</span>
-            <span className="text-zinc-500">FleetOS</span>
+        <div className="mx-auto max-w-6xl">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <NavaroadMark size={20} />
+                <span className="font-bold tracking-tight text-zinc-400">NAVAROAD</span>
+              </div>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                Navaroad Technologies LLC<br />
+                PO Box 620676<br />
+                Oviedo, FL 32762
+              </p>
+            </div>
+            <div className="space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Legal</div>
+              <ul className="space-y-2 text-xs text-zinc-500">
+                <li><Link to="/privacy" className="hover:text-white">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="hover:text-white">Terms of Service</Link></li>
+              </ul>
+            </div>
+            <div className="space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Contact</div>
+              <ul className="space-y-2 text-xs text-zinc-500">
+                <li>Sales: <a href="mailto:sales@navaroad.com" className="hover:text-white">sales@navaroad.com</a></li>
+                <li>Support: <a href="mailto:support@navaroad.com" className="hover:text-white">support@navaroad.com</a></li>
+              </ul>
+            </div>
+            <div className="space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Help</div>
+              <ul className="space-y-2 text-xs text-zinc-500">
+                <li><Link to="/help" className="hover:text-white">Help Center</Link></li>
+                <li><Link to="/assistant" className="hover:text-white">Ask the Copilot</Link></li>
+              </ul>
+            </div>
           </div>
-          <div className="flex gap-6">
-            <Link to="/privacy" className="hover:text-white">Privacy</Link>
-            <Link to="/terms" className="hover:text-white">Terms</Link>
-            <Link to="/help" className="hover:text-white">Help</Link>
+          <div className="mt-8 border-t border-white/5 pt-6 text-center text-xs text-zinc-600">
+            © {new Date().getFullYear()} Navaroad Technologies LLC. All rights reserved.
           </div>
-          <div>© {new Date().getFullYear()} Navaroad Technologies. All rights reserved.</div>
         </div>
       </footer>
     </div>
