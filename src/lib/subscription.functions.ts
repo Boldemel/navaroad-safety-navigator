@@ -50,7 +50,7 @@ export const getMySubscription = createServerFn({ method: "GET" })
 
     const { data: c, error } = await supabase
       .from("companies")
-      .select("id, subscription_plan, subscription_status, trial_started_at, trial_ends_at, payment_method_on_file, payment_method_brand, payment_method_last4, cancelled_at")
+      .select("id, subscription_plan, subscription_status, trial_started_at, trial_ends_at, payment_method_on_file, payment_method_brand, payment_method_last4, cancelled_at, billing_subscription_id")
       .eq("id", mem.company_id)
       .single();
     if (error || !c) throw error ?? new Error("Company not found");
@@ -83,7 +83,9 @@ export const getMySubscription = createServerFn({ method: "GET" })
       paymentMethodOnFile: c.payment_method_on_file,
       paymentMethodBrand: c.payment_method_brand,
       paymentMethodLast4: c.payment_method_last4,
-      readOnly: isReadOnly(c.subscription_status),
+      readOnly: isReadOnly(c.subscription_status)
+        || (c.subscription_status === "trial" && !!trialEnds && trialEnds.getTime() < Date.now()
+            && !(c as any).billing_subscription_id),
       cancelledAt: c.cancelled_at,
       features: featureMap,
     };
