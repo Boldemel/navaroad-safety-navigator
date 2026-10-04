@@ -34,34 +34,57 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             case "active": return "active";
             case "past_due": return "past_due";
             case "unpaid": return "suspended";
+            case "paused": return "suspended";
             case "canceled": return "cancelled";
-            case "incomplete":
-            case "incomplete_expired": return "past_due";
-            default: return s;
+            default: return "past_due"; // incomplete, incomplete_expired, unknown → no paid access
           }
         };
 
-        async function resolveCompanyId(sub: any): Promise<string | null> {
-          const fromMeta = sub?.metadata?.company_id;
-          if (fromMeta) return fromMeta as string;
+        // Price id -> plan key, from our own catalog (authoritative over metadata).
+        const { data: planRows } = await supabaseAdmin
+          .from("subscription_plans").select("plan, stripe_monthly_price_id");
+        const planByPrice = new Map<string, string>();
+        for (const r of planRows ?? []) {
+          if (r.stripe_monthly_price_id) planByPrice.set(r.stripe_monthly_price_id, r.plan);
+        }
+
+        async function resolveCompany(sub: any): Promise<{ id: string; billing_subscription_id: string | null } | null> {
+          const fromMeta = sub?.metadata?.company_id as string | undefined;
+          if (fromMeta) {
+            const { data } = await supabaseAdmin
+              .from("companies").select("id, billing_subscription_id").eq("id", fromMeta).maybeSingle();
+            if (data) return data;
+          }
           if (sub?.customer) {
             const { data } = await supabaseAdmin
-              .from("companies").select("id")
+              .from("companies").select("id, billing_subscription_id")
               .eq("stripe_customer_id", sub.customer).maybeSingle();
-            return data?.id ?? null;
+            return data ?? null;
           }
           return null;
         }
 
-        async function syncFromSubscription(sub: any) {
-          const companyId = await resolveCompanyId(sub);
-          if (!companyId) return;
+        // Always re-fetch the subscription so out-of-order or replayed events
+        // converge on Stripe's current state (idempotent).
+        async function syncSubscriptionById(subId: string) {
+          const sub = await stripeFetch<any>(`/subscriptions/${subId}`);
+          const company = await resolveCompany(sub);
+          if (!company) {
+            console.warn("[stripe-webhook] no company for subscription", sub.id);
+            return;
+          }
           const status = mapStatus(sub.status);
-          const trialEndsAt = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null;
-          const isReadOnly = ["past_due", "suspended", "cancelled"].includes(status);
-          const planKey = sub.metadata?.plan as string | undefined;
+          const isLive = !["canceled", "incomplete_expired"].includes(sub.status);
+          // Ignore terminal events for an older subscription when the company
+          // has since moved to a different one.
+          if (company.billing_subscription_id && company.billing_subscription_id !== sub.id && !isLive) return;
 
-          // Try to read default payment method for last4/brand
+          const trialEndsAt = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : undefined;
+          const isReadOnly = ["past_due", "suspended", "cancelled"].includes(status);
+          const priceId = sub.items?.data?.[0]?.price?.id as string | undefined;
+          const planKey = (priceId && planByPrice.get(priceId)) || undefined;
+          if (priceId && !planKey) console.warn("[stripe-webhook] unknown price", priceId);
+
           let pmBrand: string | null = null;
           let pmLast4: string | null = null;
           let pmOnFile = false;
@@ -69,13 +92,14 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             const pmId = sub.default_payment_method
               ?? (await stripeFetch<any>(`/customers/${sub.customer}`)).invoice_settings?.default_payment_method;
             if (pmId) {
-              const pm = await stripeFetch<any>(`/payment_methods/${pmId}`);
+              const pm = await stripeFetch<any>(`/payment_methods/${typeof pmId === "string" ? pmId : pmId.id}`);
               pmBrand = pm.card?.brand ?? null;
               pmLast4 = pm.card?.last4 ?? null;
               pmOnFile = !!pm.card;
             }
           } catch { /* non-fatal */ }
 
+          const now = new Date().toISOString();
           const patch: Record<string, any> = {
             stripe_customer_id: sub.customer,
             billing_subscription_id: sub.id,
@@ -84,16 +108,24 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             payment_method_on_file: pmOnFile || undefined,
             payment_method_brand: pmBrand ?? undefined,
             payment_method_last4: pmLast4 ?? undefined,
-            read_only_at: isReadOnly ? new Date().toISOString() : null,
-            cancelled_at: status === "cancelled" ? new Date().toISOString() : null,
-            reactivated_at: !isReadOnly && status === "active" ? new Date().toISOString() : undefined,
+            read_only_at: isReadOnly ? now : null,
+            cancelled_at: status === "cancelled"
+              ? now
+              : (sub.cancel_at_period_end ? undefined : null),
           };
           if (planKey) patch.subscription_plan = planKey;
-          // Strip undefined to avoid overwriting existing values with null
           Object.keys(patch).forEach((k) => patch[k] === undefined && delete patch[k]);
 
-          await supabaseAdmin.from("companies").update(patch as any).eq("id", companyId);
+          const { error } = await supabaseAdmin.from("companies").update(patch as any).eq("id", company.id);
+          if (error) throw error;
         }
+
+        // Invoice subscription id lives in different places across API versions.
+        const invoiceSubId = (inv: any): string | null =>
+          inv?.subscription
+          ?? inv?.parent?.subscription_details?.subscription
+          ?? inv?.lines?.data?.[0]?.parent?.subscription_item_details?.subscription
+          ?? null;
 
         try {
           switch (event.type) {
@@ -106,25 +138,19 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
                   .update({ stripe_customer_id: session.customer })
                   .eq("id", companyId);
               }
-              if (session.subscription) {
-                const sub = await stripeFetch<any>(`/subscriptions/${session.subscription}`);
-                await syncFromSubscription(sub);
-              }
+              if (session.subscription) await syncSubscriptionById(session.subscription);
               break;
             }
             case "customer.subscription.created":
             case "customer.subscription.updated":
             case "customer.subscription.deleted": {
-              await syncFromSubscription(event.data.object);
+              await syncSubscriptionById(event.data.object.id);
               break;
             }
             case "invoice.payment_succeeded":
             case "invoice.payment_failed": {
-              const invoice = event.data.object;
-              if (invoice.subscription) {
-                const sub = await stripeFetch<any>(`/subscriptions/${invoice.subscription}`);
-                await syncFromSubscription(sub);
-              }
+              const subId = invoiceSubId(event.data.object);
+              if (subId) await syncSubscriptionById(subId);
               break;
             }
             default:
