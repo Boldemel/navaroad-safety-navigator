@@ -101,7 +101,10 @@ export const cancelMySubscription = createServerFn({ method: "POST" })
       .maybeSingle();
     if (lookupErr) throw lookupErr;
     if (!c) throw new Error("Only the company owner can cancel.");
-    const { error } = await supabase
+    // Billing fields are locked for client sessions; write via trusted server client
+    // after the owner check above.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
       .from("companies")
       .update({
         subscription_status: "cancelled",
@@ -113,27 +116,44 @@ export const cancelMySubscription = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Reactivate a cancelled / past-due / suspended subscription. */
+/**
+ * Reactivate a cancelled / past-due / suspended subscription.
+ * Status and plan are taken from Stripe, never from the client: the company's
+ * Stripe subscription must be active or trialing. Otherwise the owner must
+ * go through Checkout / Billing Portal.
+ */
 export const reactivateMySubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ plan: z.enum(SUBSCRIPTION_PLANS) }).parse(d))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const { data: c } = await supabase
-      .from("companies").select("id, owner_id, payment_method_on_file")
+      .from("companies").select("id, owner_id, billing_subscription_id")
       .eq("owner_id", userId).maybeSingle();
     if (!c) throw new Error("Only the company owner can reactivate.");
-    if (!c.payment_method_on_file) throw new Error("Add a payment method before reactivating.");
-    const { error } = await supabase
-      .from("companies")
-      .update({
-        subscription_status: "active",
-        subscription_plan: data.plan,
-        reactivated_at: new Date().toISOString(),
-        cancelled_at: null,
-        read_only_at: null,
-      })
-      .eq("id", c.id);
+    if (!c.billing_subscription_id) {
+      throw new Error("No active Stripe subscription. Start checkout from the Billing page.");
+    }
+    const { stripeFetch } = await import("./stripe.server");
+    const sub = await stripeFetch<any>(`/subscriptions/${c.billing_subscription_id}`);
+    if (sub?.metadata?.company_id && sub.metadata.company_id !== c.id) {
+      throw new Error("Subscription does not belong to this company.");
+    }
+    if (sub.status !== "active" && sub.status !== "trialing") {
+      throw new Error("Your Stripe subscription is not active. Update payment in the Billing Portal.");
+    }
+    const patch: Record<string, any> = {
+      subscription_status: sub.status === "trialing" ? "trial" : "active",
+      reactivated_at: new Date().toISOString(),
+      cancelled_at: null,
+      read_only_at: null,
+    };
+    const planKey = sub.metadata?.plan;
+    if (planKey && (SUBSCRIPTION_PLANS as readonly string[]).includes(planKey)) {
+      patch.subscription_plan = planKey;
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("companies").update(patch as any).eq("id", c.id);
     if (error) throw error;
     return { ok: true };
   });
