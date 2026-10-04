@@ -33,11 +33,36 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
     // Find caller's company (owner only allowed to start checkout)
     const { data: company, error: cErr } = await supabase
       .from("companies")
-      .select("id, name, stripe_customer_id, owner_id")
+      .select("id, name, stripe_customer_id, owner_id, billing_subscription_id")
       .eq("owner_id", userId)
       .maybeSingle();
     if (cErr) throw cErr;
     if (!company) throw new Error("Only the company owner can start checkout.");
+
+    // Prevent duplicate subscriptions: if a live subscription already exists,
+    // plan changes / payment fixes must go through the Billing Portal.
+    let hadPriorSubscription = !!company.billing_subscription_id;
+    if (company.billing_subscription_id) {
+      try {
+        const existing = await stripeFetch<any>(`/subscriptions/${company.billing_subscription_id}`);
+        if (!["canceled", "incomplete_expired"].includes(existing.status)) {
+          throw new Error("You already have a subscription. Use Manage billing to change plan or update payment.");
+        }
+      } catch (e) {
+        if (e instanceof Error && e.message.startsWith("You already have")) throw e;
+        // Unknown subscription id in Stripe: fall through to checkout.
+      }
+    }
+    if (company.stripe_customer_id && !hadPriorSubscription) {
+      const subs = await stripeFetch<any>(
+        `/subscriptions?customer=${encodeURIComponent(company.stripe_customer_id)}&status=all&limit=10`,
+      );
+      const list: any[] = subs?.data ?? [];
+      if (list.some((s) => !["canceled", "incomplete_expired"].includes(s.status))) {
+        throw new Error("You already have a subscription. Use Manage billing to change plan or update payment.");
+      }
+      if (list.length > 0) hadPriorSubscription = true;
+    }
 
     // Look up the plan's Stripe price id
     const { data: plan, error: pErr } = await supabase
@@ -68,7 +93,8 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
           allow_promotion_codes: true,
           line_items: [{ price: plan.stripe_monthly_price_id, quantity: 1 }],
           subscription_data: {
-            trial_period_days: 7,
+            // 7-day trial only for a company's first subscription.
+            trial_period_days: hadPriorSubscription ? undefined : 7,
             metadata: { company_id: company.id, plan: data.plan },
           },
           metadata: { company_id: company.id, plan: data.plan },

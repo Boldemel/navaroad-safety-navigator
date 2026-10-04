@@ -53,7 +53,9 @@ function samplePoiGeometry(geom: Array<[number, number]>, maxPoints: number) {
 
 export const Route = createFileRoute("/_authenticated/hazard-map")({
   component: HazardMap,
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): {
+    focusLat?: number; focusLon?: number; focusLabel?: string; focusDetails?: string;
+  } => ({
     focusLat: typeof search.focusLat === "number" ? search.focusLat
       : typeof search.focusLat === "string" ? Number(search.focusLat) : undefined,
     focusLon: typeof search.focusLon === "number" ? search.focusLon

@@ -50,7 +50,7 @@ export const getMySubscription = createServerFn({ method: "GET" })
 
     const { data: c, error } = await supabase
       .from("companies")
-      .select("id, subscription_plan, subscription_status, trial_started_at, trial_ends_at, payment_method_on_file, payment_method_brand, payment_method_last4, cancelled_at")
+      .select("id, subscription_plan, subscription_status, trial_started_at, trial_ends_at, payment_method_on_file, payment_method_brand, payment_method_last4, cancelled_at, billing_subscription_id")
       .eq("id", mem.company_id)
       .single();
     if (error || !c) throw error ?? new Error("Company not found");
@@ -83,37 +83,73 @@ export const getMySubscription = createServerFn({ method: "GET" })
       paymentMethodOnFile: c.payment_method_on_file,
       paymentMethodBrand: c.payment_method_brand,
       paymentMethodLast4: c.payment_method_last4,
-      readOnly: isReadOnly(c.subscription_status),
+      readOnly: isReadOnly(c.subscription_status)
+        || (c.subscription_status === "trial" && !!trialEnds && trialEnds.getTime() < Date.now()
+            && !(c as any).billing_subscription_id),
       cancelledAt: c.cancelled_at,
       features: featureMap,
     };
   });
 
-/** Owner-initiated cancel: keeps data, flips to cancelled (read-only). */
+/**
+ * Owner-initiated cancel. Cancels the real Stripe subscription so the
+ * customer cannot keep being charged:
+ * - trialing / active: cancel at period end (no further charges; trial ends
+ *   without charge). Access continues until then; the webhook flips the
+ *   company to cancelled when Stripe deletes the subscription.
+ * - past_due / unpaid / incomplete / paused: cancel immediately (stops retries).
+ * - no Stripe subscription: mark cancelled (read-only) locally.
+ */
 export const cancelMySubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const { data: c, error: lookupErr } = await supabase
       .from("companies")
-      .select("id, owner_id")
+      .select("id, owner_id, billing_subscription_id")
       .eq("owner_id", userId)
       .maybeSingle();
     if (lookupErr) throw lookupErr;
     if (!c) throw new Error("Only the company owner can cancel.");
-    // Billing fields are locked for client sessions; write via trusted server client
-    // after the owner check above.
+    const now = new Date().toISOString();
+    let patch: Record<string, any> = {
+      subscription_status: "cancelled",
+      cancelled_at: now,
+      read_only_at: now,
+    };
+    let mode: "period_end" | "immediate" | "local" = "local";
+    let accessUntil: string | null = null;
+
+    if (c.billing_subscription_id) {
+      const { stripeFetch } = await import("./stripe.server");
+      const sub = await stripeFetch<any>(`/subscriptions/${c.billing_subscription_id}`);
+      if (sub?.metadata?.company_id && sub.metadata.company_id !== c.id) {
+        throw new Error("Subscription does not belong to this company.");
+      }
+      if (sub.status === "trialing" || sub.status === "active") {
+        const updated = await stripeFetch<any>(`/subscriptions/${sub.id}`, {
+          method: "POST",
+          body: { cancel_at_period_end: true },
+        });
+        mode = "period_end";
+        const end = updated.trial_end && updated.status === "trialing"
+          ? updated.trial_end
+          : (updated.cancel_at ?? updated.items?.data?.[0]?.current_period_end ?? null);
+        accessUntil = end ? new Date(end * 1000).toISOString() : null;
+        // Keep access until Stripe ends the subscription; record the request.
+        patch = { cancelled_at: now };
+      } else if (sub.status !== "canceled" && sub.status !== "incomplete_expired") {
+        await stripeFetch(`/subscriptions/${sub.id}`, { method: "DELETE" });
+        mode = "immediate";
+      }
+    }
+
+    // Billing fields are locked for client sessions; write via trusted server
+    // client after the owner check above.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
-      .from("companies")
-      .update({
-        subscription_status: "cancelled",
-        cancelled_at: new Date().toISOString(),
-        read_only_at: new Date().toISOString(),
-      })
-      .eq("id", c.id);
+    const { error } = await supabaseAdmin.from("companies").update(patch as any).eq("id", c.id);
     if (error) throw error;
-    return { ok: true };
+    return { ok: true, mode, accessUntil };
   });
 
 /**
