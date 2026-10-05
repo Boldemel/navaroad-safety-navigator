@@ -11,6 +11,20 @@ export function SubscriptionBanner() {
   const { data: sub } = useSubscription();
   if (!sub) return null;
 
+  // Pre-checkout state: local trial placeholder with no Stripe subscription
+  // and no trial dates. The real 7-day trial starts only after Stripe Checkout.
+  if (sub.status === "trial" && !sub.trialEndsAt && !sub.paymentMethodOnFile) {
+    return (
+      <div className="flex items-center gap-2 border-b bg-primary/10 px-4 py-2 text-sm">
+        <Clock className="size-4 shrink-0" />
+        <span className="flex-1">
+          <strong>Finish setting up billing</strong> to start your 7-day free trial — card required, no charge until day 8.
+        </span>
+        <Link to="/billing" className="font-medium underline">Start checkout</Link>
+      </div>
+    );
+  }
+
   if (sub.readOnly) {
     return (
       <div className="flex items-center gap-2 border-b bg-destructive/10 px-4 py-2 text-sm text-destructive">

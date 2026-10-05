@@ -83,9 +83,12 @@ export const getMySubscription = createServerFn({ method: "GET" })
       paymentMethodOnFile: c.payment_method_on_file,
       paymentMethodBrand: c.payment_method_brand,
       paymentMethodLast4: c.payment_method_last4,
+      // A trial is only usable when Stripe created it (billing_subscription_id
+      // set by the webhook). A local trial with no Stripe subscription — the
+      // pre-checkout state — is read-only until checkout completes.
       readOnly: isReadOnly(c.subscription_status)
-        || (c.subscription_status === "trial" && !!trialEnds && trialEnds.getTime() < Date.now()
-            && !(c as any).billing_subscription_id),
+        || (c.subscription_status === "trial" && !(c as any).billing_subscription_id
+            && (!trialEnds || trialEnds.getTime() < Date.now())),
       cancelledAt: c.cancelled_at,
       features: featureMap,
     };
