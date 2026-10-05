@@ -1,48 +1,35 @@
-# Launch-Hardening Run — Final Status Report
+# QA Diagnosis: New-Account Local Trial + Demo Dashboard Data (no changes made)
 
-The prior run **completed all sections A–G**. Nothing stopped early; the timeout was only on the chat side. This is a status report only — no changes were made.
+## Answers to the six questions
 
-## A) Super-admin / role security — DONE
-- New sign-ups never receive platform super-admin; only a super-admin can grant it (DB trigger `protect_super_admin_role`).
-- Only one super-admin exists: the owner account (bolden0129@gmail.com). Legitimate access preserved.
-- Direct client inserts into `company_members` removed — members are added only through server-side checks.
-- Team actions (password reset, deactivate, role changes) now verify the target belongs to the caller's company (`assertTargetInCompany`) — closes a cross-company account-takeover hole the audit had missed.
-- **Two-company isolation test: 16/16 checks passed** (temporary companies, rolled back). Each owner saw only their own data; cross-company writes, self-promotion, and plan self-upgrades were all blocked.
+### 1) Is signup granting a local 7-day trial before Stripe Checkout? — YES, confirmed
+The DB trigger `provision_company_for_new_user()` (SECURITY DEFINER, runs at signup) inserts the new company directly with `subscription_status='trial'`, `subscription_plan='owner_operator'`, `trial_started_at=now()`, `trial_ends_at=now()+7 days`. Stripe Checkout is never in this path — the trial exists entirely in the database before a card is ever requested.
 
-## B) ELD credential security — DONE
-- ELD passwords are now AES-256-GCM encrypted server-side before storage (`src/lib/eld-crypto.server.ts`, key from `ELD_ENCRYPTION_KEY` secret); decrypted only in server functions. Roundtrip verified. No plaintext rows existed to convert.
+Verified on the actual account: "William Stewart's Fleet" (created 2026-10-05 06:59 UTC) — status `trial`, plan `owner_operator`, trial 10/05 → 10/12.
 
-## C) Plan limit enforcement — DONE
-- Truck and user limits enforced by DB triggers (`enforce_truck_limit` across 11 operational tables, `enforce_user_limit`) reading `subscription_plans` — cannot be bypassed from the client.
-- Enterprise/unlimited (NULL limits) works; super-admin-owned companies exempt so owner testing isn't blocked.
-- Clear user-facing errors, e.g. "Your plan allows up to 1 truck(s). Upgrade your plan…"
+### 2) Why does it say "Add a payment method"? 
+The banner (`src/components/subscription-banner.tsx`) shows that sentence whenever `status==='trial'` and `paymentMethodOnFile===false`. Because the local trial bypassed Stripe Checkout, no card was ever collected — the banner is accurately reporting a state the wrong signup flow created. Card-required-at-signup is only enforced inside Stripe Checkout, which the user never passed through.
 
-## D) Marketing/feature claim alignment — DONE
-- Public prices corrected to match Stripe: $49 / $149 / $299 (site previously showed $29 / $79 / $199).
-- Unbuilt claims removed or marked "(Roadmap)": API access, SSO, white label, multi-terminal, Copilot automation levels. "All 18 modules" claim reworded. AI Dispatch and Driver Recruiting remain hidden.
+### 3) Are the fleet metrics demo/hardcoded or cross-company data? — HARDCODED, no tenant leak
+`src/routes/_authenticated/home.tsx` hardcodes every number: lines 74–79 (12 active trucks, 9 drivers, 7 loads in transit, 4 deliveries, 3 alerts, 2 inspections), lines 86–93 (revenue $18,420, expenses $6,910, etc.), plus hardcoded Today's Alerts, Live Fleet Activity, Recent Loads, Recent Settlements, Recent Maintenance, Copilot tips, and 7-day Performance Summary charts. They are static string literals, not queries of any table.
 
-## E) Core production QA — DONE
-- Fixed a missed bug: new sign-ups got an owner role the app didn't recognize, so most of the menu was hidden. New owners now get the `fleet_owner` role with full access (migration + backfill).
-- Fixed: account deletion could leave a Stripe subscription billing — deletion is now blocked until the subscription is cancelled and other members are removed.
-- Removed a duplicate fuel-purchase trigger that ran twice per purchase.
-- All 35 pages load on a mobile-sized viewport with no errors; `tsgo --noEmit` clean.
-- Not testable without a real email inbox: a brand-new sign-up email flow.
+DB confirms the new company (`f61fa9ed-…`) has **0 loads, 0 trips, 0 maintenance records, 0 fuel purchases, 0 settlements, 1 member** — nothing was seeded and nothing leaked from another company. Tenant isolation is intact.
 
-## F) Legal/privacy consistency — DONE
-- Privacy Policy now covers fleet records, encrypted ELD logins, Stripe billing, Copilot chats; removed untrue claims (SMS/push notifications, breach-password check).
-- Terms gained a factual "Subscriptions and billing" section: 7-day trial, card required, monthly auto-renewal, cancel anytime, no partial refunds.
+### 4) Stripe state for the new account
+No Stripe customer, no subscription, no payment method: `stripe_customer_id` is NULL, `billing_subscription_id` is NULL, `payment_method_on_file` is false. (No personal data shown.)
 
-## G) Final audit — DONE
-- Build/type checks clean; DB and isolation tests passed (results above).
+### 5) Correct plan/role? — YES
+Plan `owner_operator`, member role `fleet_owner` — exactly as intended for new owners.
 
-## Remaining blockers — owner action required
-1. **Real-card trial checkout test** (only the owner can do this): subscribe, confirm the company updates, then cancel in Manage billing. No charge occurs during the trial.
-2. **Approve the updated public prices/claims** and have the new Terms billing section reviewed by someone with legal knowledge.
+### Root cause (single sentence)
+Signup auto-provisions a free local trial via the DB trigger, skipping Stripe Checkout entirely, and the Home dashboard is a static demo page — two independent launch issues.
 
-## Optional / post-launch
-- Archive unused Owner Operator Stripe prices ($49.99 monthly, $0, $49 one-time).
-- Email/SMS notifications, annual Stripe prices, consent-based member invites, external ELD/load-board feeds, API/SSO.
-- Tighten 55 Supabase linter warnings about security-definer helpers callable directly (common setup, not a blocker).
+## Recommended fix (implementation plan)
 
-## Final verdict
-**PASS for soft launch** — every code/data blocker is fixed. The only hard gate left is the owner's real-card test plus sign-off on the public pricing/legal wording.
+1. **Stop granting the trial at signup** — change `provision_company_for_new_user()`: insert the company with `subscription_status='trial'`-free state (e.g. `trial` only from Stripe) and NULL trial dates. The company must be provisioned (so RLS/ownership works) but not "in trial".
+2. **Force checkout before trial** — after signup/onboarding, the owner is redirected through `createCheckoutSession` ($49/mo Owner Operator, `trial_period_days: 7`, card required). Only the Stripe webhook (`checkout.session.completed`) sets the trial: `subscription_status='trial'`, real trial dates, `payment_method_on_file=true`, Stripe ids. Until then the app shows a read-only onboarding state (not a usable free trial) — `payment_method_on_file` is written only by the webhook, never locally.
+3. **No local trial fallback** — ensure no other code path writes `trial_ends_at`/`trial_started_at` locally (only the webhook and Stripe-truth code do).
+4. **Replace Home dashboard demo data with real queries** — fleet status, financial snapshot, alerts, activity, recent loads/settlements/maintenance, and performance summary should read the company's own tables (via server functions) and show proper empty states ("No trucks yet — add your first truck") when zero. Optionally keep the hardcoded numbers behind an explicit demo environment flag only.
+5. **Banner wording stays valid** once the flow is fixed: it will only ever show "Add a payment method" if a Stripe-created trial somehow lost its card, which Stripe prevents.
+
+No edits made — awaiting approval to implement.
