@@ -139,6 +139,8 @@ export const addCompanyMemberByEmail = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (memErr) {
+      const limit = /PLAN_LIMIT_USERS:\s*(.*)/.exec(memErr.message ?? "");
+      if (limit) throw new Error(limit[1]);
       if (memErr.code === "23505") throw new Error("That user is already a member.");
       throw memErr;
     }

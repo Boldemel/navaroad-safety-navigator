@@ -56,6 +56,31 @@ async function assertCanManage(
   if (!ok) throw new Error("You don't have permission to manage team members.");
 }
 
+/**
+ * The target user must belong to the caller's company. Only the company owner
+ * may act on the owner account, and only super admins may act on super admins.
+ */
+async function assertTargetInCompany(companyId: string, targetUserId: string, callerId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const [{ data: mem }, { data: company }, { data: sa }, { data: callerSa }] = await Promise.all([
+    supabaseAdmin.from("company_members").select("id").eq("company_id", companyId).eq("user_id", targetUserId).maybeSingle(),
+    supabaseAdmin.from("companies").select("owner_id").eq("id", companyId).maybeSingle(),
+    supabaseAdmin.from("user_roles").select("role").eq("user_id", targetUserId).eq("role", "super_admin").maybeSingle(),
+    supabaseAdmin.from("user_roles").select("role").eq("user_id", callerId).eq("role", "super_admin").maybeSingle(),
+  ]);
+  if (!mem) throw new Error("That user is not a member of your company.");
+  if (company?.owner_id === targetUserId && callerId !== targetUserId && !callerSa) {
+    throw new Error("Only the company owner can change the owner's account.");
+  }
+  if (sa && !callerSa) throw new Error("You can't change this account.");
+}
+
+function planLimitMessage(e: unknown): string | null {
+  const msg = (e as any)?.message ?? "";
+  const m = /PLAN_LIMIT_(?:USERS|TRUCKS):\s*(.*)/.exec(msg);
+  return m ? m[1] : null;
+}
+
 export const createCompanyUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => CreateUserSchema.parse(d))
@@ -70,6 +95,13 @@ export const createCompanyUser = createServerFn({ method: "POST" })
     const loginEmail = data.email
       ? data.email.trim().toLowerCase()
       : usernameToSyntheticEmail(data.username!);
+
+    // Plan seat limit — checked before creating the login so no orphan account is left.
+    const { data: usage } = await supabase.rpc("company_usage", { _company: data.companyId });
+    const u = usage as any;
+    if (u && !u.exempt && u.user_limit != null && u.users_used >= u.user_limit) {
+      throw new Error(`Your plan allows up to ${u.user_limit} user(s). Upgrade your plan to add more team members.`);
+    }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -97,6 +129,9 @@ export const createCompanyUser = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (memErr) {
+      await supabaseAdmin.auth.admin.deleteUser(newUserId);
+      const limit = planLimitMessage(memErr);
+      if (limit) throw new Error(limit);
       if (memErr.code === "23505") throw new Error("That user is already a member.");
       throw memErr;
     }
@@ -141,7 +176,7 @@ export const createCompanyUser = createServerFn({ method: "POST" })
           user_id: newUserId,
           company_id: data.companyId,
           eld_user_id: data.eldUserId || null,
-          eld_password: data.eldPassword || null,
+          eld_password: await (await import("./eld-crypto.server")).encryptEldSecret(data.eldPassword),
           eld_system: data.eldSystem || null,
           visible_to_driver: data.eldVisibleToDriver,
           created_by_user_id: userId,
@@ -181,6 +216,7 @@ export const resetUserPassword = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await assertCanManage(supabase, userId, data.companyId);
+    await assertTargetInCompany(data.companyId, data.targetUserId, userId);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.updateUserById(
@@ -218,6 +254,7 @@ export const setUserActive = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await assertCanManage(supabase, userId, data.companyId);
+    await assertTargetInCompany(data.companyId, data.targetUserId, userId);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin
@@ -297,6 +334,7 @@ export const getEldCredentials = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await assertCanManage(supabase, userId, data.companyId);
+    await assertTargetInCompany(data.companyId, data.targetUserId, userId);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await supabaseAdmin
@@ -306,8 +344,9 @@ export const getEldCredentials = createServerFn({ method: "POST" })
       .eq("user_id", data.targetUserId)
       .maybeSingle();
     if (error) throw error;
+    if (row) return { ...row, eld_password: await (await import("./eld-crypto.server")).decryptEldSecret(row.eld_password) };
     return (
-      row ?? {
+      {
         eld_user_id: null,
         eld_password: null,
         eld_system: null,
@@ -334,6 +373,7 @@ export const setEldCredentials = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await assertCanManage(supabase, userId, data.companyId);
+    await assertTargetInCompany(data.companyId, data.targetUserId, userId);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("driver_eld_credentials").upsert(
@@ -342,7 +382,7 @@ export const setEldCredentials = createServerFn({ method: "POST" })
         user_id: data.targetUserId,
         eld_system: data.eldSystem || null,
         eld_user_id: data.eldUserId || null,
-        eld_password: data.eldPassword || null,
+        eld_password: await (await import("./eld-crypto.server")).encryptEldSecret(data.eldPassword),
         visible_to_driver: data.visibleToDriver,
         created_by_user_id: userId,
       },
@@ -371,5 +411,6 @@ export const getMyEldCredentials = createServerFn({ method: "GET" })
       .eq("user_id", userId)
       .maybeSingle();
     if (error) throw error;
-    return data ?? null;
+    if (!data) return null;
+    return { ...data, eld_password: await (await import("./eld-crypto.server")).decryptEldSecret(data.eld_password) };
   });

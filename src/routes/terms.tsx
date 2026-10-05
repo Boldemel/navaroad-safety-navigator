@@ -25,7 +25,7 @@ function Terms() {
 
       <article className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-3xl font-semibold tracking-tight">Terms of Service</h1>
-        <p className="text-sm text-muted-foreground">Last updated: June 8, 2026</p>
+        <p className="text-sm text-muted-foreground">Last updated: October 5, 2026</p>
 
         <section className="mt-8 space-y-3 text-sm leading-relaxed">
           <h2 className="text-xl font-semibold">1. Acceptance</h2>
@@ -47,16 +47,26 @@ function Terms() {
             <li>No interference with the service or other users.</li>
           </ul>
 
-          <h2 className="text-xl font-semibold pt-4">6. Termination</h2>
-          <p>You can delete your account at any time from Profile → Delete account. We may suspend or terminate access for violations of these Terms.</p>
+          <h2 className="text-xl font-semibold pt-4">6. Subscriptions and billing</h2>
+          <ul className="list-disc pl-6 space-y-1">
+            <li>Paid plans start with a 7-day free trial. A payment method is required to start the trial.</li>
+            <li>Unless you cancel before the trial ends, your subscription starts automatically and is billed monthly at the plan price shown at checkout, until you cancel.</li>
+            <li>Payments are processed by Stripe. You can update your card or cancel at any time from Billing → Manage billing.</li>
+            <li>When you cancel, you keep access until the end of the current billing period and are not charged again. Partial periods are not refunded.</li>
+            <li>If a payment fails or a subscription ends, your account may become read-only until billing is restored. Your data is not deleted because of a billing change.</li>
+            <li>Plan limits (such as the number of trucks or users) apply as described on your plan.</li>
+          </ul>
 
-          <h2 className="text-xl font-semibold pt-4">7. Limitation of liability</h2>
+          <h2 className="text-xl font-semibold pt-4">7. Termination</h2>
+          <p>You can delete your account at any time from Profile → Delete account (company owners must cancel an active subscription first). We may suspend or terminate access for violations of these Terms.</p>
+
+          <h2 className="text-xl font-semibold pt-4">8. Limitation of liability</h2>
           <p>To the maximum extent permitted by law, Navaroad Technologies LLC is not liable for any indirect, incidental, or consequential damages, lost revenue, or losses arising from reliance on the information the service provides. Your sole remedy is to stop using the service.</p>
 
-          <h2 className="text-xl font-semibold pt-4">8. Changes</h2>
+          <h2 className="text-xl font-semibold pt-4">9. Changes</h2>
           <p>We may update these Terms. Material changes will be communicated in-app or by email. Continued use after the effective date constitutes acceptance.</p>
 
-          <h2 className="text-xl font-semibold pt-4">9. Contact</h2>
+          <h2 className="text-xl font-semibold pt-4">10. Contact</h2>
           <p>Questions about these Terms of Service: <a className="text-primary hover:underline" href="mailto:legal@navaroad.com">legal@navaroad.com</a>.</p>
           <p className="text-xs text-muted-foreground pt-2">Navaroad Technologies LLC · PO Box 620676 · Oviedo, FL 32762</p>
         </section>

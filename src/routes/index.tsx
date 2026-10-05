@@ -59,16 +59,16 @@ const MODULES = [
 const TIERS = [
   {
     name: "Owner Operator",
-    price: "$29",
+    price: "$49",
     priceSuffix: "/mo",
     tagline: "One truck, total control.",
-    features: ["All 18 modules", "IFTA & HOS automation", "AI Copilot", "Mobile + web"],
+    features: ["Navigation, loads & compliance", "IFTA & HOS tracking", "AI Copilot", "Works on phone & desktop browsers"],
     ctaText: "Start Free Trial",
     ctaHref: "/auth",
   },
   {
     name: "Small Fleet",
-    price: "$79",
+    price: "$149",
     priceSuffix: "/mo",
     tagline: "Up to 10 power units.",
     features: ["Dispatch workspace", "Driver payroll & settlements", "Profitability by truck", "Priority support"],
@@ -78,10 +78,10 @@ const TIERS = [
   },
   {
     name: "Growth Fleet",
-    price: "$199",
+    price: "$299",
     priceSuffix: "/mo",
     tagline: "Scale from 10 to 50 units.",
-    features: ["Multi-dispatcher", "Advanced analytics", "Custom roles", "API access"],
+    features: ["Multi-dispatcher", "Advanced analytics", "Custom roles", "Safety & KPI dashboards"],
     ctaText: "Start Free Trial",
     ctaHref: "/auth",
   },
@@ -94,17 +94,16 @@ const TIERS = [
       "Unlimited Trucks",
       "Unlimited Drivers",
       "Unlimited Users",
-      "Unlimited Locations",
-      "Multi-Terminal Management",
+            "Multi-Terminal Management (Roadmap)",
       "Dedicated Onboarding",
       "Priority Support",
       "Advanced Security",
-      "API Access",
-      "Custom Integrations",
+      "API Access (Roadmap)",
+      "Custom Integrations (Scoped per Contract)",
       "Custom Reporting",
       "Enterprise Administration",
-      "Single Sign-On (Future Ready)",
-      "White Label Options (Future Ready)",
+      "Single Sign-On (Roadmap)",
+      "White Label Options (Roadmap)",
       "Custom Billing & Contracts",
     ],
     ctaText: "Contact Sales",
@@ -166,7 +165,7 @@ function Landing() {
             <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-orange-500">The Platform</span>
             <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Everything your fleet needs.</h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-zinc-500 sm:text-base">
-              18 enterprise modules. One interface. Zero context-switching.
+              18 modules. One interface. Modules available depend on your plan.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -198,7 +197,7 @@ function Landing() {
                 <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-orange-400">Intelligence Layer</span>
                 <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Intelligence in every workflow.</h2>
                 <p className="mt-4 text-sm leading-relaxed text-zinc-300 sm:text-base">
-                  Navaroad Copilot recommends dispatch assignments, flags compliance risk, forecasts fuel spend, and drafts settlements — with three automation levels: recommend, approve, or auto-rule.
+                  Navaroad Copilot answers questions about your loads, trucks, drivers, and costs, flags compliance risk, and suggests next steps — using your own fleet data.
                 </p>
                 <ul className="mt-6 space-y-2 text-sm text-zinc-400">
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" /> Role-aware context across every module</li>
@@ -280,8 +279,8 @@ function Landing() {
             {[
               { img: tierOwner.url, name: "Owner Operator", body: "One truck. Full-power tools without enterprise pricing." },
               { img: tierSmall.url, name: "Small Fleet", body: "2–10 units. Dispatch, driver pay, and compliance covered." },
-              { img: tierGrowth.url, name: "Growth Fleet", body: "10–50 units. Multi-dispatcher, deep analytics, API access." },
-              { img: tierEnterprise.url, name: "Enterprise", body: "50+ units. Custom roles, integrations, dedicated success." },
+              { img: tierGrowth.url, name: "Growth Fleet", body: "10–50 units. Multi-dispatcher, deep analytics, safety dashboards." },
+              { img: tierEnterprise.url, name: "Enterprise", body: "50+ units. Custom roles, dedicated onboarding, custom contracts." },
             ].map(t => (
               <div key={t.name} className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 transition hover:border-orange-500/40">
                 <div className="mb-4 aspect-[4/3] w-full overflow-hidden rounded-xl bg-orange-500/10">

@@ -25,7 +25,7 @@ function Privacy() {
 
       <article className="max-w-3xl mx-auto px-6 py-12 prose prose-invert prose-headings:tracking-tight prose-headings:font-semibold">
         <h1 className="text-3xl font-semibold tracking-tight">Privacy Policy</h1>
-        <p className="text-sm text-muted-foreground">Last updated: June 8, 2026</p>
+        <p className="text-sm text-muted-foreground">Last updated: October 5, 2026</p>
 
         <section className="mt-8 space-y-3 text-sm leading-relaxed">
           <h2 className="text-xl font-semibold">1. Who we are</h2>
@@ -37,25 +37,29 @@ function Privacy() {
             <li><strong>Truck profile:</strong> truck type, dimensions, weight, axles, hazmat status, and load status you enter.</li>
             <li><strong>Location data:</strong> your GPS coordinates while the app is open, used to power proximity hazard alerts, route analysis, and "nearby" features. We do not store a continuous location history.</li>
             <li><strong>Hazard reports:</strong> the content, severity, and approximate location of reports you submit.</li>
+            <li><strong>Fleet business records:</strong> loads, dispatch notes, trip logs, hours-of-service logs, inspections, maintenance, fuel purchases, IFTA entries, expenses, settlements, documents, and team member profiles that you or your company enter.</li>
+            <li><strong>ELD login details:</strong> if your company stores ELD usernames and passwords, the passwords are encrypted before storage and only shown to authorized managers (and to the driver if shared).</li>
+            <li><strong>Billing data:</strong> your plan and subscription status. Card details are collected and stored by our payment processor, Stripe; we only keep the card brand and last four digits.</li>
+            <li><strong>AI Copilot conversations:</strong> messages you send to the Copilot and its replies, saved so your history is available across sessions.</li>
             <li><strong>Diagnostic data:</strong> error logs and basic device info to keep the service stable.</li>
           </ul>
 
           <h2 className="text-xl font-semibold pt-4">3. How we use it</h2>
           <ul className="list-disc pl-6 space-y-1">
             <li>To provide and improve the navigation, weather, hazard, dispatch, and fleet management features.</li>
-            <li>To send notifications you enable (email, push, SMS for critical alerts).</li>
+            <li>To show in-app alerts and notifications, and to send account emails such as sign-in and password reset.</li>
             <li>To moderate community hazard reports.</li>
             <li>To enforce our Terms and prevent abuse.</li>
           </ul>
 
           <h2 className="text-xl font-semibold pt-4">4. Who we share with</h2>
-          <p>We do not sell your personal data. We share limited data only with infrastructure providers needed to run the service: TomTom (maps, routing, geocoding), the National Weather Service (US weather alerts), OpenStreetMap (basemap data), and our hosting/database provider. Aggregated, de-identified hazard data may be visible to other drivers on the map.</p>
+          <p>We do not sell your personal data. We share limited data only with infrastructure providers needed to run the service: TomTom (maps, routing, geocoding), Stripe (payments and billing), AI model providers that process Copilot messages to generate replies, the National Weather Service (US weather alerts), OpenStreetMap (basemap data), and our hosting/database provider. Aggregated, de-identified hazard data may be visible to other drivers on the map.</p>
 
           <h2 className="text-xl font-semibold pt-4">5. Your rights</h2>
           <p>You can view and edit your profile at any time, and permanently delete your account and associated data from Profile → Delete account. Hazard reports remain visible to the community but are detached from your account on deletion.</p>
 
           <h2 className="text-xl font-semibold pt-4">6. Security</h2>
-          <p>Passwords are hashed, transport is encrypted with TLS, and database access is restricted by row-level security. We check new passwords against the Have I Been Pwned breach database.</p>
+          <p>Passwords are hashed, transport is encrypted with TLS, and database access is restricted by row-level security. Company data is separated so one fleet cannot see another fleet&apos;s records.</p>
 
           <h2 className="text-xl font-semibold pt-4">7. Children</h2>
           <p>Navaroad is intended for commercial drivers and is not directed to anyone under 18.</p>

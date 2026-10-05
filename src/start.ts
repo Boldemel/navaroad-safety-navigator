@@ -24,7 +24,19 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
   }
 });
 
+/** Turns database plan-limit errors into a clean, user-facing message. */
+const planLimitMiddleware = createMiddleware({ type: "function" }).server(async ({ next }) => {
+  try {
+    return await next();
+  } catch (error) {
+    const msg = (error as { message?: unknown })?.message;
+    const m = typeof msg === "string" ? /PLAN_LIMIT_(?:USERS|TRUCKS):\s*(.*)/.exec(msg) : null;
+    if (m) throw new Error(m[1]);
+    throw error;
+  }
+});
+
 export const startInstance = createStart(() => ({
-  functionMiddleware: [attachSupabaseAuth],
+  functionMiddleware: [attachSupabaseAuth, planLimitMiddleware],
   requestMiddleware: [errorMiddleware],
 }));
