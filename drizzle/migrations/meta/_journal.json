@@ -15,6 +15,13 @@
       "when": 1791148622671,
       "tag": "0001_expired_trial_read_only",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791181466524,
+      "tag": "0002_launch_hardening_roles_limits",
+      "breakpoints": true
     }
   ]
 }

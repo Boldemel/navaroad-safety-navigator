@@ -2640,6 +2640,21 @@ export type Database = {
         Args: { _company: string; _feature: string }
         Returns: boolean
       }
+      company_limit_exempt: { Args: { _company: string }; Returns: boolean }
+      company_plan_limits: {
+        Args: { _company: string }
+        Returns: {
+          truck_limit: number
+          user_limit: number
+        }[]
+      }
+      company_truck_units: {
+        Args: { _company: string }
+        Returns: {
+          unit: string
+        }[]
+      }
+      company_usage: { Args: { _company: string }; Returns: Json }
       current_trial_days_remaining: {
         Args: { _company: string }
         Returns: number
