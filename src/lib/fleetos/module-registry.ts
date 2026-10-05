@@ -58,6 +58,7 @@ export type FleetOSModule = {
 };
 
 const FULL_ACCESS_ROLES: CompanyRole[] = [
+  "company_owner",
   "fleet_owner",
   "fleet_manager",
   "dispatcher",
@@ -248,7 +249,7 @@ export const FLEETOS_MODULES: readonly FleetOSModule[] = [
     description: "Subscription, invoices, and payment method.",
     category: "financial",
     featureKey: "billing",
-    roles: ["fleet_owner"],
+    roles: ["company_owner", "fleet_owner"],
     routes: ["/billing"],
     automation: [],
     icon: "CreditCard",
