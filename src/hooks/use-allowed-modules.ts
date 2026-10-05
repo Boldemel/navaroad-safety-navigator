@@ -8,7 +8,6 @@ import {
 import type { CompanyRole } from "@/lib/company.shared";
 
 const FULL_ACCESS_ROLES = new Set<CompanyRole>([
-  "company_owner",
   "fleet_owner",
   "fleet_manager",
 ]);

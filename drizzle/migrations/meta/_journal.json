@@ -22,6 +22,13 @@
       "when": 1791181466524,
       "tag": "0002_launch_hardening_roles_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791181898657,
+      "tag": "0003_owner_signup_fleet_owner_role",
+      "breakpoints": true
     }
   ]
 }
