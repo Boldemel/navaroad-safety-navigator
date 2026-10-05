@@ -25,7 +25,7 @@ function Privacy() {
 
       <article className="max-w-3xl mx-auto px-6 py-12 prose prose-invert prose-headings:tracking-tight prose-headings:font-semibold">
         <h1 className="text-3xl font-semibold tracking-tight">Privacy Policy</h1>
-        <p className="text-sm text-muted-foreground">Last updated: June 8, 2026</p>
+        <p className="text-sm text-muted-foreground">Last updated: October 5, 2026</p>
 
         <section className="mt-8 space-y-3 text-sm leading-relaxed">
           <h2 className="text-xl font-semibold">1. Who we are</h2>
