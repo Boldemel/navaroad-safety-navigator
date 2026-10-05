@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { encryptEldSecret, decryptEldSecret } from "./eld-crypto.server";
 import { ROLES, ELD_SYSTEMS, ACCOUNT_STATUSES, usernameToSyntheticEmail } from "./company.shared";
 
 const UsernameSchema = z
@@ -177,7 +176,7 @@ export const createCompanyUser = createServerFn({ method: "POST" })
           user_id: newUserId,
           company_id: data.companyId,
           eld_user_id: data.eldUserId || null,
-          eld_password: await encryptEldSecret(data.eldPassword),
+          eld_password: await (await import("./eld-crypto.server")).encryptEldSecret(data.eldPassword),
           eld_system: data.eldSystem || null,
           visible_to_driver: data.eldVisibleToDriver,
           created_by_user_id: userId,
@@ -345,7 +344,7 @@ export const getEldCredentials = createServerFn({ method: "POST" })
       .eq("user_id", data.targetUserId)
       .maybeSingle();
     if (error) throw error;
-    if (row) return { ...row, eld_password: await decryptEldSecret(row.eld_password) };
+    if (row) return { ...row, eld_password: await (await import("./eld-crypto.server")).decryptEldSecret(row.eld_password) };
     return (
       {
         eld_user_id: null,
@@ -383,7 +382,7 @@ export const setEldCredentials = createServerFn({ method: "POST" })
         user_id: data.targetUserId,
         eld_system: data.eldSystem || null,
         eld_user_id: data.eldUserId || null,
-        eld_password: await encryptEldSecret(data.eldPassword),
+        eld_password: await (await import("./eld-crypto.server")).encryptEldSecret(data.eldPassword),
         visible_to_driver: data.visibleToDriver,
         created_by_user_id: userId,
       },
@@ -413,5 +412,5 @@ export const getMyEldCredentials = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw error;
     if (!data) return null;
-    return { ...data, eld_password: await decryptEldSecret(data.eld_password) };
+    return { ...data, eld_password: await (await import("./eld-crypto.server")).decryptEldSecret(data.eld_password) };
   });
