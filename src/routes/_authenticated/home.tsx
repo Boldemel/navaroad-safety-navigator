@@ -7,8 +7,8 @@ import { getHomeDashboard, type HomeDashboardData } from "@/lib/home-dashboard.f
 import {
   Truck, Users, Package, PackageCheck, Bell, ClipboardCheck,
   DollarSign, Receipt, TrendingUp, Fuel, Gauge, FileText, Wallet,
-  Map as MapIcon, Radio, PlusCircle, Wrench, Sparkles, ClipboardList,
-  Activity, AlertTriangle, Clock, ArrowUpRight, Loader2,
+  Map as MapIcon, Radio, PlusCircle, Wrench, Sparkles,
+  Activity, AlertTriangle, ArrowUpRight, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
