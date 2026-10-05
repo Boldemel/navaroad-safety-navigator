@@ -12,3 +12,6 @@
 - [ ] Owner: real-card trial checkout test (owner action)
 - [ ] Owner: approve updated public prices/claims and Terms billing section (legal review recommended)
 - Post-launch: email/SMS notifications, annual Stripe prices, consent-based member invites, external ELD/load-board, API/SSO
+- [ ] Stripe-before-trial: remove local trial grant, normalize test account, gate pre-checkout access
+- [ ] Home dashboard: replace hardcoded demo data with real company-scoped queries + empty states
+- [ ] Verify: no free local trial, $49 checkout reachable, zeros for new company, tenant isolation, type/build checks
