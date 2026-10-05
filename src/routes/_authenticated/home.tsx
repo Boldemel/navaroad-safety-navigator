@@ -1,11 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { getHomeDashboard, type HomeDashboardData } from "@/lib/home-dashboard.functions";
 import {
   Truck, Users, Package, PackageCheck, Bell, ClipboardCheck,
   DollarSign, Receipt, TrendingUp, Fuel, Gauge, FileText, Wallet,
   Map as MapIcon, Radio, PlusCircle, Wrench, Sparkles, ClipboardList,
-  Activity, AlertTriangle, CheckCircle2, Clock, ArrowUpRight,
+  Activity, AlertTriangle, Clock, ArrowUpRight, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -14,9 +17,30 @@ export const Route = createFileRoute("/_authenticated/home")({
   component: HomeDashboard,
 });
 
+const usd = (n: number) =>
+  n.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+const num = (n: number) => n.toLocaleString();
+
+function timeAgo(iso: string): string {
+  const t = new Date(iso).getTime();
+  if (!t) return "";
+  const mins = Math.max(0, Math.round((Date.now() - t) / 60_000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.round(hrs / 24)}d ago`;
+}
+
 function HomeDashboard() {
   const [name, setName] = useState<string>("");
   const [now, setNow] = useState<Date>(() => new Date());
+  const fetchDashboard = useServerFn(getHomeDashboard);
+  const { data, isLoading } = useQuery<HomeDashboardData | null>({
+    queryKey: ["home-dashboard"],
+    queryFn: () => fetchDashboard(),
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     (async () => {
@@ -41,7 +65,6 @@ function HomeDashboard() {
     return () => clearInterval(t);
   }, []);
 
-
   const hour = now.getHours();
   const greeting =
     hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
@@ -51,6 +74,21 @@ function HomeDashboard() {
     day: "numeric",
     year: "numeric",
   });
+
+  if (isLoading || !data) {
+    return (
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-2 py-16 justify-center text-muted-foreground">
+          <Loader2 className="size-5 animate-spin" /> Loading your dashboard…
+        </div>
+      </div>
+    );
+  }
+
+  const { fleet, financial, performance7d } = data;
+  const hasAnyData =
+    fleet.activeTrucks + fleet.loadsInTransit + data.recentLoads.length +
+    data.recentSettlements.length + data.recentMaintenance.length > 0;
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-8">
@@ -68,29 +106,37 @@ function HomeDashboard() {
         </p>
       </header>
 
+      {!hasAnyData && (
+        <div className="rounded-2xl border border-orange-500/30 bg-orange-500/5 p-5 text-sm">
+          <strong>Your fleet is just getting started.</strong>{" "}
+          Add your first truck, create a load, or log a fuel purchase — every
+          number on this page is your real data and will fill in as you work.
+        </div>
+      )}
+
       {/* Fleet Status */}
       <Section title="Fleet Status" hint="Live operational snapshot">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <StatCard icon={Truck} label="Active Trucks" value="12" />
-          <StatCard icon={Users} label="Drivers On Duty" value="9" />
-          <StatCard icon={Package} label="Loads In Transit" value="7" />
-          <StatCard icon={PackageCheck} label="Deliveries Today" value="4" />
-          <StatCard icon={Bell} label="Active Alerts" value="3" tone="warning" />
-          <StatCard icon={ClipboardCheck} label="Pending Inspections" value="2" />
+          <StatCard icon={Truck} label="Active Trucks" value={num(fleet.activeTrucks)} />
+          <StatCard icon={Users} label="Drivers On Duty" value={num(fleet.driversOnDuty)} />
+          <StatCard icon={Package} label="Loads In Transit" value={num(fleet.loadsInTransit)} />
+          <StatCard icon={PackageCheck} label="Deliveries Today" value={num(fleet.deliveriesToday)} />
+          <StatCard icon={Bell} label="Active Alerts" value={num(fleet.activeAlerts)} tone={fleet.activeAlerts > 0 ? "warning" : "default"} />
+          <StatCard icon={ClipboardCheck} label="Open Maint. Tasks" value={num(fleet.pendingInspections)} />
         </div>
       </Section>
 
       {/* Financial Snapshot */}
       <Section title="Financial Snapshot" hint="Today's performance">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard icon={DollarSign} label="Revenue Today" value="$18,420" tone="success" />
-          <StatCard icon={Receipt} label="Expenses Today" value="$6,910" />
-          <StatCard icon={TrendingUp} label="Profit Today" value="$11,510" tone="success" />
-          <StatCard icon={Gauge} label="Revenue / Mile" value="$2.45" />
-          <StatCard icon={Fuel} label="Fuel Cost" value="$3,240" />
-          <StatCard icon={Activity} label="Average MPG" value="6.8" />
-          <StatCard icon={Wallet} label="Settlement Total" value="$42,180" />
-          <StatCard icon={FileText} label="Outstanding Invoices" value="$27,650" tone="warning" />
+          <StatCard icon={DollarSign} label="Revenue Today" value={usd(financial.revenueToday)} tone={financial.revenueToday > 0 ? "success" : "default"} />
+          <StatCard icon={Receipt} label="Expenses Today" value={usd(financial.expensesToday)} />
+          <StatCard icon={TrendingUp} label="Profit Today" value={usd(financial.profitToday)} tone={financial.profitToday > 0 ? "success" : "default"} />
+          <StatCard icon={Gauge} label="Revenue / Mile" value={financial.revenuePerMile != null ? `$${financial.revenuePerMile.toFixed(2)}` : "—"} />
+          <StatCard icon={Fuel} label="Fuel Cost" value={usd(financial.fuelCostToday)} />
+          <StatCard icon={Activity} label="Average MPG" value={financial.averageMpg != null ? financial.averageMpg.toFixed(1) : "—"} />
+          <StatCard icon={Wallet} label="Settlements (30d)" value={usd(financial.settlementTotal30d)} />
+          <StatCard icon={FileText} label="Outstanding Invoices" value={usd(financial.outstandingInvoices)} tone={financial.outstandingInvoices > 0 ? "warning" : "default"} />
         </div>
       </Section>
 
@@ -109,29 +155,35 @@ function HomeDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Alerts */}
-        <Panel title="Today's Alerts" icon={AlertTriangle}>
-          <FeedList
-            items={[
-              { icon: AlertTriangle, text: "High winds along I-80", meta: "Weather · 12m ago", tone: "warning" },
-              { icon: Clock, text: "Truck #418 approaching HOS limit", meta: "Compliance · 24m ago", tone: "warning" },
-              { icon: ClipboardCheck, text: "Inspection due tomorrow — Truck #521", meta: "Compliance", tone: "default" },
-              { icon: Wrench, text: "Maintenance overdue — Truck #412", meta: "Maintenance · 1h ago", tone: "destructive" },
-              { icon: Fuel, text: "Low fuel warning — Truck #305", meta: "Fuel · 2h ago", tone: "default" },
-            ]}
-          />
+        <Panel title="Active Alerts" icon={AlertTriangle}>
+          {data.alertsFeed.length === 0 ? (
+            <EmptyState text="No active alerts right now." />
+          ) : (
+            <FeedList
+              items={data.alertsFeed.map((a) => ({
+                icon: AlertTriangle,
+                text: a.text,
+                meta: timeAgo(a.at),
+                tone: a.severity === "high" || a.severity === "critical" ? "destructive" : "warning",
+              }))}
+            />
+          )}
         </Panel>
 
         {/* Activity */}
-        <Panel title="Live Fleet Activity" icon={Activity}>
-          <FeedList
-            items={[
-              { icon: Truck, text: "Truck #412 departed Dallas, TX", meta: "3m ago" },
-              { icon: PackageCheck, text: "Load #LD-2043 delivered in Atlanta, GA", meta: "18m ago", tone: "success" },
-              { icon: ClipboardCheck, text: "Driver Smith completed pre-trip inspection", meta: "42m ago" },
-              { icon: Fuel, text: "Fuel purchase recorded — Truck #305", meta: "1h ago" },
-              { icon: Wrench, text: "Maintenance completed — Truck #418", meta: "2h ago", tone: "success" },
-            ]}
-          />
+        <Panel title="Recent Fleet Activity" icon={Activity}>
+          {data.activity.length === 0 ? (
+            <EmptyState text="No activity yet — trips and loads will appear here." />
+          ) : (
+            <FeedList
+              items={data.activity.map((a) => ({
+                icon: Truck,
+                text: a.text,
+                meta: timeAgo(a.at),
+                tone: "default",
+              }))}
+            />
+          )}
         </Panel>
       </div>
 
@@ -161,12 +213,20 @@ function HomeDashboard() {
           </Link>
         </div>
         <div className="relative mt-4 grid gap-2 sm:grid-cols-2">
-          {[
-            "Fuel prices are lower ahead on your current route — save an estimated $84.",
-            "Truck #521 profitability dropped 12% this week. Review settlements?",
-            "Driver Smith can accept another load after 4:30 PM based on HOS.",
-            "Inspection deadline tomorrow — 2 trucks due.",
-          ].map((s, i) => (
+          {(hasAnyData
+            ? [
+                "Ask Copilot which loads were most profitable this week.",
+                "Ask Copilot to summarize fuel spend by truck.",
+                "Ask Copilot which drivers are approaching HOS limits.",
+                "Ask Copilot to draft a maintenance plan from open tasks.",
+              ]
+            : [
+                "Add your first truck, then ask Copilot for a profitability breakdown.",
+                "Create a load and ask Copilot to suggest a dispatch plan.",
+                "Log a fuel purchase and ask Copilot to track your cost per mile.",
+                "Ask Copilot how to set up inspections for your fleet.",
+              ]
+          ).map((s, i) => (
             <div
               key={i}
               className="rounded-xl border border-border bg-background/60 p-3 text-sm"
@@ -180,47 +240,62 @@ function HomeDashboard() {
       {/* Performance Summary */}
       <Section title="Performance Summary" hint="Last 7 days">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <MiniChart label="Revenue" value="$142,850" delta="+12.4%" bars={[42, 65, 55, 78, 90, 72, 95]} tone="success" />
-          <MiniChart label="Expenses" value="$48,220" delta="-3.1%" bars={[60, 55, 62, 50, 58, 48, 52]} tone="default" />
-          <MiniChart label="Profit" value="$94,630" delta="+18.2%" bars={[35, 48, 42, 62, 74, 68, 82]} tone="success" />
-          <MiniChart label="RPM" value="$2.45" delta="+0.08" bars={[40, 44, 42, 48, 52, 50, 56]} tone="default" />
-          <MiniChart label="Fuel" value="$32,180" delta="-1.2%" bars={[55, 60, 58, 52, 50, 48, 46]} tone="default" />
-          <MiniChart label="Miles" value="58,410" delta="+6.9%" bars={[50, 58, 55, 66, 72, 68, 78]} tone="default" />
+          <MiniChart label="Revenue" value={usd(performance7d.revenue.reduce((a, b) => a + b, 0))} bars={toBars(performance7d.revenue)} tone="success" />
+          <MiniChart label="Expenses" value={usd(performance7d.expenses.reduce((a, b) => a + b, 0))} bars={toBars(performance7d.expenses)} tone="default" />
+          <MiniChart label="Profit" value={usd(performance7d.profit.reduce((a, b) => a + b, 0))} bars={toBars(performance7d.profit)} tone="success" />
+          <MiniChart label="Miles" value={num(Math.round(performance7d.miles.reduce((a, b) => a + b, 0)))} bars={toBars(performance7d.miles)} tone="default" />
+          <MiniChart label="Fuel" value={usd(performance7d.fuel.reduce((a, b) => a + b, 0))} bars={toBars(performance7d.fuel)} tone="default" />
         </div>
       </Section>
 
       {/* Recent lists */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Panel title="Recent Loads" icon={Package}>
-          <CompactList
-            items={[
-              { primary: "LD-2043 · Dallas → Atlanta", secondary: "Delivered · $2,450" },
-              { primary: "LD-2042 · Phoenix → Denver", secondary: "In transit · $3,120" },
-              { primary: "LD-2041 · Chicago → Nashville", secondary: "Assigned · $2,780" },
-            ]}
-          />
+          {data.recentLoads.length === 0 ? (
+            <EmptyState text="No loads yet — create your first load." />
+          ) : (
+            <CompactList
+              items={data.recentLoads.map((l) => ({
+                primary: l.label,
+                secondary: `${l.status}${l.rateUsd != null ? ` · ${usd(l.rateUsd)}` : ""}`,
+              }))}
+            />
+          )}
         </Panel>
         <Panel title="Recent Settlements" icon={Wallet}>
-          <CompactList
-            items={[
-              { primary: "Driver Smith · Wk 29", secondary: "$4,820 · Paid" },
-              { primary: "Driver Reyes · Wk 29", secondary: "$4,210 · Paid" },
-              { primary: "Driver Kim · Wk 29", secondary: "$3,940 · Pending" },
-            ]}
-          />
+          {data.recentSettlements.length === 0 ? (
+            <EmptyState text="No settlements yet." />
+          ) : (
+            <CompactList
+              items={data.recentSettlements.map((s) => ({
+                primary: s.label,
+                secondary: `${usd(s.amountUsd)} · ${s.status}`,
+              }))}
+            />
+          )}
         </Panel>
         <Panel title="Recent Maintenance" icon={Wrench}>
-          <CompactList
-            items={[
-              { primary: "Truck #418 · Oil change", secondary: "Completed today" },
-              { primary: "Truck #521 · Brake inspection", secondary: "Scheduled tomorrow" },
-              { primary: "Truck #305 · Tire rotation", secondary: "Completed yesterday" },
-            ]}
-          />
+          {data.recentMaintenance.length === 0 ? (
+            <EmptyState text="No maintenance records yet." />
+          ) : (
+            <CompactList
+              items={data.recentMaintenance.map((m) => ({
+                primary: m.label,
+                secondary: m.detail,
+              }))}
+            />
+          )}
         </Panel>
       </div>
     </div>
   );
+}
+
+/** Normalize daily values to bar heights (0–100). All-zero → flat minimal bars. */
+function toBars(values: number[]): number[] {
+  const max = Math.max(...values, 0);
+  if (max <= 0) return values.map(() => 4);
+  return values.map((v) => Math.max(4, Math.round((v / max) * 100)));
 }
 
 /* ---------------- primitives ---------------- */
@@ -239,6 +314,10 @@ function Section({
       {children}
     </section>
   );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return <p className="py-3 text-sm text-muted-foreground">{text}</p>;
 }
 
 type Tone = "default" | "success" | "warning" | "destructive";
@@ -291,7 +370,7 @@ function Panel({
   return (
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
       <div className="mb-3 flex items-center gap-2">
-        <div className="grid size-8 place-items-center rounded-lg bg-orange-500/10 text-orange-500">
+        <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-orange-500/10 text-orange-500">
           <Icon className="size-4" />
         </div>
         <h3 className="text-sm font-bold">{title}</h3>
@@ -347,28 +426,21 @@ function CompactList({
 }
 
 function MiniChart({
-  label, value, delta, bars, tone,
-}: { label: string; value: string; delta: string; bars: number[]; tone: Tone }) {
-  const positive = delta.trim().startsWith("+");
+  label, value, bars, tone,
+}: { label: string; value: string; bars: number[]; tone: Tone }) {
   return (
     <div className="rounded-xl border border-border bg-card p-3">
       <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
         {label}
       </div>
       <div className="mt-0.5 text-lg font-bold tabular-nums leading-tight">{value}</div>
-      <div className={cn(
-        "text-[11px] font-semibold",
-        positive ? "text-emerald-500" : "text-muted-foreground",
-      )}>
-        {delta}
-      </div>
       <div className="mt-2 flex h-10 items-end gap-1">
         {bars.map((h, i) => (
           <div
             key={i}
             className={cn(
               "flex-1 rounded-sm",
-              i === bars.length - 1
+              i === bars.length - 1 && h > 4
                 ? tone === "success" ? "bg-emerald-500" : "bg-orange-500"
                 : "bg-muted",
             )}
