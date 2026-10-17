@@ -1,5 +1,12 @@
 # Roadmap
 
+- [x] Verify public website and live FleetOS signup/sign-in destinations
+- [x] Repair FleetOS landing-page software links without redesign (preview only)
+- [x] Test desktop/mobile software CTA flows and marked public contact submission
+- [ ] Public navaroad.com CTA repairs: blocked by separate website source/hosting access, absent from this project and accessible workspace projects
+- [ ] Publish latest FleetOS onboarding UI: live app still has older banner; owner publish action required
+- [ ] Public contact delivery readback/notification and test cleanup: blocked by separate website backend access
+
 - [x] Launch blocker 1 (Critical): lock company billing fields from client updates
 - [x] Launch blocker 2: Stripe hardening + Owner Operator $49 price
 - [x] A) Super-admin / role security + two-company isolation test
