@@ -8,3 +8,4 @@
 - ELD passwords are AES-GCM encrypted server-side (`eld-crypto.server.ts`, secret `ELD_ENCRYPTION_KEY`) and decrypted only in server functions — never stored plaintext.
 - Self-signup owners receive the `fleet_owner` company role, which the module registry treats as full access.
 - Account deletion is blocked while the user owns a company with other members or a live, non-cancelling Stripe subscription — prevents billing after deletion.
+- Public FleetOS software CTAs use absolute external anchors to verified app-origin pages; TanStack Link is reserved for local routes so cross-origin navigation remains valid and type-safe.
