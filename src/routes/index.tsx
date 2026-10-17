@@ -64,7 +64,7 @@ const TIERS = [
     tagline: "One truck, total control.",
     features: ["Navigation, loads & compliance", "IFTA & HOS tracking", "AI Copilot", "Works on phone & desktop browsers"],
     ctaText: "Start Free Trial",
-    ctaHref: "/auth",
+    ctaHref: "https://app.navaroad.com/auth?mode=signup",
   },
   {
     name: "Small Fleet",
@@ -74,7 +74,7 @@ const TIERS = [
     features: ["Dispatch workspace", "Driver payroll & settlements", "Profitability by truck", "Priority support"],
     highlight: true,
     ctaText: "Start Free Trial",
-    ctaHref: "/auth",
+    ctaHref: "https://app.navaroad.com/auth?mode=signup",
   },
   {
     name: "Growth Fleet",
@@ -83,7 +83,7 @@ const TIERS = [
     tagline: "Scale from 10 to 50 units.",
     features: ["Multi-dispatcher", "Advanced analytics", "Custom roles", "Safety & KPI dashboards"],
     ctaText: "Start Free Trial",
-    ctaHref: "/auth",
+    ctaHref: "https://app.navaroad.com/auth?mode=signup",
   },
   {
     name: "Enterprise",
@@ -120,7 +120,7 @@ function Landing() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
           <NavaroadFleetOSLogo size={30} tone="dark" />
           <div className="flex items-center gap-3 sm:gap-5">
-            <Link to="/auth" className="hidden text-sm font-medium text-zinc-400 transition hover:text-white sm:inline">Sign in</Link>
+            <Link to="https://app.navaroad.com/auth?mode=signin" className="text-sm font-medium text-zinc-400 transition hover:text-white">Sign in</Link>
           </div>
         </div>
       </nav>
@@ -142,13 +142,13 @@ function Landing() {
           </p>
           <div className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
-              to="/auth"
+              to="https://app.navaroad.com/auth?mode=signup"
               className="rounded-xl bg-orange-500 px-6 py-4 text-center text-base font-bold text-black shadow-xl shadow-orange-500/30 transition hover:bg-orange-400 active:scale-95"
             >
               Start 7-Day Free Trial
             </Link>
             <Link
-              to="/auth"
+              to="https://app.navaroad.com/auth?mode=signin"
               className="rounded-xl border border-white/10 bg-white/5 px-6 py-4 text-center text-base font-medium text-white transition hover:bg-white/10"
             >
               Sign in
@@ -216,8 +216,8 @@ function Landing() {
                     3 trucks flagged: <span className="font-semibold">#412, #418, #521</span>. Main driver: fuel cost variance. Want me to draft a settlement review?
                   </div>
                   <div className="flex gap-2">
-                    <button className="rounded-md bg-orange-500 px-3 py-1.5 text-xs font-semibold text-black">Draft review</button>
-                    <button className="rounded-md border border-white/10 px-3 py-1.5 text-xs font-medium text-zinc-400">Show trucks</button>
+                    <Link to="https://app.navaroad.com/auth?mode=signin" className="rounded-md bg-orange-500 px-3 py-1.5 text-xs font-semibold text-black">Draft review</Link>
+                    <Link to="https://app.navaroad.com/auth?mode=signin" className="rounded-md border border-white/10 px-3 py-1.5 text-xs font-medium text-zinc-400">Show trucks</Link>
                   </div>
                 </div>
               </div>
@@ -366,13 +366,13 @@ function Landing() {
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              to="/auth"
+              to="https://app.navaroad.com/auth?mode=signup"
               className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-8 py-4 text-base font-bold text-black shadow-2xl shadow-orange-500/40 transition active:scale-95"
             >
               Start free trial <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              to="/auth"
+              to="https://app.navaroad.com/auth?mode=signin"
               className="rounded-xl border border-white/10 px-8 py-4 text-base font-medium text-white hover:bg-white/5"
             >
               Sign in
@@ -413,8 +413,8 @@ function Landing() {
             <div className="space-y-3">
               <div className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Help</div>
               <ul className="space-y-2 text-xs text-zinc-500">
-                <li><Link to="/help" className="hover:text-white">Help Center</Link></li>
-                <li><Link to="/assistant" className="hover:text-white">Ask the Copilot</Link></li>
+                <li><Link to="https://app.navaroad.com/help" className="hover:text-white">Help Center</Link></li>
+                <li><Link to="https://app.navaroad.com/assistant" className="hover:text-white">Ask the Copilot</Link></li>
               </ul>
             </div>
           </div>

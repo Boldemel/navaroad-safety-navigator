@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Verify public website and live FleetOS signup/sign-in destinations
+- [ ] Repair accessible public software CTAs and dispatch inquiry destinations without redesign
+- [ ] Test desktop/mobile CTA flows and report live deployment gaps
+
 - [x] Launch blocker 1 (Critical): lock company billing fields from client updates
 - [x] Launch blocker 2: Stripe hardening + Owner Operator $49 price
 - [x] A) Super-admin / role security + two-company isolation test
