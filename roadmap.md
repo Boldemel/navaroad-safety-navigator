@@ -1,10 +1,11 @@
 # Roadmap
 
+- [x] Oct 23 follow-up: verify commit ce61981, all 12 FleetOS links, live marketing failures, marked contact submission, and deployment evidence; report blockers
 - [x] Verify public website and live FleetOS signup/sign-in destinations
-- [x] Repair FleetOS landing-page software links without redesign (preview only)
+- [x] Repair FleetOS landing-page software links without redesign (confirmed live on app.navaroad.com Oct 23)
 - [x] Test desktop/mobile software CTA flows and marked public contact submission
 - [ ] Public navaroad.com CTA repairs: blocked by separate website source/hosting access, absent from this project and accessible workspace projects
-- [ ] Publish latest FleetOS onboarding UI: live app still has older banner; owner publish action required
+- [ ] Confirm live Stripe-before-trial onboarding: authenticated checkout/banner flow unverified Oct 23; owner-controlled card test required
 - [ ] Public contact delivery readback/notification and test cleanup: blocked by separate website backend access
 
 - [x] Launch blocker 1 (Critical): lock company billing fields from client updates
