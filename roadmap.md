@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Oct 23 company INSERT safety: replace owner client INSERT policy with super-admin-only, normalize nonprivileged INSERT defaults to pre-checkout, require Stripe subscription plus future trial end in DB/server response; no customer rows changed
+- [ ] Auth #418 root cause: not reproduced in clean desktop/mobile production/local tests; no speculative fix claimed
+
 - [x] Oct 23 follow-up: verify commit ce61981, all 12 FleetOS links, live marketing failures, marked contact submission, and deployment evidence; report blockers
 - [x] Verify public website and live FleetOS signup/sign-in destinations
 - [x] Repair FleetOS landing-page software links without redesign (confirmed live on app.navaroad.com Oct 23)

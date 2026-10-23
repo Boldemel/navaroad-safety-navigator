@@ -9,3 +9,4 @@
 - Self-signup owners receive the `fleet_owner` company role, which the module registry treats as full access.
 - Account deletion is blocked while the user owns a company with other members or a live, non-cancelling Stripe subscription — prevents billing after deletion.
 - Public FleetOS software CTAs use absolute external anchors to verified app-origin pages; TanStack Link is reserved for local routes so cross-origin navigation remains valid and type-safe.
+- Company INSERTs are trusted-provisioning-only (or verified super-admin); trial write gates require a Stripe subscription and an unexpired end in both database and subscription responses — prevents local-trial/orphan-company bypass.
