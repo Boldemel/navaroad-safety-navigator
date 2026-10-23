@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Oct 23 chat safety: POST /api/chat checks caller-company read-only and ai_assistant entitlement before message/context/AI work; 402/403 denials, fail-closed lookup errors, verified super-admin exemption; focused mock tests
+
 - [x] Oct 23 company INSERT safety: replace owner client INSERT policy with super-admin-only, normalize nonprivileged INSERT defaults to pre-checkout, require Stripe subscription plus future trial end in DB/server response; no customer rows changed
 - [ ] Auth #418 root cause: not reproduced in clean desktop/mobile production/local tests; no speculative fix claimed
 

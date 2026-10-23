@@ -10,3 +10,4 @@
 - Account deletion is blocked while the user owns a company with other members or a live, non-cancelling Stripe subscription — prevents billing after deletion.
 - Public FleetOS software CTAs use absolute external anchors to verified app-origin pages; TanStack Link is reserved for local routes so cross-origin navigation remains valid and type-safe.
 - Company INSERTs are trusted-provisioning-only (or verified super-admin); trial write gates require a Stripe subscription and an unexpired end in both database and subscription responses — prevents local-trial/orphan-company bypass.
+- Chat POST authorization uses the caller's resolved membership, database read-only verdict and `ai_assistant` entitlement before storage/context/gateway work; only server-verified super-admins bypass — prevents pre-checkout AI spending.
