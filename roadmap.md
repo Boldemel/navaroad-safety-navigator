@@ -1,5 +1,6 @@
 # Roadmap
 
+- [ ] Oct 23 follow-up: verify commit ce61981 against current desktop/mobile public pages, report every CTA and submission/deployment evidence, and finish accessible repairs
 - [x] Verify public website and live FleetOS signup/sign-in destinations
 - [x] Repair FleetOS landing-page software links without redesign (preview only)
 - [x] Test desktop/mobile software CTA flows and marked public contact submission
