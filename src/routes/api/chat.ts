@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { buildFleetContext, type ContextScope } from "@/lib/ai/fleet-context.server";
 import type { Database } from "@/integrations/supabase/types";
+import { checkChatAccess } from "@/lib/ai/chat-access.server";
 
 export const Route = createFileRoute("/api/chat")({
   server: {
@@ -41,6 +42,10 @@ export const Route = createFileRoute("/api/chat")({
           .maybeSingle();
         if (!member?.company_id) return new Response("No company", { status: 403 });
 
+        // Gate paid work before storing messages, loading fleet context, or calling AI.
+        const accessDenied = await checkChatAccess(supabase, userId, member.company_id);
+        if (accessDenied) return accessDenied;
+
         const { data: rolesRows } = await supabase
           .from("company_member_roles")
           .select("role")
@@ -55,7 +60,7 @@ export const Route = createFileRoute("/api/chat")({
         const isOwner = company?.owner_id === userId;
         const isDriver = roles.includes("driver");
 
-        // Any authenticated company member may use the copilot; data is scoped below.
+        // Only writable, entitled members (or verified super admins) reach this point.
         const body = (await request.json()) as { messages?: UIMessage[] };
         if (!Array.isArray(body.messages)) {
           return new Response("messages required", { status: 400 });
