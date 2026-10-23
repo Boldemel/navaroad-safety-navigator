@@ -48,3 +48,15 @@ export function statusLabel(s: SubscriptionStatus): string {
 export function isReadOnly(s: SubscriptionStatus): boolean {
   return READ_ONLY_STATUSES.includes(s);
 }
+
+/** Mirrors the database write gate; future local dates are not a Stripe trial. */
+export function isSubscriptionReadOnly(
+  status: SubscriptionStatus,
+  billingSubscriptionId: string | null,
+  trialEndsAt: string | null,
+  now: number = Date.now(),
+): boolean {
+  return isReadOnly(status) || (status === "trial" && (
+    !billingSubscriptionId || !trialEndsAt || !(new Date(trialEndsAt).getTime() > now)
+  ));
+}

@@ -36,6 +36,13 @@
       "when": 1791184058570,
       "tag": "0004_stripe_before_trial_provisioning",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792722165453,
+      "tag": "0005_close_client_company_trial_path",
+      "breakpoints": true
     }
   ]
 }

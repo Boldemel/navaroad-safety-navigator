@@ -7,6 +7,7 @@ import {
   type CompanySubscription,
   type PlanCatalogEntry,
   isReadOnly,
+  isSubscriptionReadOnly,
 } from "./subscription.shared";
 
 /** Catalog of all active plans (public to signed-in users). */
@@ -86,9 +87,7 @@ export const getMySubscription = createServerFn({ method: "GET" })
       // A trial is only usable when Stripe created it (billing_subscription_id
       // set by the webhook). A local trial with no Stripe subscription — the
       // pre-checkout state — is read-only until checkout completes.
-      readOnly: isReadOnly(c.subscription_status)
-        || (c.subscription_status === "trial" && !(c as any).billing_subscription_id
-            && (!trialEnds || trialEnds.getTime() < Date.now())),
+      readOnly: isSubscriptionReadOnly(c.subscription_status, c.billing_subscription_id, c.trial_ends_at),
       cancelledAt: c.cancelled_at,
       features: featureMap,
     };
